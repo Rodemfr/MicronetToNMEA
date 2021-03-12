@@ -131,7 +131,7 @@ void setup()
 	cc1101.setManchester(0); // Enables Manchester encoding/decoding. 0 = Disable. 1 = Enable.
 	cc1101.setFEC(0); // Enable Forward Error Correction (FEC) with interleaving for packet payload (Only supported for fixed packet length mode. 0 = Disable. 1 = Enable.
 	cc1101.setPQT(0); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
-	cc1101.setAppendStatus(0); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
+	cc1101.setAppendStatus(1); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
@@ -186,18 +186,27 @@ void SyncWordDetectedISR()
 	}
 
 	// Now we collect all data from CC1101 and store it into the "packet" structure
-	packet.rssi = cc1101.getRssi();               // Rssi Level in dBm
-	packet.lqi = cc1101.getLqi();                 // Link Quality Indicator
 	packet.len = cc1101.ReceiveData(packet.data); // Get FIFO Data and packet length
-	bool overflow = ((packet.len & 0x80) != 0);   // FIFO overflow flag
-	packet.len &= ~0xc0;                          // Remove flags from packet length
 
-	if (overflow || (packet.len == 0))
+	if (packet.len == 0)
 	{
-		// ReceiveData automatically flushes FIFO after reading, so no need to do that here
-		// However, we consider data as invalid and ignore the packet
+		// There was a FIFO overflow, so ignore this packet
 		return;
 	}
+
+	// Get RSSI and LQI values from status bytes
+	packet.rssi = packet.data[packet.len - 2];
+	if (packet.rssi >= 128)
+	{
+		packet.rssi = (packet.rssi - 256) / 2 - 74;
+	}
+	else
+	{
+		packet.rssi = (packet.rssi / 2) - 74;
+	}
+	packet.lqi = packet.data[packet.len - 1]  & 0x7f;
+	packet.crcOk = packet.data[packet.len - 1] & 0x80;
+	packet.len -=2;
 
 	// Add packet to the store
 	packetStore.AddPacket(packet);

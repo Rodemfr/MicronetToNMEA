@@ -15,8 +15,9 @@
 typedef struct
 {
 	unsigned char len;
-	signed char rssi;
-	signed char lqi;
+	signed int rssi;
+	unsigned char lqi;
+	unsigned char crcOk;
 	unsigned char data[64];
 } MicronetPacket_t;
 
