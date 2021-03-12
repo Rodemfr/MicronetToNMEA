@@ -356,7 +356,7 @@ void CC1101Driver::setCCMode(bool s)
 	{
 		SpiWriteReg(CC1101_IOCFG2, 0x0B);
 		SpiWriteReg(CC1101_IOCFG0, 0x06);
-		SpiWriteReg(CC1101_PKTCTRL0, 0x05);
+		SpiWriteReg(CC1101_PKTCTRL0, 0x00);
 		SpiWriteReg(CC1101_MDMCFG3, 0xF8);
 		SpiWriteReg(CC1101_MDMCFG4, 11 + m4RxBw);
 	}

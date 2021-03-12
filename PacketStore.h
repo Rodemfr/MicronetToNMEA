@@ -9,16 +9,16 @@
 #define PACKETSTORE_H_
 
 #include <arduino.h>
+#include <stdint.h>
 
 #define PACKET_STORE_SIZE 4
 
 typedef struct
 {
-	unsigned char len;
-	signed int rssi;
-	unsigned char lqi;
-	unsigned char crcOk;
-	unsigned char data[64];
+	uint8_t len;
+	int16_t rssi;
+	uint8_t lqi;
+	uint8_t data[64];
 } MicronetPacket_t;
 
 class PacketStore

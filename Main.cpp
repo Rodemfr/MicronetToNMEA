@@ -31,6 +31,7 @@
 #include "CC1101Driver.h"
 #include "PacketStore.h"
 #include "MenuManager.h"
+#include "PacketDecoder.h"
 
 #include "Arduino.h"
 #include <SPI.h>
@@ -53,9 +54,10 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-CC1101Driver cc1101;     // CC1101 Driver object
-MenuManager menu;        // Menu manager object
-PacketStore packetStore; // Micronet packet store, used for communication between CC1101 interrupt and main loop code
+CC1101Driver cc1101;         // CC1101 Driver object
+MenuManager menu;            // Menu manager object
+PacketStore packetStore;     // Micronet packet store, used for communication between CC1101 interrupt and main loop code
+PacketDecoder packetDecoder;
 
 /***************************************************************************/
 /*                           Local prototypes                              */
@@ -110,7 +112,7 @@ void setup()
 	cc1101.setGDO(GDO0_PIN, GDO2_PIN); // set lib internal gdo pins (gdo0,gdo2). Gdo2 not use for this example.
 	cc1101.setCCMode(1); // set config for internal transmission mode.
 	cc1101.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
-	cc1101.setMHZ(869.845); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
+	cc1101.setMHZ(869.784); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
 	cc1101.setDeviation(32); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
 	cc1101.setChannel(0); // Set the Channelnumber from 0 to 255. Default is cahnnel 0.
 	cc1101.setChsp(199.95); // The channel spacing is multiplied by the channel number CHAN and added to the base frequency in kHz. Value from 25.39 to 405.45. Default is 199.95 kHz.
@@ -118,13 +120,14 @@ void setup()
 	cc1101.setDRate(76.8); // Set the Data Rate in kBaud. Value from 0.02 to 1621.83. Default is 99.97 kBaud!
 	cc1101.setPA(0); // Set TxPower. The following settings are possible depending on the frequency band.  (-30  -20  -15  -10  -6    0    5    7    10   11   12) Default is max!
 	cc1101.setSyncMode(2); // Combined sync-word qualifier mode. 0 = No preamble/sync. 1 = 16 sync word bits detected. 2 = 16/16 sync word bits detected. 3 = 30/32 sync word bits detected. 4 = No preamble/sync, carrier-sense above threshold. 5 = 15/16 + carrier-sense above threshold. 6 = 16/16 + carrier-sense above threshold. 7 = 30/32 + carrier-sense above threshold.
-	cc1101.setSyncWord(0xb3, 0x20); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
+//	cc1101.setSyncWord(0xcc, 0xc1); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
+	cc1101.setSyncWord(0x99, 0x83); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
 	cc1101.setAdrChk(0); // Controls address check configuration of received packages. 0 = No address check. 1 = Address check, no broadcast. 2 = Address check and 0 (0x00) broadcast. 3 = Address check and 0 (0x00) and 255 (0xFF) broadcast.
 	cc1101.setAddr(0); // Address used for packet filtration. Optional broadcast addresses are 0 (0x00) and 255 (0xFF).
 	cc1101.setWhiteData(0); // Turn data whitening on / off. 0 = Whitening off. 1 = Whitening on.
 	cc1101.setPktFormat(0); // Format of RX and TX data. 0 = Normal mode, use FIFOs for RX and TX. 1 = Synchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins. 2 = Random TX mode; sends random data using PN9 generator. Used for test. Works as normal mode, setting 0 (00), in RX. 3 = Asynchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins.
 	cc1101.setLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
-	cc1101.setPacketLength(30); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
+	cc1101.setPacketLength(50); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
 	cc1101.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.
 	cc1101.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
 	cc1101.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
@@ -153,24 +156,36 @@ void loop()
 	MicronetPacket_t *packet;
 	while ((packet = packetStore.PeekPacket()) != nullptr)
 	{
-		for (int j = 0; j < packet->len; j++)
+		if (packetDecoder.GetNetworkId(packet) == 0x037737)
 		{
-			if (packet->data[j] < 16)
+			switch (packetDecoder.GetDeviceType(packet))
 			{
-				Serial.print("0");
-			}
-			Serial.print(packet->data[j], HEX);
-			Serial.print(" ");
-		}
-		Serial.print(" (");
-		Serial.print((int)packet->len);
-		Serial.print(",");
-		Serial.print((int)packet->rssi);
-		Serial.print(",");
-		Serial.print((int)packet->lqi);
-		Serial.print(")");
+			case DEVICE_TYPE_WIND_TRANSDUCER:
+				WindTransducer_Message_t message;
+				packetDecoder.DecodePacket(packet, &message);
 
-		Serial.println();
+			default:
+				for (int j = 0; j < packet->len; j++)
+				{
+					if (packet->data[j] < 16)
+					{
+						Serial.print("0");
+					}
+					Serial.print(packet->data[j], HEX);
+					Serial.print(" ");
+				}
+				Serial.print(" (");
+				Serial.print((int) packet->len);
+				Serial.print(",");
+				Serial.print((int) packet->rssi);
+				Serial.print(",");
+				Serial.print((int) packet->lqi);
+				Serial.print(")");
+
+				Serial.println();
+				break;
+			}
+		}
 		packetStore.Deletepacket();
 	}
 }
@@ -204,9 +219,14 @@ void SyncWordDetectedISR()
 	{
 		packet.rssi = (packet.rssi / 2) - 74;
 	}
-	packet.lqi = packet.data[packet.len - 1]  & 0x7f;
-	packet.crcOk = packet.data[packet.len - 1] & 0x80;
-	packet.len -=2;
+	packet.lqi = packet.data[packet.len - 1] & 0x7f;
+	packet.len = packet.data[11] + 1;
+
+	// Don't consider packet if its length is suspicious
+	if ((packet.data[11] != packet.data[12]) || (packet.len > 62))
+	{
+		return;
+	}
 
 	// Add packet to the store
 	packetStore.AddPacket(packet);
