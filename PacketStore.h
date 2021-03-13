@@ -11,16 +11,15 @@
 #include <arduino.h>
 #include <stdint.h>
 
-#define PACKET_STORE_SIZE 4
-#define MESSAGE_MAX_LENGTH 80
+#define MESSAGE_STORE_SIZE 4
+#define MICRONET_MESSAGE_MAX_LENGTH 80
 #define MICRONET_MESSAGE_MIN_LENGTH 13
 
 typedef struct
 {
 	uint8_t len;
 	int16_t rssi;
-	uint8_t lqi;
-	uint8_t data[MESSAGE_MAX_LENGTH];
+	uint8_t data[MICRONET_MESSAGE_MAX_LENGTH];
 } MicronetPacket_t;
 
 class PacketStore
@@ -38,7 +37,7 @@ private:
 	int writeIndex;
 	int readIndex;
 	int nbPackets;
-	MicronetPacket_t store[PACKET_STORE_SIZE];
+	MicronetPacket_t store[MESSAGE_STORE_SIZE];
 };
 
 #endif /* PACKETSTORE_H_ */

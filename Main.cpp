@@ -175,52 +175,67 @@ void SyncWordDetectedISR()
 	bool newLengthFound = false;
 
 	dataOffset = 0;
-	while (digitalRead(GDO0_PIN))
+	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
+	// begin collecting bytes right now. This way we will be able to instruct CC1101 to change packet size on the fly as soon as we will
+	// have identified the length field
+	do
 	{
-		// FIXME : infinite loop when shutting down the network
+		// How many bytes are already in the FIFO ?
 		nbBytes = cc1101.GetRxFifoNbBytes();
-		if (nbBytes & 0x80) // TODO : use driver constant
+		// Check for FIFO overflow
+		if (nbBytes & 0x80)
 		{
-			cc1101.FlushRxFifo();
+			// Yes : ignore current packet and restart CC1101 reception for the next packet
+			cc1101.RestartRx();
 			return;
 		}
+		// Are there new bytes in the FIFO ?
 		if (nbBytes > 0)
 		{
+			// Yes : read them
 			cc1101.ReadRxFifo(packet.data + dataOffset, nbBytes);
 			dataOffset += nbBytes;
-		}
-		if ((!newLengthFound) && (dataOffset >= 13))
-		{
-			newLengthFound = true;
-			if ((packet.data[11] == packet.data[12]) && (packet.data[11] < MESSAGE_MAX_LENGTH - 3))
+			// Check if we have reach the packet length field
+			if ((!newLengthFound) && (dataOffset >= 13))
 			{
-				cc1101.setPacketLength(packet.data[11] + 1);
-			}
-			else
-			{
-				cc1101.FlushRxFifo();
-				return;
+				newLengthFound = true;
+				// Yes : check that this is a valid length
+				if ((packet.data[11] == packet.data[12]) && (packet.data[11] < MICRONET_MESSAGE_MAX_LENGTH - 3) && ((packet.data[11] + 1) >= MICRONET_MESSAGE_MIN_LENGTH))
+				{
+					// Update CC1101's packet length register
+					cc1101.setPacketLength(packet.data[11] + 1);
+					// If CC1101 has already passed the number of bytes of the packet the fact of setting packet length to value
+					// below the number of byte already counted by CC1101 will make GDO0 not be deasserted, so we have to
+					// add an extra check to leave the loop
+					if (dataOffset >= packet.data[11] + 1)
+					{
+						break;
+					}
+				}
+				else
+				{
+					// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
+					cc1101.RestartRx();
+					return;
+				}
 			}
 		}
-	}
+		// Continue reading as long as CC1101 do not tell us that the packet reception is finished
+	} while (digitalRead(GDO0_PIN));
 
+	// Collect remaining byte that could have been missed in the last loop
 	nbBytes = cc1101.GetRxFifoNbBytes();
 	if (nbBytes > 0)
 	{
 		cc1101.ReadRxFifo(packet.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 	}
-	cc1101.FlushRxFifo();
+	// Restart CC1101 reception as soon as possible not to miss the next packet
+	cc1101.SetRx();
+	// Don't consider the last two status byte added by CC1101 in the packet length
 	packet.len = dataOffset - 2;
-
-	if (packet.len <= MICRONET_MESSAGE_MIN_LENGTH)
-	{
-		// We got an invalid message, so ignore it
-		return;
-	}
-
-	// Get RSSI and LQI values from status bytes
-	packet.rssi = packet.data[packet.len - 2];
+	// Get RSSI from status bytes appended to the packet
+	packet.rssi = packet.data[dataOffset - 2];
 	if (packet.rssi >= 128)
 	{
 		packet.rssi = (packet.rssi - 256) / 2 - 74;
@@ -229,8 +244,7 @@ void SyncWordDetectedISR()
 	{
 		packet.rssi = (packet.rssi / 2) - 74;
 	}
-	packet.lqi = packet.data[packet.len - 1] & 0x7f;
 
-	// Add packet to the store
+	// Add packet to the message store
 	packetStore.AddPacket(packet);
 }

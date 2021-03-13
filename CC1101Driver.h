@@ -182,7 +182,7 @@ public:
 	bool CheckRxFifo(int t);
 	int GetRxFifoNbBytes();
 	void ReadRxFifo(uint8_t *rxBuffer, int nbBytes);
-	void FlushRxFifo();
+	void RestartRx();
 };
 
 #endif

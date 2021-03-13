@@ -166,8 +166,6 @@ void PacketDecoder::PrintRawMessage(MicronetPacket_t *packet)
 	Serial.print((int) packet->len);
 	Serial.print(",");
 	Serial.print((int) packet->rssi);
-	Serial.print(",");
-	Serial.print((int) packet->lqi);
 	Serial.print(")");
 
 	Serial.println();

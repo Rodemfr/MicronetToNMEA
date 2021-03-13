@@ -1682,7 +1682,7 @@ void CC1101Driver::ReadRxFifo(uint8_t *rxBuffer, int nbBytes)
 	SpiReadBurstReg(CC1101_RXFIFO, rxBuffer, nbBytes);
 }
 
-void CC1101Driver::FlushRxFifo()
+void CC1101Driver::RestartRx()
 {
 	SpiStrobe(CC1101_SIDLE);
 	SpiStrobe(CC1101_SFRX);

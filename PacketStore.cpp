@@ -24,13 +24,13 @@ bool PacketStore::AddPacket(MicronetPacket_t &packet)
 	// Disable interrupts to avoid race conditions
 	noInterrupts();
 	// Check if there is space in store. If not, the packet is just dropped/ignored.
-	if (nbPackets < PACKET_STORE_SIZE)
+	if (nbPackets < MESSAGE_STORE_SIZE)
 	{
 		// Yes : copy packet to the store and update store's status
 		memcpy(&(store[writeIndex]), &packet, sizeof(packet));
 		writeIndex++;
 		nbPackets++;
-		if (writeIndex >= PACKET_STORE_SIZE)
+		if (writeIndex >= MESSAGE_STORE_SIZE)
 		{
 			writeIndex = 0;
 		}
@@ -57,7 +57,7 @@ bool PacketStore::GetPacket(MicronetPacket_t *packet)
 		memcpy(packet, &(store[readIndex]), sizeof(MicronetPacket_t));
 		// Remove packet from the store
 		readIndex++;
-		if (readIndex >= PACKET_STORE_SIZE)
+		if (readIndex >= MESSAGE_STORE_SIZE)
 		{
 			readIndex = 0;
 		}
@@ -100,7 +100,7 @@ void PacketStore::Deletepacket()
 	{
 		// Yes : delete the next one
 		readIndex++;
-		if (readIndex >= PACKET_STORE_SIZE)
+		if (readIndex >= MESSAGE_STORE_SIZE)
 		{
 			readIndex = 0;
 		}
