@@ -5,8 +5,9 @@
  *      Author: Ronan
  */
 
-#include "PacketDecoder.h"
+#include "MicronetDecoder.h"
 
+#include <arduino.h>
 #include <string.h>
 
 #define MICRONET_MESSAGE_ID_REQUEST_DATA 0x01
@@ -22,61 +23,61 @@
 #define MICRONET_FIELD_ID_TWS 0x21
 #define MICRONET_FIELD_ID_TWA 0x22
 
-PacketDecoder::PacketDecoder()
+MicronetDecoder::MicronetDecoder()
 {
 	memset(&micronetData, 0, sizeof(micronetData));
 	memset(&dataTimeStamps, 0, sizeof(dataTimeStamps));
 }
 
-PacketDecoder::~PacketDecoder()
+MicronetDecoder::~MicronetDecoder()
 {
 }
 
-uint32_t PacketDecoder::GetNetworkId(MicronetPacket_t *packet)
+uint32_t MicronetDecoder::GetNetworkId(MicronetMessage_t *message)
 {
 	unsigned int networkId;
 
-	networkId = packet->data[0];
-	networkId = (networkId << 8) | packet->data[1];
-	networkId = (networkId << 8) | packet->data[2];
+	networkId = message->data[0];
+	networkId = (networkId << 8) | message->data[1];
+	networkId = (networkId << 8) | message->data[2];
 
 	return networkId;
 }
 
-uint8_t PacketDecoder::GetDeviceType(MicronetPacket_t *packet)
+uint8_t MicronetDecoder::GetDeviceType(MicronetMessage_t *message)
 {
-	return packet->data[3];
+	return message->data[3];
 }
 
-uint32_t PacketDecoder::GetDeviceId(MicronetPacket_t *packet)
+uint32_t MicronetDecoder::GetDeviceId(MicronetMessage_t *message)
 {
 	unsigned int deviceId;
 
-	deviceId = packet->data[4];
-	deviceId = (deviceId << 8) | packet->data[5];
-	deviceId = (deviceId << 8) | packet->data[6];
+	deviceId = message->data[4];
+	deviceId = (deviceId << 8) | message->data[5];
+	deviceId = (deviceId << 8) | message->data[6];
 
 	return deviceId;
 }
 
-uint8_t PacketDecoder::GetMessageCategory(MicronetPacket_t *packet)
+uint8_t MicronetDecoder::GetMessageCategory(MicronetMessage_t *message)
 {
-	return packet->data[7];
+	return message->data[7];
 }
 
-uint8_t PacketDecoder::GetMessageId(MicronetPacket_t *packet)
+uint8_t MicronetDecoder::GetMessageId(MicronetMessage_t *message)
 {
-	return packet->data[8];
+	return message->data[8];
 }
 
-void PacketDecoder::DecodeMessage(MicronetPacket_t *packet)
+void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
 {
-	if (packet->data[7] == MICRONET_MESSAGE_ID_SEND_DATA)
+	if (message->data[7] == MICRONET_MESSAGE_ID_SEND_DATA)
 	{
 		int fieldOffset = 13;
-		while (fieldOffset < packet->len)
+		while (fieldOffset < message->len)
 		{
-			fieldOffset = DecodeDataField(packet, fieldOffset);
+			fieldOffset = DecodeDataField(message, fieldOffset);
 			if (fieldOffset < 0)
 			{
 				break;
@@ -85,32 +86,32 @@ void PacketDecoder::DecodeMessage(MicronetPacket_t *packet)
 	}
 }
 
-int PacketDecoder::DecodeDataField(MicronetPacket_t *packet, int offset)
+int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 {
 	short value;
 
-	if (packet->data[offset] == MICRONET_FIELD_TYPE_4)
+	if (message->data[offset] == MICRONET_FIELD_TYPE_4)
 	{
-		uint8_t crc = packet->data[offset] + packet->data[offset + 1] + packet->data[offset + 2] + packet->data[offset + 3]
-				+ packet->data[offset + 4];
-		if (crc == packet->data[offset + 5])
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
+				+ message->data[offset + 4];
+		if (crc == message->data[offset + 5])
 		{
-			value = packet->data[offset + 3];
-			value = (value << 8) | packet->data[offset + 4];
-			UpdateMicronetData(packet->data[offset + 1], value);
+			value = message->data[offset + 3];
+			value = (value << 8) | message->data[offset + 4];
+			UpdateMicronetData(message->data[offset + 1], value);
 		}
 
 		return offset + 6;
 	}
-	else if (packet->data[offset] == MICRONET_FIELD_TYPE_5)
+	else if (message->data[offset] == MICRONET_FIELD_TYPE_5)
 	{
-		uint8_t crc = packet->data[offset] + packet->data[offset + 1] + packet->data[offset + 2] + packet->data[offset + 3]
-				+ packet->data[offset + 4] + packet->data[offset + 5];
-		if (crc == packet->data[offset + 6])
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
+				+ message->data[offset + 4] + message->data[offset + 5];
+		if (crc == message->data[offset + 6])
 		{
-			value = packet->data[offset + 3];
-			value = (value << 8) | packet->data[offset + 4];
-			UpdateMicronetData(packet->data[offset + 1], value);
+			value = message->data[offset + 3];
+			value = (value << 8) | message->data[offset + 4];
+			UpdateMicronetData(message->data[offset + 1], value);
 		}
 		return offset + 7;
 	}
@@ -120,7 +121,7 @@ int PacketDecoder::DecodeDataField(MicronetPacket_t *packet, int offset)
 	}
 }
 
-void PacketDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
+void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 {
 	switch (fieldId)
 	{
@@ -151,27 +152,27 @@ void PacketDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 	}
 }
 
-void PacketDecoder::PrintRawMessage(MicronetPacket_t *packet)
+void MicronetDecoder::PrintRawMessage(MicronetMessage_t *message)
 {
-	for (int j = 0; j < packet->len; j++)
+	for (int j = 0; j < message->len; j++)
 	{
-		if (packet->data[j] < 16)
+		if (message->data[j] < 16)
 		{
 			Serial.print("0");
 		}
-		Serial.print(packet->data[j], HEX);
+		Serial.print(message->data[j], HEX);
 		Serial.print(" ");
 	}
 	Serial.print(" (");
-	Serial.print((int) packet->len);
+	Serial.print((int) message->len);
 	Serial.print(",");
-	Serial.print((int) packet->rssi);
+	Serial.print((int) message->rssi);
 	Serial.print(")");
 
 	Serial.println();
 }
 
-void PacketDecoder::PrintCurrentData()
+void MicronetDecoder::PrintCurrentData()
 {
 	if (micronetData.awaValid)
 	{
@@ -219,7 +220,7 @@ void PacketDecoder::PrintCurrentData()
 	Serial.println();
 }
 
-MicronetData_t* PacketDecoder::GetCurrentData()
+MicronetData_t* MicronetDecoder::GetCurrentData()
 {
 	return &micronetData;
 }

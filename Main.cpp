@@ -29,11 +29,11 @@
 /***************************************************************************/
 
 #include "CC1101Driver.h"
-#include "PacketStore.h"
+#include "MicronetDecoder.h"
+#include "MicronetMessageFifo.h"
 #include "MenuManager.h"
-#include "PacketDecoder.h"
 
-#include "Arduino.h"
+#include <Arduino.h>
 #include <SPI.h>
 #include <wiring.h>
 #include <iostream>
@@ -54,10 +54,10 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-CC1101Driver cc1101;         // CC1101 Driver object
-MenuManager menu;            // Menu manager object
-PacketStore packetStore;     // Micronet packet store, used for communication between CC1101 interrupt and main loop code
-PacketDecoder packetDecoder;
+CC1101Driver gRfReceiver;         // CC1101 Driver object
+MenuManager gMenu;                // Menu manager object
+MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
+MicronetDecoder gMicronetDecoder;
 
 uint32_t gNetworkIdToDecode = 0x037737;
 
@@ -90,7 +90,7 @@ void setup()
 
 	// Check connection to CC1101
 	Serial.print("Connecting to CC1101 Transciever ... ");
-	if (cc1101.getCC1101())
+	if (gRfReceiver.getCC1101())
 	{
 		Serial.println("OK");
 	}
@@ -110,39 +110,39 @@ void setup()
 	}
 
 	// Configure CC1101 for listening Micronet devices
-	cc1101.Init(); // must be set to initialize the cc1101!
-	cc1101.setGDO(GDO0_PIN, GDO2_PIN); // set lib internal gdo pins (gdo0,gdo2). Gdo2 not use for this example.
-	cc1101.setCCMode(1); // set config for internal transmission mode.
-	cc1101.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
-	cc1101.setMHZ(869.785); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
-	cc1101.setDeviation(32); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
-	cc1101.setChannel(0); // Set the Channelnumber from 0 to 255. Default is cahnnel 0.
-	cc1101.setChsp(199.95); // The channel spacing is multiplied by the channel number CHAN and added to the base frequency in kHz. Value from 25.39 to 405.45. Default is 199.95 kHz.
-	cc1101.setRxBW(250); // Set the Receive Bandwidth in kHz. Value from 58.03 to 812.50. Default is 812.50 kHz.
-	cc1101.setDRate(76.8); // Set the Data Rate in kBaud. Value from 0.02 to 1621.83. Default is 99.97 kBaud!
-	cc1101.setPA(0); // Set TxPower. The following settings are possible depending on the frequency band.  (-30  -20  -15  -10  -6    0    5    7    10   11   12) Default is max!
-	cc1101.setSyncMode(2); // Combined sync-word qualifier mode. 0 = No preamble/sync. 1 = 16 sync word bits detected. 2 = 16/16 sync word bits detected. 3 = 30/32 sync word bits detected. 4 = No preamble/sync, carrier-sense above threshold. 5 = 15/16 + carrier-sense above threshold. 6 = 16/16 + carrier-sense above threshold. 7 = 30/32 + carrier-sense above threshold.
-	cc1101.setSyncWord(0x99, 0x83); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
-	cc1101.setAdrChk(0); // Controls address check configuration of received packages. 0 = No address check. 1 = Address check, no broadcast. 2 = Address check and 0 (0x00) broadcast. 3 = Address check and 0 (0x00) and 255 (0xFF) broadcast.
-	cc1101.setAddr(0); // Address used for packet filtration. Optional broadcast addresses are 0 (0x00) and 255 (0xFF).
-	cc1101.setWhiteData(0); // Turn data whitening on / off. 0 = Whitening off. 1 = Whitening on.
-	cc1101.setPktFormat(0); // Format of RX and TX data. 0 = Normal mode, use FIFOs for RX and TX. 1 = Synchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins. 2 = Random TX mode; sends random data using PN9 generator. Used for test. Works as normal mode, setting 0 (00), in RX. 3 = Asynchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins.
-	cc1101.setLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
-	cc1101.setPacketLength(52); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
-	cc1101.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.
-	cc1101.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
-	cc1101.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
-	cc1101.setManchester(0); // Enables Manchester encoding/decoding. 0 = Disable. 1 = Enable.
-	cc1101.setFEC(0); // Enable Forward Error Correction (FEC) with interleaving for packet payload (Only supported for fixed packet length mode. 0 = Disable. 1 = Enable.
-	cc1101.setPQT(0); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
-	cc1101.setAppendStatus(1); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
+	gRfReceiver.Init(); // must be set to initialize the gReceiver!
+	gRfReceiver.setGDO(GDO0_PIN, GDO2_PIN); // set lib internal gdo pins (gdo0,gdo2). Gdo2 not use for this example.
+	gRfReceiver.setCCMode(1); // set config for internal transmission mode.
+	gRfReceiver.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
+	gRfReceiver.setMHZ(869.785); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
+	gRfReceiver.setDeviation(32); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
+	gRfReceiver.setChannel(0); // Set the Channelnumber from 0 to 255. Default is cahnnel 0.
+	gRfReceiver.setChsp(199.95); // The channel spacing is multiplied by the channel number CHAN and added to the base frequency in kHz. Value from 25.39 to 405.45. Default is 199.95 kHz.
+	gRfReceiver.setRxBW(250); // Set the Receive Bandwidth in kHz. Value from 58.03 to 812.50. Default is 812.50 kHz.
+	gRfReceiver.setDRate(76.8); // Set the Data Rate in kBaud. Value from 0.02 to 1621.83. Default is 99.97 kBaud!
+	gRfReceiver.setPA(0); // Set TxPower. The following settings are possible depending on the frequency band.  (-30  -20  -15  -10  -6    0    5    7    10   11   12) Default is max!
+	gRfReceiver.setSyncMode(2); // Combined sync-word qualifier mode. 0 = No preamble/sync. 1 = 16 sync word bits detected. 2 = 16/16 sync word bits detected. 3 = 30/32 sync word bits detected. 4 = No preamble/sync, carrier-sense above threshold. 5 = 15/16 + carrier-sense above threshold. 6 = 16/16 + carrier-sense above threshold. 7 = 30/32 + carrier-sense above threshold.
+	gRfReceiver.setSyncWord(0x99, 0x83); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
+	gRfReceiver.setAdrChk(0); // Controls address check configuration of received packages. 0 = No address check. 1 = Address check, no broadcast. 2 = Address check and 0 (0x00) broadcast. 3 = Address check and 0 (0x00) and 255 (0xFF) broadcast.
+	gRfReceiver.setAddr(0); // Address used for packet filtration. Optional broadcast addresses are 0 (0x00) and 255 (0xFF).
+	gRfReceiver.setWhiteData(0); // Turn data whitening on / off. 0 = Whitening off. 1 = Whitening on.
+	gRfReceiver.setPktFormat(0); // Format of RX and TX data. 0 = Normal mode, use FIFOs for RX and TX. 1 = Synchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins. 2 = Random TX mode; sends random data using PN9 generator. Used for test. Works as normal mode, setting 0 (00), in RX. 3 = Asynchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins.
+	gRfReceiver.setLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
+	gRfReceiver.setPacketLength(52); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
+	gRfReceiver.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.
+	gRfReceiver.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
+	gRfReceiver.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
+	gRfReceiver.setManchester(0); // Enables Manchester encoding/decoding. 0 = Disable. 1 = Enable.
+	gRfReceiver.setFEC(0); // Enable Forward Error Correction (FEC) with interleaving for packet payload (Only supported for fixed packet length mode. 0 = Disable. 1 = Enable.
+	gRfReceiver.setPQT(0); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
+	gRfReceiver.setAppendStatus(1); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
 	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), SyncWordDetectedISR, RISING);
 
 	// Start listening
-	cc1101.SetRx();
+	gRfReceiver.SetRx();
 }
 
 void loop()
@@ -150,26 +150,26 @@ void loop()
 	// Process console input
 	while (Serial.available() > 0)
 	{
-		menu.PushChar(Serial.read());
+		gMenu.PushChar(Serial.read());
 	}
 
-	// If we have packets in the store, process them
-	MicronetPacket_t *packet;
-	while ((packet = packetStore.PeekPacket()) != nullptr)
+	// If we have messages in the store, process them
+	MicronetMessage_t *message;
+	while ((message = gMessageFifo.Peek()) != nullptr)
 	{
-		if (packetDecoder.GetNetworkId(packet) == gNetworkIdToDecode)
+		if (gMicronetDecoder.GetNetworkId(message) == gNetworkIdToDecode)
 		{
-			packetDecoder.PrintRawMessage(packet);
-			packetDecoder.DecodeMessage(packet);
-//			packetDecoder.PrintCurrentData();
+			gMicronetDecoder.PrintRawMessage(message);
+			gMicronetDecoder.DecodeMessage(message);
+//			gMicronetDecoder.PrintCurrentData();
 		}
-		packetStore.Deletepacket();
+		gMessageFifo.DeleteMessage();
 	}
 }
 
 void SyncWordDetectedISR()
 {
-	MicronetPacket_t packet;
+	MicronetMessage_t message;
 	int nbBytes;
 	int dataOffset;
 	bool newLengthFound = false;
@@ -181,33 +181,33 @@ void SyncWordDetectedISR()
 	do
 	{
 		// How many bytes are already in the FIFO ?
-		nbBytes = cc1101.GetRxFifoNbBytes();
+		nbBytes = gRfReceiver.GetRxFifoNbBytes();
 		// Check for FIFO overflow
 		if (nbBytes & 0x80)
 		{
 			// Yes : ignore current packet and restart CC1101 reception for the next packet
-			cc1101.RestartRx();
+			gRfReceiver.RestartRx();
 			return;
 		}
 		// Are there new bytes in the FIFO ?
 		if (nbBytes > 0)
 		{
 			// Yes : read them
-			cc1101.ReadRxFifo(packet.data + dataOffset, nbBytes);
+			gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
 			dataOffset += nbBytes;
 			// Check if we have reach the packet length field
 			if ((!newLengthFound) && (dataOffset >= 13))
 			{
 				newLengthFound = true;
 				// Yes : check that this is a valid length
-				if ((packet.data[11] == packet.data[12]) && (packet.data[11] < MICRONET_MESSAGE_MAX_LENGTH - 3) && ((packet.data[11] + 1) >= MICRONET_MESSAGE_MIN_LENGTH))
+				if ((message.data[11] == message.data[12]) && (message.data[11] < MICRONET_MESSAGE_MAX_LENGTH - 3) && ((message.data[11] + 1) >= MICRONET_MESSAGE_MIN_LENGTH))
 				{
 					// Update CC1101's packet length register
-					cc1101.setPacketLength(packet.data[11] + 1);
+					gRfReceiver.setPacketLength(message.data[11] + 1);
 					// If CC1101 has already passed the number of bytes of the packet the fact of setting packet length to value
 					// below the number of byte already counted by CC1101 will make GDO0 not be deasserted, so we have to
 					// add an extra check to leave the loop
-					if (dataOffset >= packet.data[11] + 1)
+					if (dataOffset >= message.data[11] + 1)
 					{
 						break;
 					}
@@ -215,36 +215,36 @@ void SyncWordDetectedISR()
 				else
 				{
 					// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
-					cc1101.RestartRx();
+					gRfReceiver.RestartRx();
 					return;
 				}
 			}
 		}
-		// Continue reading as long as CC1101 do not tell us that the packet reception is finished
+		// Continue reading as long as CC1101 doesn't tell us that the packet reception is finished
 	} while (digitalRead(GDO0_PIN));
 
 	// Collect remaining byte that could have been missed in the last loop
-	nbBytes = cc1101.GetRxFifoNbBytes();
+	nbBytes = gRfReceiver.GetRxFifoNbBytes();
 	if (nbBytes > 0)
 	{
-		cc1101.ReadRxFifo(packet.data + dataOffset, nbBytes);
+		gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 	}
 	// Restart CC1101 reception as soon as possible not to miss the next packet
-	cc1101.SetRx();
+	gRfReceiver.SetRx();
 	// Don't consider the last two status byte added by CC1101 in the packet length
-	packet.len = dataOffset - 2;
+	message.len = dataOffset - 2;
 	// Get RSSI from status bytes appended to the packet
-	packet.rssi = packet.data[dataOffset - 2];
-	if (packet.rssi >= 128)
+	message.rssi = message.data[dataOffset - 2];
+	if (message.rssi >= 128)
 	{
-		packet.rssi = (packet.rssi - 256) / 2 - 74;
+		message.rssi = (message.rssi - 256) / 2 - 74;
 	}
 	else
 	{
-		packet.rssi = (packet.rssi / 2) - 74;
+		message.rssi = (message.rssi / 2) - 74;
 	}
 
-	// Add packet to the message store
-	packetStore.AddPacket(packet);
+	// Add message to the store
+	gMessageFifo.Push(message);
 }

@@ -5,10 +5,10 @@
  *      Author: Ronan
  */
 
-#ifndef PACKETDECODER_H_
-#define PACKETDECODER_H_
+#ifndef MICRONETDECODER_H_
+#define MICRONETDECODER_H_
 
-#include "PacketStore.h"
+#include "Micronet.h"
 
 #include <stdint.h>
 
@@ -48,27 +48,27 @@ typedef struct {
 	uint32_t vccTimeStamp;
 } DataTimeStamps_t;
 
-class PacketDecoder
+class MicronetDecoder
 {
 public:
-	PacketDecoder();
-	virtual ~PacketDecoder();
+	MicronetDecoder();
+	virtual ~MicronetDecoder();
 
-	uint32_t GetNetworkId(MicronetPacket_t *packet);
-	uint8_t GetDeviceType(MicronetPacket_t *packet);
-	uint32_t GetDeviceId(MicronetPacket_t *packet);
-	uint8_t GetMessageCategory(MicronetPacket_t *packet);
-	uint8_t GetMessageId(MicronetPacket_t *packet);
-	void DecodeMessage(MicronetPacket_t *packet);
-	void PrintRawMessage(MicronetPacket_t *packet);
+	uint32_t GetNetworkId(MicronetMessage_t *message);
+	uint8_t GetDeviceType(MicronetMessage_t *message);
+	uint32_t GetDeviceId(MicronetMessage_t *message);
+	uint8_t GetMessageCategory(MicronetMessage_t *message);
+	uint8_t GetMessageId(MicronetMessage_t *message);
+	void DecodeMessage(MicronetMessage_t *message);
+	void PrintRawMessage(MicronetMessage_t *message);
 	void PrintCurrentData();
 	MicronetData_t *GetCurrentData();
 
 private:
 	MicronetData_t micronetData;
 	DataTimeStamps_t dataTimeStamps;
-	int DecodeDataField(MicronetPacket_t *packet, int offset);
+	int DecodeDataField(MicronetMessage_t *message, int offset);
 	void UpdateMicronetData(uint8_t fieldId, int16_t value);
 };
 
-#endif /* PACKETDECODER_H_ */
+#endif /* MICRONETDECODER_H_ */
