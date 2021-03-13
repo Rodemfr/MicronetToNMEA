@@ -22,9 +22,31 @@ typedef enum {
 } MessageCategory_t;
 
 typedef struct {
-	float windAngleDeg;
-	float windSpeedKt;
-} WindTransducer_Message_t;
+	bool awaValid;
+	float awaDeg;
+	bool awsValid;
+	float awsKt;
+	bool twaValid;
+	float twaDeg;
+	bool twsValid;
+	float twsKt;
+	bool depthValid;
+	float depthM;
+	bool stwValid;
+	float stwKt;
+	bool vccValid;
+	float vccV;
+} MicronetData_t;
+
+typedef struct {
+	uint32_t awaTimeStamp;
+	uint32_t awsTimeStamp;
+	uint32_t twaTimeStamp;
+	uint32_t twsTimeStamp;
+	uint32_t depthTimeStamp;
+	uint32_t stwTimeStamp;
+	uint32_t vccTimeStamp;
+} DataTimeStamps_t;
 
 class PacketDecoder
 {
@@ -37,7 +59,16 @@ public:
 	uint32_t GetDeviceId(MicronetPacket_t *packet);
 	uint8_t GetMessageCategory(MicronetPacket_t *packet);
 	uint8_t GetMessageId(MicronetPacket_t *packet);
-	bool DecodePacket(MicronetPacket_t *packet, WindTransducer_Message_t *message);
+	void DecodeMessage(MicronetPacket_t *packet);
+	void PrintRawMessage(MicronetPacket_t *packet);
+	void PrintCurrentData();
+	MicronetData_t *GetCurrentData();
+
+private:
+	MicronetData_t micronetData;
+	DataTimeStamps_t dataTimeStamps;
+	int DecodeDataField(MicronetPacket_t *packet, int offset);
+	void UpdateMicronetData(uint8_t fieldId, int16_t value);
 };
 
 #endif /* PACKETDECODER_H_ */

@@ -180,6 +180,9 @@ public:
 	void setAppendStatus(bool v);
 	void setAdrChk(byte v);
 	bool CheckRxFifo(int t);
+	int GetRxFifoNbBytes();
+	void ReadRxFifo(uint8_t *rxBuffer, int nbBytes);
+	void FlushRxFifo();
 };
 
 #endif

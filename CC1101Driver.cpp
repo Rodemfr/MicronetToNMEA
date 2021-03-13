@@ -1672,6 +1672,24 @@ bool CC1101Driver::CheckRxFifo(int t)
 	}
 }
 
+int CC1101Driver::GetRxFifoNbBytes()
+{
+	return SpiReadStatus(CC1101_RXBYTES);
+}
+
+void CC1101Driver::ReadRxFifo(uint8_t *rxBuffer, int nbBytes)
+{
+	SpiReadBurstReg(CC1101_RXFIFO, rxBuffer, nbBytes);
+}
+
+void CC1101Driver::FlushRxFifo()
+{
+	SpiStrobe(CC1101_SIDLE);
+	SpiStrobe(CC1101_SFRX);
+	SpiStrobe(CC1101_SRX);        //start receive
+	trxstate = 2;
+}
+
 /****************************************************************
  *FUNCTION NAME:CheckReceiveFlag
  *FUNCTION     :check receive data or not

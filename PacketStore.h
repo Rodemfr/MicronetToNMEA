@@ -12,13 +12,15 @@
 #include <stdint.h>
 
 #define PACKET_STORE_SIZE 4
+#define MESSAGE_MAX_LENGTH 80
+#define MICRONET_MESSAGE_MIN_LENGTH 13
 
 typedef struct
 {
 	uint8_t len;
 	int16_t rssi;
 	uint8_t lqi;
-	uint8_t data[64];
+	uint8_t data[MESSAGE_MAX_LENGTH];
 } MicronetPacket_t;
 
 class PacketStore
