@@ -60,12 +60,12 @@ Message from wind transducer
 
 Message sent by an analog wind display
 |83 03 77 37|83|03 77 37|02|09|00|73|1A 1A|05 21 05 00 00 09 34|05 22 05 00 64 09 99|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| TWS |??|FC|FF|FI|FP| TWA |??|FC|
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| AWS |??|FC|FF|FI|FP| AWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a dual display
 |83 03 77 37|81|03 70 82|02|09|00|B5|1A 1A|05|21|05|00 00|09|34|05 22 05 00 33|09|68|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| TWS |??|FC|FF|FI|FP| TWA |??|FC|
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| AWS |??|FC|FF|FI|FP| AWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a hull transmitter

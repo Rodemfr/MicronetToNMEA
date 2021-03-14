@@ -69,11 +69,11 @@ void MenuScanAllMicronetTraffic();
 /***************************************************************************/
 
 CC1101Driver gRfReceiver;         // CC1101 Driver object
-MenuManager gMenuManager;                // Menu manager object
+MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-MicronetDecoder gMicronetDecoder;
+MicronetDecoder gMicronetDecoder; // Micronet message decoder
 
-uint32_t gAttachedNetworkId = 0; // 0x83037737;
+uint32_t gAttachedNetworkId = 0;  // 0x83037737;
 
 MenuEntry_t mainMenu[] =
 {
