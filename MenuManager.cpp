@@ -9,39 +9,10 @@
 
 #include "Arduino.h"
 
-MenuEntry_t serialMenu[] = {
-		{"Set serial speed", nullptr, nullptr},
-		{"Set serial mode", nullptr, nullptr},
-		{nullptr, nullptr}
-};
-
-MenuEntry_t deviceMenu[] = {
-		{"Print list of paired devices", nullptr, nullptr},
-		{"Detect devices in range", nullptr, nullptr},
-		{"Add a sensor to the list", nullptr, nullptr},
-		{"Remove a sensor from the list", nullptr, nullptr},
-		{"Save sensor list to EEPROM", nullptr, nullptr},
-		{nullptr, nullptr}
-};
-
-MenuEntry_t calibrationMenu[] = {
-		{"Calibrate wind transducer", nullptr, nullptr},
-		{"Calibrate depth transducer", nullptr, nullptr},
-		{"Calibrate speed transducer", nullptr, nullptr},
-		{nullptr, nullptr}
-};
-
-MenuEntry_t mainMenu[] = {
-		{"Serial menu", nullptr, serialMenu},
-		{"Device menu", nullptr, deviceMenu},
-		{"Calibration menu", nullptr, calibrationMenu},
-		{"Start NMEA conversion", nullptr, nullptr},
-		{nullptr, nullptr, nullptr}
-};
-
 MenuManager::MenuManager()
 {
-	currentLevel = 0;
+	menuLength = 0;
+	menu = nullptr;
 }
 
 MenuManager::~MenuManager()
@@ -49,12 +20,61 @@ MenuManager::~MenuManager()
 
 }
 
-void MenuManager::PushChar(char c)
+void MenuManager::SetMenu(MenuEntry_t *menu)
 {
-
+	this->menu = menu;
+	menuLength = 0;
+	while (menu[menuLength].description != nullptr)
+	{
+		menuLength++;
+	}
 }
 
-void MenuManager::PrintCurrentMenu()
+void MenuManager::PushChar(char c)
 {
+	if ((c > 0x30) && (c <= 0x39))
+	{
+		int entry = c - 0x30;
+		if ((entry > 0) && (entry < menuLength))
+		{
+			if (menu[entry].entryCallback != nullptr)
+			{
+				Serial.println(entry);
+				Serial.println("");
+				menu[entry].entryCallback();
+				PrintPrompt();
+			}
+		}
+	} else if (c == 0x30) {
+		Serial.println("0");
+		PrintMenu();
+	}
+}
 
+void MenuManager::PrintMenu()
+{
+	if ((menu == nullptr) || (menuLength < 2))
+	{
+		return;
+	}
+
+	Serial.println("");
+	Serial.print("*** ");
+	Serial.print(menu[0].description);
+	Serial.println(" ***");
+	Serial.println("");
+	Serial.println("0 - Print this menu");
+	for (int i = 1; i < menuLength; i++)
+	{
+		Serial.print(i);
+		Serial.print(" - ");
+		Serial.println(menu[i].description);
+	}
+	Serial.println("");
+	PrintPrompt();
+}
+
+void MenuManager::PrintPrompt()
+{
+	Serial.print("Choice : ");
 }

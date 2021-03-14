@@ -42,32 +42,45 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define GDO0_PIN 24
-#define GDO2_PIN 25
-#define LED_PIN LED_BUILTIN
+#define GDO0_PIN             24
+#define GDO2_PIN             25
+#define LED_PIN              LED_BUILTIN
+#define MAX_SCANNED_NETWORKS 5
 
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
 
 /***************************************************************************/
+/*                           Local prototypes                              */
+/***************************************************************************/
+
+void ProcessMicronetMessages();
+void RfReceiverIsr();
+void PrintRawMessage(MicronetMessage_t *message);
+void PrintData(MicronetData_t *micronetData);
+void MenuAbout();
+void MenuScanNetworks();
+
+/***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
 CC1101Driver gRfReceiver;         // CC1101 Driver object
-MenuManager gMenu;                // Menu manager object
+MenuManager gMenuManager;                // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder;
 
 uint32_t gNetworkIdToDecode = 0x83037737;
 
-/***************************************************************************/
-/*                           Local prototypes                              */
-/***************************************************************************/
-
-void SyncWordDetectedISR();
-void PrintRawMessage(MicronetMessage_t *message);
-void PrintData(MicronetData_t *micronetData);
+MenuEntry_t mainMenu[] =
+{
+{ "MicronetToNMEA menu", nullptr },
+{ "About MicronetToNMEA", MenuAbout },
+{ "Scan Micronet networks", MenuScanNetworks },
+{ "Attach converter to a network", nullptr },
+{ "Start NMEA conversion", nullptr },
+{ nullptr, nullptr } };
 
 /***************************************************************************/
 /*                              Functions                                  */
@@ -75,7 +88,7 @@ void PrintData(MicronetData_t *micronetData);
 
 void setup()
 {
-	Serial.begin(115200);
+	Serial.begin(4800);
 
 	// Print banner
 	Serial.println("");
@@ -83,6 +96,9 @@ void setup()
 	Serial.println("--- MicronetToNMEA v0.1a ---");
 	Serial.println("----------------------------");
 	Serial.println("");
+
+	// Setup serial menu
+	gMenuManager.SetMenu(mainMenu);
 
 	// Set SPI pin configuration
 	SPI.setMOSI(11);
@@ -141,10 +157,13 @@ void setup()
 
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
-	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), SyncWordDetectedISR, RISING);
+	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfReceiverIsr, RISING);
 
 	// Start listening
 	gRfReceiver.SetRx();
+
+	// Display serial menu
+	gMenuManager.PrintMenu();
 }
 
 void loop()
@@ -152,16 +171,21 @@ void loop()
 	// Process console input
 	while (Serial.available() > 0)
 	{
-		gMenu.PushChar(Serial.read());
+		gMenuManager.PushChar(Serial.read());
 	}
 
+//	ProcessMicronetMessages();
+}
+
+void ProcessMicronetMessages()
+{
 	// If we have messages in the store, process them
 	MicronetMessage_t *message;
 	while ((message = gMessageFifo.Peek()) != nullptr)
 	{
 		if (gMicronetDecoder.GetNetworkId(message) == gNetworkIdToDecode)
 		{
-			PrintRawMessage(message);
+//			PrintRawMessage(message);
 			gMicronetDecoder.DecodeMessage(message);
 			PrintData(gMicronetDecoder.GetCurrentData());
 		}
@@ -169,7 +193,7 @@ void loop()
 	}
 }
 
-void SyncWordDetectedISR()
+void RfReceiverIsr()
 {
 	MicronetMessage_t message;
 	int nbBytes;
@@ -317,4 +341,103 @@ void PrintData(MicronetData_t *micronetData)
 	}
 
 	Serial.println();
+}
+
+void MenuAbout()
+{
+	Serial.println("MicronetToNMEA");
+	Serial.println("Version 0.1a");
+	Serial.println("");
+	Serial.println("Provides the following NMEA sentences :");
+	Serial.println(" - INDPT (Depth below surface)");
+	Serial.println(" - INMVW (Apparent & true wind speed)");
+	Serial.println(" - INMTW (Water temperature)");
+	Serial.println(" - INVHW (Speed on water)");
+}
+
+void MenuScanNetworks()
+{
+	MicronetMessage_t *message;
+	uint32_t nidArray[MAX_SCANNED_NETWORKS] =
+	{ 0 };
+	int16_t rssiArray[MAX_SCANNED_NETWORKS];
+
+	Serial.print("Scanning Micronet networks for 5 seconds ... ");
+
+	gMessageFifo.ResetFifo();
+	unsigned long startTime = millis();
+	do
+	{
+		if ((message = gMessageFifo.Peek()) != nullptr)
+		{
+			if (gMicronetDecoder.GetNetworkId(message) == gNetworkIdToDecode)
+			{
+				// TODO : check that header is valid
+				uint32_t nid = gMicronetDecoder.GetNetworkId(message);
+				int16_t rssi = message->rssi;
+				for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
+				{
+					if (nidArray[i] == 0)
+					{
+						nidArray[i] = nid;
+						rssiArray[i] = rssi;
+						break;
+					}
+					else if (nidArray[i] == nid)
+					{
+						if (rssi > rssiArray[i])
+						{
+							rssiArray[i] = rssi;
+						}
+						break;
+					}
+					else
+					{
+						if (rssi > rssiArray[i])
+						{
+							for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j++)
+							{
+								nidArray[j] = nidArray[j - 1];
+								rssiArray[j] = rssiArray[j - 1];
+							}
+							nidArray[i] = nid;
+							rssiArray[i] = rssi;
+							break;
+						}
+					}
+				}
+			}
+			gMessageFifo.DeleteMessage();
+		}
+	} while ((millis() - startTime) < 5000);
+
+	Serial.println("done");
+	Serial.println("");
+
+	if (nidArray[0] != 0)
+	{
+		Serial.println("List of scanned networks :");
+		Serial.println("");
+		for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
+		{
+			if (nidArray[i] == 0) {
+				break;
+			}
+			Serial.print("Network ");
+			Serial.print(i);
+			Serial.print(" - 0x");
+			Serial.print(nidArray[i], HEX);
+			Serial.print(" (");
+			if (rssiArray[i] < 70) Serial.print("very strong");
+			else if (rssiArray[i] < 80) Serial.print("strong");
+			else if (rssiArray[i] < 90) Serial.print("normal");
+			else Serial.print("low");
+			Serial.println(")");
+		}
+	}
+	else
+	{
+		Serial.println("/!\\ No micronet network found /!\\");
+		Serial.println("Check that your Micronet network is powered on.");
+	}
 }

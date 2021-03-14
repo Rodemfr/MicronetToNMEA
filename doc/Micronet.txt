@@ -30,10 +30,10 @@ MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to p
      0x0b ?
 
 SO = Source
-     0x01 Measurement device
-     0x09 Display
+     0x01 Measurement/non display device
+     0x09 Display device
 
-DE = Destination ? Purpose ?
+DE = Destination
      0x00 Broadcast / All devices
      0x09 Display
 

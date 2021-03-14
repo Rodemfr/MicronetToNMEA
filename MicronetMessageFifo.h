@@ -12,7 +12,8 @@
 #include <arduino.h>
 #include <stdint.h>
 
-#define MESSAGE_STORE_SIZE 4
+#define MESSAGE_STORE_SIZE 16
+
 class MicronetMessageFifo
 {
 public:
@@ -23,6 +24,7 @@ public:
 	bool Pop(MicronetMessage_t *message);
 	MicronetMessage_t *Peek();
 	void DeleteMessage();
+	void ResetFifo();
 
 private:
 	int writeIndex;

@@ -109,3 +109,11 @@ void MicronetMessageFifo::DeleteMessage()
 
 	interrupts();
 }
+
+void MicronetMessageFifo::ResetFifo()
+{
+	noInterrupts();
+	readIndex = writeIndex;
+	nbMessages = 0;
+	interrupts();
+}
