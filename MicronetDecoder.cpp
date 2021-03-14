@@ -161,6 +161,7 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int8_t value)
 	case MICRONET_FIELD_ID_STP:
 		micronetData.stp.value = ((float) value) / 2.0f;
 		micronetData.stp.valid = true;
+		micronetData.stp.updated = true;
 		micronetData.stp.timeStamp = millis();
 		break;
 	}
@@ -170,37 +171,42 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 {
 	switch (fieldId)
 	{
-	case MICRONET_FIELD_ID_SPD:
-		if (value < 5001)
-		{
-			micronetData.stw.value = ((float) value) / 100.0f;
-			micronetData.stw.valid = true;
-		}
-		else
-		{
-			micronetData.stw.value = 0.0f;
-			micronetData.stw.valid = false;
-		}
+	case MICRONET_FIELD_ID_STW:
+		micronetData.stw.value = ((float) value) / 100.0f;
+		micronetData.stw.valid = true;
+		micronetData.stw.updated = true;
 		micronetData.stw.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_DPT:
-		micronetData.dpt.value = ((float) value) / 10.0f;
-		micronetData.dpt.valid = true;
-		micronetData.dpt.timeStamp = millis();
+		if (value < 5000)
+		{
+			micronetData.dpt.value = ((float) value) * 0.3048f / 10.0f;
+			micronetData.dpt.valid = true;
+			micronetData.dpt.updated = true;
+			micronetData.dpt.timeStamp = millis();
+		}
+		else
+		{
+			micronetData.dpt.valid = false;
+			micronetData.dpt.updated = true;
+		}
 		break;
 	case MICRONET_FIELD_ID_AWS:
 		micronetData.aws.value = ((float) value) / 10.0f;
 		micronetData.aws.valid = true;
+		micronetData.aws.updated = true;
 		micronetData.aws.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_AWA:
 		micronetData.awa.value = (float) value;
 		micronetData.awa.valid = true;
+		micronetData.awa.updated = true;
 		micronetData.awa.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_VCC:
 		micronetData.vcc.value = ((float) value) / 10.0f;
 		micronetData.vcc.valid = true;
+		micronetData.vcc.updated = true;
 		micronetData.vcc.timeStamp = millis();
 		break;
 	}
@@ -213,9 +219,11 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_
 	case MICRONET_FIELD_ID_LOG:
 		micronetData.trip.value = ((float) value1) / 100.0f;
 		micronetData.trip.valid = true;
+		micronetData.trip.updated = true;
 		micronetData.trip.timeStamp = millis();
 		micronetData.log.value = ((float) value2) / 10.0f;
 		micronetData.log.valid = true;
+		micronetData.log.updated = true;
 		micronetData.log.timeStamp = millis();
 		break;
 	}

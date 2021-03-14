@@ -23,6 +23,7 @@ typedef enum {
 
 typedef struct {
 	bool valid;
+	bool updated;
 	float value;
 	uint32_t timeStamp;
 } DataValue_t;

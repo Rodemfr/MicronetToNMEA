@@ -70,11 +70,11 @@ void MenuManager::PrintMenu()
 		Serial.print(" - ");
 		Serial.println(menu[i].description);
 	}
-	Serial.println("");
 	PrintPrompt();
 }
 
 void MenuManager::PrintPrompt()
 {
+	Serial.println("");
 	Serial.print("Choice : ");
 }

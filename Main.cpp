@@ -55,12 +55,14 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
-void ProcessMicronetMessages();
 void RfReceiverIsr();
 void PrintRawMessage(MicronetMessage_t *message);
 void PrintData(MicronetData_t *micronetData);
 void MenuAbout();
 void MenuScanNetworks();
+void MenuAttachNetwork();
+void MenuConvertToNmea();
+void MenuScanAllMicronetTraffic();
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -71,15 +73,16 @@ MenuManager gMenuManager;                // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder;
 
-uint32_t gNetworkIdToDecode = 0x83037737;
+uint32_t gAttachedNetworkId = 0; // 0x83037737;
 
 MenuEntry_t mainMenu[] =
 {
 { "MicronetToNMEA menu", nullptr },
 { "About MicronetToNMEA", MenuAbout },
 { "Scan Micronet networks", MenuScanNetworks },
-{ "Attach converter to a network", nullptr },
-{ "Start NMEA conversion", nullptr },
+{ "Attach converter to a network", MenuAttachNetwork },
+{ "Start NMEA conversion", MenuConvertToNmea },
+{ "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -89,13 +92,6 @@ MenuEntry_t mainMenu[] =
 void setup()
 {
 	Serial.begin(4800);
-
-	// Print banner
-	Serial.println("");
-	Serial.println("----------------------------");
-	Serial.println("--- MicronetToNMEA v0.1a ---");
-	Serial.println("----------------------------");
-	Serial.println("");
 
 	// Setup serial menu
 	gMenuManager.SetMenu(mainMenu);
@@ -107,12 +103,7 @@ void setup()
 	SPI.begin();
 
 	// Check connection to CC1101
-	Serial.print("Connecting to CC1101 Transciever ... ");
-	if (gRfReceiver.getCC1101())
-	{
-		Serial.println("OK");
-	}
-	else
+	if (!gRfReceiver.getCC1101())
 	{
 		Serial.println("Failed");
 		Serial.println("Aborting execution : Verify connection to CC1101 board");
@@ -172,24 +163,6 @@ void loop()
 	while (Serial.available() > 0)
 	{
 		gMenuManager.PushChar(Serial.read());
-	}
-
-//	ProcessMicronetMessages();
-}
-
-void ProcessMicronetMessages()
-{
-	// If we have messages in the store, process them
-	MicronetMessage_t *message;
-	while ((message = gMessageFifo.Peek()) != nullptr)
-	{
-		if (gMicronetDecoder.GetNetworkId(message) == gNetworkIdToDecode)
-		{
-//			PrintRawMessage(message);
-			gMicronetDecoder.DecodeMessage(message);
-			PrintData(gMicronetDecoder.GetCurrentData());
-		}
-		gMessageFifo.DeleteMessage();
 	}
 }
 
@@ -345,8 +318,16 @@ void PrintData(MicronetData_t *micronetData)
 
 void MenuAbout()
 {
-	Serial.println("MicronetToNMEA");
-	Serial.println("Version 0.1a");
+	Serial.println("MicronetToNMEA, Version 0.1a");
+	if (gAttachedNetworkId != 0)
+	{
+		Serial.print("Attached to Micronet Network ");
+		Serial.println(gAttachedNetworkId, HEX);
+	}
+	else
+	{
+		Serial.print("No Micronet Network attached");
+	}
 	Serial.println("");
 	Serial.println("Provides the following NMEA sentences :");
 	Serial.println(" - INDPT (Depth below surface)");
@@ -370,40 +351,37 @@ void MenuScanNetworks()
 	{
 		if ((message = gMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetDecoder.GetNetworkId(message) == gNetworkIdToDecode)
+			// TODO : check that header is valid
+			uint32_t nid = gMicronetDecoder.GetNetworkId(message);
+			int16_t rssi = message->rssi;
+			for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
 			{
-				// TODO : check that header is valid
-				uint32_t nid = gMicronetDecoder.GetNetworkId(message);
-				int16_t rssi = message->rssi;
-				for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
+				if (nidArray[i] == 0)
 				{
-					if (nidArray[i] == 0)
+					nidArray[i] = nid;
+					rssiArray[i] = rssi;
+					break;
+				}
+				else if (nidArray[i] == nid)
+				{
+					if (rssi > rssiArray[i])
 					{
+						rssiArray[i] = rssi;
+					}
+					break;
+				}
+				else
+				{
+					if (rssi > rssiArray[i])
+					{
+						for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j++)
+						{
+							nidArray[j] = nidArray[j - 1];
+							rssiArray[j] = rssiArray[j - 1];
+						}
 						nidArray[i] = nid;
 						rssiArray[i] = rssi;
 						break;
-					}
-					else if (nidArray[i] == nid)
-					{
-						if (rssi > rssiArray[i])
-						{
-							rssiArray[i] = rssi;
-						}
-						break;
-					}
-					else
-					{
-						if (rssi > rssiArray[i])
-						{
-							for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j++)
-							{
-								nidArray[j] = nidArray[j - 1];
-								rssiArray[j] = rssiArray[j - 1];
-							}
-							nidArray[i] = nid;
-							rssiArray[i] = rssi;
-							break;
-						}
 					}
 				}
 			}
@@ -420,24 +398,183 @@ void MenuScanNetworks()
 		Serial.println("");
 		for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
 		{
-			if (nidArray[i] == 0) {
+			if (nidArray[i] == 0)
+			{
 				break;
 			}
 			Serial.print("Network ");
 			Serial.print(i);
-			Serial.print(" - 0x");
+			Serial.print(" - ");
 			Serial.print(nidArray[i], HEX);
 			Serial.print(" (");
-			if (rssiArray[i] < 70) Serial.print("very strong");
-			else if (rssiArray[i] < 80) Serial.print("strong");
-			else if (rssiArray[i] < 90) Serial.print("normal");
-			else Serial.print("low");
+			if (rssiArray[i] < 70)
+				Serial.print("very strong");
+			else if (rssiArray[i] < 80)
+				Serial.print("strong");
+			else if (rssiArray[i] < 90)
+				Serial.print("normal");
+			else
+				Serial.print("low");
 			Serial.println(")");
 		}
 	}
 	else
 	{
-		Serial.println("/!\\ No micronet network found /!\\");
+		Serial.println("/!\\ No Micronet network found /!\\");
 		Serial.println("Check that your Micronet network is powered on.");
 	}
 }
+
+void MenuAttachNetwork()
+{
+	char input[16], c;
+	uint32_t charIndex = 0;
+
+	Serial.print("Enter Network ID to attach to : ");
+
+	do
+	{
+		if (Serial.available())
+		{
+			c = Serial.read();
+			if (c == 0x0d)
+			{
+				Serial.println("");
+				break;
+			}
+			else if ((c == 0x08) && (charIndex > 0))
+			{
+				charIndex--;
+				Serial.print(c);
+				Serial.print(" ");
+				Serial.print(c);
+			}
+			else if (charIndex < sizeof(input))
+			{
+				input[charIndex++] = c;
+				Serial.print(c);
+			}
+		};
+	} while (1);
+
+	bool invalidInput = false;
+	uint32_t newNetworkId = 0;
+
+	if (charIndex == 0)
+	{
+		invalidInput = true;
+	}
+
+	for (uint32_t i = 0; i < charIndex; i++)
+	{
+		c = input[i];
+		if ((c >= '0') && (c <= '9'))
+		{
+			c -= '0';
+		}
+		else if ((c >= 'a') && (c <= 'f'))
+		{
+			c = c - 'a' + 10;
+		}
+		else if ((c >= 'A') && (c <= 'F'))
+		{
+			c = c - 'A' + 10;
+		}
+		else
+		{
+			invalidInput = true;
+			break;
+		}
+
+		newNetworkId = (newNetworkId << 4) | c;
+	}
+
+	if (invalidInput)
+	{
+		Serial.println("Invalid Network ID entered, ignoring input.");
+	}
+	else
+	{
+		gAttachedNetworkId = newNetworkId;
+		Serial.print("Now attached to NetworkID ");
+		Serial.println(newNetworkId, HEX);
+	}
+}
+
+void MenuConvertToNmea()
+{
+	bool exitNmeaLoop = false;
+
+	if (gAttachedNetworkId == 0)
+	{
+		Serial.println("No Micronet network has been attached.");
+		Serial.println("Scan and attach a Micronet network first.");
+		return;
+	}
+
+	Serial.println("Starting Micronet to NMEA 0183 conversion.");
+	Serial.println("Press ESC key at any time to stop conversion and come back to menu.");
+	Serial.println("");
+
+	gMessageFifo.ResetFifo();
+
+	MicronetMessage_t *message;
+	do
+	{
+		if ((message = gMessageFifo.Peek()) != nullptr)
+		{
+			if (gMicronetDecoder.VerifyHeaderCrc(message))
+			{
+				if (gMicronetDecoder.GetNetworkId(message) == gAttachedNetworkId)
+				{
+					gMicronetDecoder.DecodeMessage(message);
+					PrintData(gMicronetDecoder.GetCurrentData());
+				}
+				gMessageFifo.DeleteMessage();
+			}
+		}
+
+		while (Serial.available() > 0)
+		{
+			if (Serial.read() == 0x1b)
+			{
+				Serial.println("ESC key pressed, stopping conversion.");
+				exitNmeaLoop = true;
+			}
+		}
+	} while (!exitNmeaLoop);
+}
+
+void MenuScanAllMicronetTraffic()
+{
+	bool exitSniffLoop = false;
+
+	Serial.println("Starting Micronet traffic scanning.");
+	Serial.println("Press ESC key at any time to stop scanning and come back to menu.");
+	Serial.println("");
+
+	gMessageFifo.ResetFifo();
+
+	MicronetMessage_t *message;
+	do
+	{
+		if ((message = gMessageFifo.Peek()) != nullptr)
+		{
+			if (gMicronetDecoder.VerifyHeaderCrc(message))
+			{
+				PrintRawMessage(message);
+			}
+			gMessageFifo.DeleteMessage();
+		}
+
+		while (Serial.available() > 0)
+		{
+			if (Serial.read() == 0x1b)
+			{
+				Serial.println("ESC key pressed, stopping scan.");
+				exitSniffLoop = true;
+			}
+		}
+	} while (!exitSniffLoop);
+}
+

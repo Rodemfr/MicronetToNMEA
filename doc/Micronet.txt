@@ -83,7 +83,7 @@ FI = Field ID
      0x01 SPD*100(KT)
      0x02 TRIP*100(NM) + LOG*10(NM)
      0x03 T*2(degC)
-     0x04 DPT*10(M)                  A value of 5001(500.1m) is given by the hull transmitter when depth is not available.
+     0x04 DPT*10(FT)                 A value of 5001(500.1ft) is given by the hull transmitter when depth is not available.
      0x05 AWS*10(KT) 
      0x06 AWA(DEG)
      0x1b VCC*10(V)

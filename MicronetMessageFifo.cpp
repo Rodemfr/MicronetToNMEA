@@ -27,7 +27,9 @@ bool MicronetMessageFifo::Push(MicronetMessage_t &message)
 	if (nbMessages < MESSAGE_STORE_SIZE)
 	{
 		// Yes : copy message to the store and update store's status
-		memcpy(&(store[writeIndex]), &message, sizeof(message));
+		store[writeIndex].len = message.len;
+		store[writeIndex].rssi = message.rssi;
+		memcpy(store[writeIndex].data, message.data, message.len);
 		writeIndex++;
 		nbMessages++;
 		if (writeIndex >= MESSAGE_STORE_SIZE)
