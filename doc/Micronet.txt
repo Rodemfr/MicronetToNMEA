@@ -1,6 +1,6 @@
-*************************************************
-*** Header common to of all Micronet messages ***
-*************************************************
+***********************************************
+*** Header common to every Micronet message ***
+***********************************************
 
 General format :
 
@@ -37,7 +37,7 @@ DE = Destination
      0x00 Broadcast / All devices
      0x09 Display
 
-CS = Check sum of all previous bytes from NID to DE included 
+CS = Check sum of all previous bytes from NID to DE included.
 
 LEN = Length - 2 of the complete message in bytes, including payload. Value duplicated on two bytes for robustness since it is not covered by the header checksum.
 
@@ -127,3 +127,8 @@ PI Parameter ID
       VA = An signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
 
 PL Parameter Length ? Seems to be the number of bytes on wich VA is coded.
+
+SQ Sequence number - Incremented by one at each new configuration. Reset to zero at each power-up of the system.
+                     Not sure of the usage since I don't see how several configuration messages could possibly have
+                     their order changed on the network. Maybe by usage of repeaters? 
+         
