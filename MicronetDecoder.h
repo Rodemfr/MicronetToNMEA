@@ -22,31 +22,21 @@ typedef enum {
 } MessageCategory_t;
 
 typedef struct {
-	bool awaValid;
-	float awaDeg;
-	bool awsValid;
-	float awsKt;
-	bool twaValid;
-	float twaDeg;
-	bool twsValid;
-	float twsKt;
-	bool depthValid;
-	float depthM;
-	bool stwValid;
-	float stwKt;
-	bool vccValid;
-	float vccV;
-} MicronetData_t;
+	bool valid;
+	float value;
+	uint32_t timeStamp;
+} DataValue_t;
 
 typedef struct {
-	uint32_t awaTimeStamp;
-	uint32_t awsTimeStamp;
-	uint32_t twaTimeStamp;
-	uint32_t twsTimeStamp;
-	uint32_t depthTimeStamp;
-	uint32_t stwTimeStamp;
-	uint32_t vccTimeStamp;
-} DataTimeStamps_t;
+	DataValue_t stw;
+	DataValue_t awa;
+	DataValue_t aws;
+	DataValue_t dpt;
+	DataValue_t vcc;
+	DataValue_t log;
+	DataValue_t trip;
+	DataValue_t stp;
+} MicronetData_t;
 
 class MicronetDecoder
 {
@@ -57,8 +47,11 @@ public:
 	uint32_t GetNetworkId(MicronetMessage_t *message);
 	uint8_t GetDeviceType(MicronetMessage_t *message);
 	uint32_t GetDeviceId(MicronetMessage_t *message);
-	uint8_t GetMessageCategory(MicronetMessage_t *message);
 	uint8_t GetMessageId(MicronetMessage_t *message);
+	uint8_t GetSource(MicronetMessage_t *message);
+	uint8_t GetDestination(MicronetMessage_t *message);
+	uint8_t GetHeaderCrc(MicronetMessage_t *message);
+	bool VerifyHeaderCrc(MicronetMessage_t *message);
 	void DecodeMessage(MicronetMessage_t *message);
 	void PrintRawMessage(MicronetMessage_t *message);
 	void PrintCurrentData();
@@ -66,9 +59,10 @@ public:
 
 private:
 	MicronetData_t micronetData;
-	DataTimeStamps_t dataTimeStamps;
 	int DecodeDataField(MicronetMessage_t *message, int offset);
+	void UpdateMicronetData(uint8_t fieldId, int8_t value);
 	void UpdateMicronetData(uint8_t fieldId, int16_t value);
+	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
 };
 
 #endif /* MICRONETDECODER_H_ */

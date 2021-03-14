@@ -10,23 +10,9 @@
 #include <arduino.h>
 #include <string.h>
 
-#define MICRONET_MESSAGE_ID_REQUEST_DATA 0x01
-#define MICRONET_MESSAGE_ID_SEND_DATA    0x02
-
-#define MICRONET_FIELD_TYPE_4 0x04
-#define MICRONET_FIELD_TYPE_5 0x05
-
-#define MICRONET_FIELD_ID_DPT 0x04
-#define MICRONET_FIELD_ID_AWS 0x05
-#define MICRONET_FIELD_ID_AWA 0x06
-#define MICRONET_FIELD_ID_VCC 0x1b
-#define MICRONET_FIELD_ID_TWS 0x21
-#define MICRONET_FIELD_ID_TWA 0x22
-
 MicronetDecoder::MicronetDecoder()
 {
 	memset(&micronetData, 0, sizeof(micronetData));
-	memset(&dataTimeStamps, 0, sizeof(dataTimeStamps));
 }
 
 MicronetDecoder::~MicronetDecoder()
@@ -37,44 +23,67 @@ uint32_t MicronetDecoder::GetNetworkId(MicronetMessage_t *message)
 {
 	unsigned int networkId;
 
-	networkId = message->data[0];
-	networkId = (networkId << 8) | message->data[1];
-	networkId = (networkId << 8) | message->data[2];
+	networkId = message->data[MICRONET_NUID_OFFSET];
+	networkId = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 1];
+	networkId = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 2];
+	networkId = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 3];
 
 	return networkId;
 }
 
 uint8_t MicronetDecoder::GetDeviceType(MicronetMessage_t *message)
 {
-	return message->data[3];
+	return message->data[MICRONET_DT_OFFSET];
 }
 
 uint32_t MicronetDecoder::GetDeviceId(MicronetMessage_t *message)
 {
 	unsigned int deviceId;
 
-	deviceId = message->data[4];
-	deviceId = (deviceId << 8) | message->data[5];
-	deviceId = (deviceId << 8) | message->data[6];
+	deviceId = message->data[MICRONET_DUID_OFFSET];
+	deviceId = (deviceId << 8) | message->data[MICRONET_DUID_OFFSET + 1];
+	deviceId = (deviceId << 8) | message->data[MICRONET_DUID_OFFSET + 2];
+	deviceId = (deviceId << 8) | message->data[MICRONET_DUID_OFFSET + 3];
 
 	return deviceId;
 }
 
-uint8_t MicronetDecoder::GetMessageCategory(MicronetMessage_t *message)
-{
-	return message->data[7];
-}
-
 uint8_t MicronetDecoder::GetMessageId(MicronetMessage_t *message)
 {
-	return message->data[8];
+	return message->data[MICRONET_MI_OFFSET];
+}
+
+uint8_t MicronetDecoder::GetSource(MicronetMessage_t *message)
+{
+	return message->data[MICRONET_SO_OFFSET];
+}
+
+uint8_t MicronetDecoder::GetDestination(MicronetMessage_t *message)
+{
+	return message->data[MICRONET_DE_OFFSET];
+}
+
+uint8_t MicronetDecoder::GetHeaderCrc(MicronetMessage_t *message)
+{
+	return message->data[MICRONET_CRC_OFFSET];
+}
+
+bool MicronetDecoder::VerifyHeaderCrc(MicronetMessage_t *message)
+{
+	uint8_t crc = 0;
+	for (int i = 0; i < MICRONET_CRC_OFFSET; i++)
+	{
+		crc += message->data[i];
+	}
+
+	return (crc == message->data[MICRONET_CRC_OFFSET]);
 }
 
 void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
 {
-	if (message->data[7] == MICRONET_MESSAGE_ID_SEND_DATA)
+	if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_SEND_DATA)
 	{
-		int fieldOffset = 13;
+		int fieldOffset = MICRONET_PAYLOAD_OFFSET;
 		while (fieldOffset < message->len)
 		{
 			fieldOffset = DecodeDataField(message, fieldOffset);
@@ -88,20 +97,29 @@ void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
 
 int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 {
-	short value;
+	int8_t value8;
+	int16_t value16;
+	int32_t value_32_1, value32_2;
 
-	if (message->data[offset] == MICRONET_FIELD_TYPE_4)
+	if (message->data[offset] == MICRONET_FIELD_TYPE_3)
+	{
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3];
+		if (crc == message->data[offset + 4])
+		{
+			value8 = message->data[offset + 3];
+			UpdateMicronetData(message->data[offset + 1], value8);
+		}
+	}
+	else if (message->data[offset] == MICRONET_FIELD_TYPE_4)
 	{
 		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
 				+ message->data[offset + 4];
 		if (crc == message->data[offset + 5])
 		{
-			value = message->data[offset + 3];
-			value = (value << 8) | message->data[offset + 4];
-			UpdateMicronetData(message->data[offset + 1], value);
+			value16 = message->data[offset + 3];
+			value16 = (value16 << 8) | message->data[offset + 4];
+			UpdateMicronetData(message->data[offset + 1], value16);
 		}
-
-		return offset + 6;
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_5)
 	{
@@ -109,15 +127,42 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 				+ message->data[offset + 4] + message->data[offset + 5];
 		if (crc == message->data[offset + 6])
 		{
-			value = message->data[offset + 3];
-			value = (value << 8) | message->data[offset + 4];
-			UpdateMicronetData(message->data[offset + 1], value);
+			value16 = message->data[offset + 3];
+			value16 = (value16 << 8) | message->data[offset + 4];
+			UpdateMicronetData(message->data[offset + 1], value16);
 		}
-		return offset + 7;
 	}
-	else
+	else if (message->data[offset] == MICRONET_FIELD_TYPE_A)
 	{
-		return -1;
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
+				+ message->data[offset + 4] + message->data[offset + 5] + message->data[offset + 6] + message->data[offset + 7]
+				+ message->data[offset + 8] + message->data[offset + 9] + message->data[offset + 10];
+		if (crc == message->data[offset + 11])
+		{
+			value_32_1 = message->data[offset + 3];
+			value_32_1 = (value_32_1 << 8) | message->data[offset + 4];
+			value_32_1 = (value_32_1 << 8) | message->data[offset + 5];
+			value_32_1 = (value_32_1 << 8) | message->data[offset + 6];
+			value32_2 = message->data[offset + 7];
+			value32_2 = (value32_2 << 8) | message->data[offset + 8];
+			value32_2 = (value32_2 << 8) | message->data[offset + 9];
+			value32_2 = (value32_2 << 8) | message->data[offset + 10];
+			UpdateMicronetData(message->data[offset + 1], value_32_1, value32_2);
+		}
+	}
+
+	return offset + message->data[offset] + 2;
+}
+
+void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int8_t value)
+{
+	switch (fieldId)
+	{
+	case MICRONET_FIELD_ID_STP:
+		micronetData.stp.value = ((float) value) / 2.0f;
+		micronetData.stp.valid = true;
+		micronetData.stp.timeStamp = millis();
+		break;
 	}
 }
 
@@ -125,29 +170,53 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 {
 	switch (fieldId)
 	{
+	case MICRONET_FIELD_ID_SPD:
+		if (value < 5001)
+		{
+			micronetData.stw.value = ((float) value) / 100.0f;
+			micronetData.stw.valid = true;
+		}
+		else
+		{
+			micronetData.stw.value = 0.0f;
+			micronetData.stw.valid = false;
+		}
+		micronetData.stw.timeStamp = millis();
+		break;
 	case MICRONET_FIELD_ID_DPT:
-		micronetData.depthM = ((float) value) / 10.0f;
-		micronetData.depthValid = true;
+		micronetData.dpt.value = ((float) value) / 10.0f;
+		micronetData.dpt.valid = true;
+		micronetData.dpt.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_AWS:
-		micronetData.awsKt = ((float) value) / 10.0f;
-		micronetData.awsValid = true;
+		micronetData.aws.value = ((float) value) / 10.0f;
+		micronetData.aws.valid = true;
+		micronetData.aws.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_AWA:
-		micronetData.awaDeg = (float) value;
-		micronetData.awaValid = true;
+		micronetData.awa.value = (float) value;
+		micronetData.awa.valid = true;
+		micronetData.awa.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_VCC:
-		micronetData.vccV = ((float) value) / 10.0f;
-		micronetData.vccValid = true;
+		micronetData.vcc.value = ((float) value) / 10.0f;
+		micronetData.vcc.valid = true;
+		micronetData.vcc.timeStamp = millis();
 		break;
-	case MICRONET_FIELD_ID_TWS:
-		micronetData.twsKt = ((float) value) / 10.0f;
-		micronetData.twsValid = true;
-		break;
-	case MICRONET_FIELD_ID_TWA:
-		micronetData.twaDeg = (float) value;
-		micronetData.twaValid = true;
+	}
+}
+
+void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2)
+{
+	switch (fieldId)
+	{
+	case MICRONET_FIELD_ID_LOG:
+		micronetData.trip.value = ((float) value1) / 100.0f;
+		micronetData.trip.valid = true;
+		micronetData.trip.timeStamp = millis();
+		micronetData.log.value = ((float) value2) / 10.0f;
+		micronetData.log.valid = true;
+		micronetData.log.timeStamp = millis();
 		break;
 	}
 }
@@ -174,47 +243,53 @@ void MicronetDecoder::PrintRawMessage(MicronetMessage_t *message)
 
 void MicronetDecoder::PrintCurrentData()
 {
-	if (micronetData.awaValid)
+	if (micronetData.awa.valid)
 	{
 		Serial.print("AWA ");
-		Serial.print(micronetData.awaDeg);
-		Serial.print(" | ");
+		Serial.print(micronetData.awa.value);
+		Serial.print("kt | ");
 	}
-	if (micronetData.awsValid)
+	if (micronetData.aws.valid)
 	{
 		Serial.print("AWS ");
-		Serial.print(micronetData.awsKt);
-		Serial.print(" | ");
+		Serial.print(micronetData.aws.value);
+		Serial.print("kt | ");
 	}
-	if (micronetData.twaValid)
-	{
-		Serial.print("TWA ");
-		Serial.print(micronetData.twaDeg);
-		Serial.print(" | ");
-	}
-	if (micronetData.twsValid)
-	{
-		Serial.print("TWS ");
-		Serial.print(micronetData.twsKt);
-		Serial.print(" | ");
-	}
-	if (micronetData.stwValid)
+	if (micronetData.stw.valid)
 	{
 		Serial.print("STW ");
-		Serial.print(micronetData.stwKt);
-		Serial.print(" | ");
+		Serial.print(micronetData.stw.value);
+		Serial.print("kt | ");
 	}
-	if (micronetData.depthValid)
+	if (micronetData.dpt.valid)
 	{
 		Serial.print("DPT ");
-		Serial.print(micronetData.depthM);
-		Serial.print(" | ");
+		Serial.print(micronetData.dpt.value);
+		Serial.print("M | ");
 	}
-	if (micronetData.vccValid)
+	if (micronetData.vcc.valid)
 	{
 		Serial.print("VCC ");
-		Serial.print(micronetData.vccV);
-		Serial.print(" | ");
+		Serial.print(micronetData.vcc.value);
+		Serial.print("V | ");
+	}
+	if (micronetData.log.valid)
+	{
+		Serial.print("LOG ");
+		Serial.print(micronetData.log.value);
+		Serial.print("NM | ");
+	}
+	if (micronetData.trip.valid)
+	{
+		Serial.print("TRIP ");
+		Serial.print(micronetData.trip.value);
+		Serial.print("NM | ");
+	}
+	if (micronetData.stp.valid)
+	{
+		Serial.print("STP ");
+		Serial.print(micronetData.stp.value);
+		Serial.print("degC | ");
 	}
 
 	Serial.println();

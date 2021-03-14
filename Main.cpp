@@ -59,7 +59,7 @@ MenuManager gMenu;                // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder;
 
-uint32_t gNetworkIdToDecode = 0x037737;
+uint32_t gNetworkIdToDecode = 0x83037737;
 
 /***************************************************************************/
 /*                           Local prototypes                              */
@@ -122,7 +122,7 @@ void setup()
 	gRfReceiver.setDRate(76.8); // Set the Data Rate in kBaud. Value from 0.02 to 1621.83. Default is 99.97 kBaud!
 	gRfReceiver.setPA(0); // Set TxPower. The following settings are possible depending on the frequency band.  (-30  -20  -15  -10  -6    0    5    7    10   11   12) Default is max!
 	gRfReceiver.setSyncMode(2); // Combined sync-word qualifier mode. 0 = No preamble/sync. 1 = 16 sync word bits detected. 2 = 16/16 sync word bits detected. 3 = 30/32 sync word bits detected. 4 = No preamble/sync, carrier-sense above threshold. 5 = 15/16 + carrier-sense above threshold. 6 = 16/16 + carrier-sense above threshold. 7 = 30/32 + carrier-sense above threshold.
-	gRfReceiver.setSyncWord(0x99, 0x83); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
+	gRfReceiver.setSyncWord(0x55, 0x99); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
 	gRfReceiver.setAdrChk(0); // Controls address check configuration of received packages. 0 = No address check. 1 = Address check, no broadcast. 2 = Address check and 0 (0x00) broadcast. 3 = Address check and 0 (0x00) and 255 (0xFF) broadcast.
 	gRfReceiver.setAddr(0); // Address used for packet filtration. Optional broadcast addresses are 0 (0x00) and 255 (0xFF).
 	gRfReceiver.setWhiteData(0); // Turn data whitening on / off. 0 = Whitening off. 1 = Whitening on.
@@ -159,9 +159,9 @@ void loop()
 	{
 		if (gMicronetDecoder.GetNetworkId(message) == gNetworkIdToDecode)
 		{
-			gMicronetDecoder.PrintRawMessage(message);
+			//gMicronetDecoder.PrintRawMessage(message);
 			gMicronetDecoder.DecodeMessage(message);
-//			gMicronetDecoder.PrintCurrentData();
+			gMicronetDecoder.PrintCurrentData();
 		}
 		gMessageFifo.DeleteMessage();
 	}
@@ -196,18 +196,20 @@ void SyncWordDetectedISR()
 			gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
 			dataOffset += nbBytes;
 			// Check if we have reach the packet length field
-			if ((!newLengthFound) && (dataOffset >= 13))
+			if ((!newLengthFound) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
 			{
 				newLengthFound = true;
 				// Yes : check that this is a valid length
-				if ((message.data[11] == message.data[12]) && (message.data[11] < MICRONET_MESSAGE_MAX_LENGTH - 3) && ((message.data[11] + 1) >= MICRONET_MESSAGE_MIN_LENGTH))
+				if ((message.data[MICRONET_LEN_OFFSET_1] == message.data[MICRONET_LEN_OFFSET_2])
+						&& (message.data[MICRONET_LEN_OFFSET_1] < MICRONET_MAX_MESSAGE_LENGTH - 3)
+						&& ((message.data[MICRONET_LEN_OFFSET_1] + 2) >= MICRONET_PAYLOAD_OFFSET)) // 13
 				{
 					// Update CC1101's packet length register
-					gRfReceiver.setPacketLength(message.data[11] + 1);
+					gRfReceiver.setPacketLength(message.data[MICRONET_LEN_OFFSET_1] + 2);
 					// If CC1101 has already passed the number of bytes of the packet the fact of setting packet length to value
 					// below the number of byte already counted by CC1101 will make GDO0 not be deasserted, so we have to
 					// add an extra check to leave the loop
-					if (dataOffset >= message.data[11] + 1)
+					if (dataOffset >= message.data[MICRONET_LEN_OFFSET_1] + 2)
 					{
 						break;
 					}
@@ -233,17 +235,9 @@ void SyncWordDetectedISR()
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	gRfReceiver.SetRx();
 	// Don't consider the last two status byte added by CC1101 in the packet length
-	message.len = dataOffset - 2;
+	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
 	// Get RSSI from status bytes appended to the packet
-	message.rssi = message.data[dataOffset - 2];
-	if (message.rssi >= 128)
-	{
-		message.rssi = (message.rssi - 256) / 2 - 74;
-	}
-	else
-	{
-		message.rssi = (message.rssi / 2) - 74;
-	}
+	message.rssi = gRfReceiver.getRssi();
 
 	// Add message to the store
 	gMessageFifo.Push(message);

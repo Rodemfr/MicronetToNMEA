@@ -37,8 +37,36 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define MICRONET_MESSAGE_MAX_LENGTH 80
-#define MICRONET_MESSAGE_MIN_LENGTH 13
+#define MICRONET_MAX_MESSAGE_LENGTH 80
+#define MICRONET_MIN_MESSAGE_LENGTH 13
+
+#define MICRONET_NUID_OFFSET    0
+#define MICRONET_DUID_OFFSET    4
+#define MICRONET_DT_OFFSET      4
+#define MICRONET_MI_OFFSET      8
+#define MICRONET_SO_OFFSET      9
+#define MICRONET_DE_OFFSET      10
+#define MICRONET_CRC_OFFSET     11
+#define MICRONET_LEN_OFFSET_1   12
+#define MICRONET_LEN_OFFSET_2   13
+#define MICRONET_PAYLOAD_OFFSET 14
+
+#define MICRONET_MESSAGE_ID_REQUEST_DATA 0x01
+#define MICRONET_MESSAGE_ID_SEND_DATA    0x02
+
+#define MICRONET_FIELD_TYPE_3 0x03
+#define MICRONET_FIELD_TYPE_4 0x04
+#define MICRONET_FIELD_TYPE_5 0x05
+#define MICRONET_FIELD_TYPE_A 0x0a
+
+#define MICRONET_FIELD_ID_SPD 0x01
+#define MICRONET_FIELD_ID_LOG 0x02
+#define MICRONET_FIELD_ID_STP 0x03
+#define MICRONET_FIELD_ID_DPT 0x04
+#define MICRONET_FIELD_ID_AWS 0x05
+#define MICRONET_FIELD_ID_AWA 0x06
+#define MICRONET_FIELD_ID_VCC 0x1b
+
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -48,7 +76,7 @@ typedef struct
 {
 	uint8_t len;
 	int16_t rssi;
-	uint8_t data[MICRONET_MESSAGE_MAX_LENGTH];
+	uint8_t data[MICRONET_MAX_MESSAGE_LENGTH];
 } MicronetMessage_t;
 
 /***************************************************************************/
