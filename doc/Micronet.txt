@@ -5,13 +5,13 @@
 General format :
 
 |83 03 77 37|02|03 90 87|02|01|07|5A|18 18|xx xx xx xx ...
-|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN |   
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |   
 |             MESSAGE HEADER              |    PAYLOAD ...
 
 NID = Network ID, is equal to the Device ID of the network main display
 
 
-DT + DID = Device UID (4 bytes) - Unique number identifying the device. The first byte DT defines the device type as follows
+DT + DID = Device ID (4 bytes) - Unique number identifying the device. The first byte DT defines the device type :
      DT - Device Type
           0x01 Hull Transmitter
           0x02 Wind Transducer
@@ -55,17 +55,17 @@ Message examples :
 
 Message from wind transducer
 |83 03 77 37|02|03 90 87|02|01|09|5C|18 18|04 05 05 00 2C 3A|04 06 05 FF FB 09|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| AWS |FC|FF|FI|FP| AWA |FC|
+|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| AWS |FC|FF|FI|FP| AWA |FC|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |
 
 Message sent by an analog wind display
 |83 03 77 37|83|03 77 37|02|09|00|73|1A 1A|05 21 05 00 00 09 34|05 22 05 00 64 09 99|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| TWS |DE|FC|FF|FI|FP| TWA |DE|FC|
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| TWS |??|FC|FF|FI|FP| TWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a dual display
 |83 03 77 37|81|03 70 82|02|09|00|B5|1A 1A|05|21|05|00 00|09|34|05 22 05 00 33|09|68|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| TWS |DE|FC|FF|FI|FP| TWA |DE|FC|
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| TWS |??|FC|FF|FI|FP| TWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a hull transmitter
@@ -75,20 +75,20 @@ Message sent by a hull transmitter
 
 
 FT = Field format
-     0x04 Total field description is on 6 bytes, including CRC. Value is on 16-bits
-     0x05 Total field description is on 7 bytes, including CRC. In this case there is an extra byte
-                after the value which is unidentified yet.
+     0x04 Total field description is on 6 bytes, including CRC. Value is on a 16-bits integer.
+     0x05 Total field description is on 7 bytes, including CRC. In this case there is an extra byte after the 16-bit integer value which is unidentified yet.
+     0x0a Total field description is on 12 bytes, including CRC. Two values are encoded on a 32-bit integer each.
 
 FI = Field ID
      0x01 SPD*100(KT)
      0x02 TRIP*100(NM) + LOG*10(NM)
      0x03 T*2(degC)
-     0x04 DPT*10(M)?? A value of 5001(500.1m) is given by the hull transmitter when depth is not available.
+     0x04 DPT*10(M)                  A value of 5001(500.1m) is given by the hull transmitter when depth is not available.
      0x05 AWS*10(KT) 
      0x06 AWA(DEG)
      0x1b VCC*10(V)
-     0x21 AWS*10(KT)  Seems the same than 0x05 ?
-     0x22 AWA(DEG)    Seems the same than 0x06 ?
+     0x21 AWS*10(KT)                 Seems the same than 0x05 ?
+     0x22 AWA(DEG)                   Seems the same than 0x06 ?
 
 FP = Field Property ??
      0x05 It seems to be the value used when the data comes from the measuring sensor
@@ -101,9 +101,9 @@ FC = Field checksum. Sum of the all the byte of the field.
 **************************************
 
 Example : Wind direction calibration +10 deg
-|83 03 77 37 83 03 77 37 06 09 09 80 13 13 FF 07 02 0A 00 04 16|
+|83 03 77 37|83|03 77 37|06|09|09|80|13 13|FF|07|02|0A 00|04 16|
 |    NID    |DT|  DID   |MI|SO|DE|CS| LEN |??|PI|PL| VA  |SQ|CS|
-|            MESSAGE HEADER              |     CORRECTION     |
+|             MESSAGE HEADER              |     CORRECTION     |
 
 Example : Wind Speed Calibration +7 deg
 |83 03 77 37|83|03 77 37|06|09|00|77|12 12|FF 06 01 07 0B 18|
@@ -111,7 +111,7 @@ Example : Wind Speed Calibration +7 deg
 |             MESSAGE HEADER              |    CORRECTION   |
 
 Example : Speed filtering level MED
-|83 03 77 37 81 03 70 82 06 09 09 C2 12 12 FF 04 01 20 0E 32|
+|83 03 77 37|81|03 70 82|06|09|09|C2|12 12|FF|04|01|20|0E|32|
 |    NID    |DT|  DID   |MI|SO|DE|CS| LEN |??|PI|PL|VA|SQ|CS|
 |             MESSAGE HEADER              |    CORRECTION   |
 
