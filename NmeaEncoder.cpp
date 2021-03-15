@@ -64,14 +64,13 @@ NmeaEncoder::~NmeaEncoder()
 {
 }
 
-// Encode an AIS VDM Type 1 payload using ship target information
 bool NmeaEncoder::EncodeINVWR(MicronetData_t *micronetData, char *sentence)
 {
 	bool update = false;
 	char crcString[8];
 
-	update |= (micronetData->awa.timeStamp > INVWRTimeStamp);
-	update |= (micronetData->aws.timeStamp > INVWRTimeStamp);
+	update |= (micronetData->awa.timeStamp > INVWRTimeStamp + 100);
+	update |= (micronetData->aws.timeStamp > INVWRTimeStamp + 100);
 	update &= (micronetData->aws.valid || micronetData->aws.valid);
 
 	if (update)
@@ -83,6 +82,29 @@ bool NmeaEncoder::EncodeINVWR(MicronetData_t *micronetData, char *sentence)
 		strcat(sentence, crcString);
 
 		INVWRTimeStamp = millis();
+	}
+	return update;
+}
+
+// FIXME : Make calculation of true wind with STW
+bool NmeaEncoder::EncodeINVWT(MicronetData_t *micronetData, char *sentence)
+{
+	bool update = false;
+	char crcString[8];
+
+	update |= (micronetData->awa.timeStamp > INVWRTimeStamp + 100);
+	update |= (micronetData->aws.timeStamp > INVWRTimeStamp + 100);
+	update &= (micronetData->aws.valid || micronetData->aws.valid);
+
+	if (update)
+	{
+		// $--VWR,x.x,a,x.x,N,x.x,M,x.x,K*hh<CR><LF>
+		sprintf(sentence, "$INVWT,%.1f,%c,%.1f,N,,M,,K", (float)fabs(micronetData->awa.value),
+				micronetData->awa.value < 0 ? 'L' : 'R', micronetData->aws.value);
+		sprintf(crcString, "*%02x%c%c", (int)NmeaChecksum(sentence), 13, 10);
+		strcat(sentence, crcString);
+
+		INVWTTimeStamp = millis();
 	}
 	return update;
 }

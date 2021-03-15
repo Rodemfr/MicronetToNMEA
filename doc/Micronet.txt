@@ -71,7 +71,7 @@ Message sent by a hull transmitter
 |    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| DPT |FC|FF|FI|FP| VCC |FC|FF|FI|FP| AWS |??|FC|FF|FI|FP| AWA |??|FC|FF|FI|FP| SPD |FC|FF|FI|FP|   TRIP    |    LOG    |FC|FF|FI|FP|T |FC|FF|FI|FP| AWS |FC|FF|FI|FP| AWA |FC|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |       FIELD3       |       FIELD4       |     FIELD5      |              FIELD6               |    FIELD7    |      FIELD8     |     FIELD9      |
 
-FT = Field format
+FF = Field format - (FF + 2) is the total number of the field, allowing to skip in case the format/ID would be unknown
      0x04 Total field description is on 6 bytes, including CRC. Value is on a 16-bits integer.
      0x05 Total field description is on 7 bytes, including CRC. In this case there is an extra byte after the 16-bit integer value which is unidentified yet.
      0x0a Total field description is on 12 bytes, including CRC. Two values are encoded on a 32-bit integer each.

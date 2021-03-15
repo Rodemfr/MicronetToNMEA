@@ -77,6 +77,7 @@ MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for commu
 MicronetDecoder gMicronetDecoder; // Micronet message decoder
 Configuration config;
 NmeaEncoder gNmeaEncoder;
+bool firstLoop;
 
 MenuEntry_t mainMenu[] =
 {
@@ -162,15 +163,25 @@ void setup()
 
 	// Display serial menu
 	gMenuManager.PrintMenu();
+
+	// For the main loop to know when it is executing for the first time
+	firstLoop = true;
 }
 
 void loop()
 {
+	if ((firstLoop) && (config.attachedNetworkId != 0))
+	{
+		MenuConvertToNmea();
+	}
+
 	// Process console input
 	while (Serial.available() > 0)
 	{
 		gMenuManager.PushChar(Serial.read());
 	}
+
+	firstLoop = false;
 }
 
 void RfReceiverIsr()
@@ -541,9 +552,9 @@ void MenuConvertToNmea()
 //					PrintData(gMicronetDecoder.GetCurrentData());
 //					PrintRawMessage(message);
 					if (gNmeaEncoder.EncodeINVWR(gMicronetDecoder.GetCurrentData(), nmeaSentence))
-					{
 						Serial.print(nmeaSentence);
-					}
+					if (gNmeaEncoder.EncodeINVWT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+						Serial.print(nmeaSentence);
 				}
 				gMessageFifo.DeleteMessage();
 			}

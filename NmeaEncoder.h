@@ -56,9 +56,11 @@ public:
 	virtual ~NmeaEncoder();
 
 	bool EncodeINVWR(MicronetData_t *micronetData, char *sentence);
+	bool EncodeINVWT(MicronetData_t *micronetData, char *sentence);
 
 private:
 	uint32_t INVWRTimeStamp;
+	uint32_t INVWTTimeStamp;
 
 	uint8_t NmeaChecksum(char *sentence);
 };
