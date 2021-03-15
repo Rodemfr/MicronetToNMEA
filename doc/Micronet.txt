@@ -10,7 +10,6 @@ General format :
 
 NID = Network ID, is equal to the Device ID of the network main display
 
-
 DT + DID = Device ID (4 bytes) - Unique number identifying the device. The first byte DT defines the device type :
      DT - Device Type
           0x01 Hull Transmitter
@@ -20,7 +19,6 @@ DT + DID = Device ID (4 bytes) - Unique number identifying the device. The first
           0x05 MOB
           0x83 Analog Wind Display
           0x81 Dual Display
-
 
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to properly decode it. 
      0x01 Request Data
@@ -72,7 +70,6 @@ Message sent by a hull transmitter
 |83 03 77 37|01|0B C0 22|02|01|09|2E|49 49|04|04|05|13 89|A9|04|1B|05|00 89|AD|05|21|05|00 00|06|31|05|22|05|FF F5|06|26|04|01|05|00 BB|C5|0A|02|05|00 00 00 95|00 00 00 1C|C2|03|03|05|25|30|04|05|03|00 00|0C|04|06|03|FF F5|01|
 |    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| DPT |FC|FF|FI|FP| VCC |FC|FF|FI|FP| AWS |??|FC|FF|FI|FP| AWA |??|FC|FF|FI|FP| SPD |FC|FF|FI|FP|   TRIP    |    LOG    |FC|FF|FI|FP|T |FC|FF|FI|FP| AWS |FC|FF|FI|FP| AWA |FC|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |       FIELD3       |       FIELD4       |     FIELD5      |              FIELD6               |    FIELD7    |      FIELD8     |     FIELD9      |
-
 
 FT = Field format
      0x04 Total field description is on 6 bytes, including CRC. Value is on a 16-bits integer.

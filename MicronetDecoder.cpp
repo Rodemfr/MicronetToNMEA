@@ -1,14 +1,59 @@
-/*
- * PacketDecoder.cpp
- *
- *  Created on: 12 mars 2021
- *      Author: Ronan
+/***************************************************************************
+ *                                                                         *
+ * Project:  MicronetToNMEA                                                *
+ * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Author:   Ronan Demoment                                                *
+ *                                                                         *
+ ***************************************************************************
+ *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************
  */
+
+/***************************************************************************/
+/*                              Includes                                   */
+/***************************************************************************/
 
 #include "MicronetDecoder.h"
 
-#include <arduino.h>
+#include <Arduino.h>
 #include <string.h>
+
+/***************************************************************************/
+/*                              Constants                                  */
+/***************************************************************************/
+
+#define MAXIMUM_VALID_DEPTH_FT 500
+
+/***************************************************************************/
+/*                             Local types                                 */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                           Local prototypes                              */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                              Functions                                  */
+/***************************************************************************/
 
 MicronetDecoder::MicronetDecoder()
 {
@@ -161,7 +206,6 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int8_t value)
 	case MICRONET_FIELD_ID_STP:
 		micronetData.stp.value = ((float) value) / 2.0f;
 		micronetData.stp.valid = true;
-		micronetData.stp.updated = true;
 		micronetData.stp.timeStamp = millis();
 		break;
 	}
@@ -174,39 +218,33 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 	case MICRONET_FIELD_ID_STW:
 		micronetData.stw.value = ((float) value) / 100.0f;
 		micronetData.stw.valid = true;
-		micronetData.stw.updated = true;
 		micronetData.stw.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_DPT:
-		if (value < 5000)
+		if (value < MAXIMUM_VALID_DEPTH_FT * 10)
 		{
 			micronetData.dpt.value = ((float) value) * 0.3048f / 10.0f;
 			micronetData.dpt.valid = true;
-			micronetData.dpt.updated = true;
 			micronetData.dpt.timeStamp = millis();
 		}
 		else
 		{
 			micronetData.dpt.valid = false;
-			micronetData.dpt.updated = true;
 		}
 		break;
 	case MICRONET_FIELD_ID_AWS:
 		micronetData.aws.value = ((float) value) / 10.0f;
 		micronetData.aws.valid = true;
-		micronetData.aws.updated = true;
 		micronetData.aws.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_AWA:
 		micronetData.awa.value = (float) value;
 		micronetData.awa.valid = true;
-		micronetData.awa.updated = true;
 		micronetData.awa.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_VCC:
 		micronetData.vcc.value = ((float) value) / 10.0f;
 		micronetData.vcc.valid = true;
-		micronetData.vcc.updated = true;
 		micronetData.vcc.timeStamp = millis();
 		break;
 	}
@@ -219,11 +257,9 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_
 	case MICRONET_FIELD_ID_LOG:
 		micronetData.trip.value = ((float) value1) / 100.0f;
 		micronetData.trip.valid = true;
-		micronetData.trip.updated = true;
 		micronetData.trip.timeStamp = millis();
 		micronetData.log.value = ((float) value2) / 10.0f;
 		micronetData.log.valid = true;
-		micronetData.log.updated = true;
 		micronetData.log.timeStamp = millis();
 		break;
 	}

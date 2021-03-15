@@ -32,6 +32,7 @@
 #include "MicronetDecoder.h"
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
+#include "Configuration.h"
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -63,6 +64,7 @@ void MenuScanNetworks();
 void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
+void MenuSaveConfiguration();
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -72,8 +74,7 @@ CC1101Driver gRfReceiver;         // CC1101 Driver object
 MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder; // Micronet message decoder
-
-uint32_t gAttachedNetworkId = 0;  // 0x83037737;
+Configuration config;
 
 MenuEntry_t mainMenu[] =
 {
@@ -83,6 +84,7 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
+{ "Save configuration to EEPROM", MenuSaveConfiguration},
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -91,7 +93,10 @@ MenuEntry_t mainMenu[] =
 
 void setup()
 {
-	Serial.begin(4800);
+	// Load configuration from EEPROM
+	config.LoadFromEeprom();
+
+	Serial.begin(config.serialSpeed);
 
 	// Setup serial menu
 	gMenuManager.SetMenu(mainMenu);
@@ -143,8 +148,8 @@ void setup()
 	gRfReceiver.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
 	gRfReceiver.setManchester(0); // Enables Manchester encoding/decoding. 0 = Disable. 1 = Enable.
 	gRfReceiver.setFEC(0); // Enable Forward Error Correction (FEC) with interleaving for packet payload (Only supported for fixed packet length mode. 0 = Disable. 1 = Enable.
-	gRfReceiver.setPQT(0); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
-	gRfReceiver.setAppendStatus(1); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
+	gRfReceiver.setPQT(4); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
+	gRfReceiver.setAppendStatus(0); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
@@ -194,7 +199,7 @@ void RfReceiverIsr()
 			// Yes : read them
 			gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
 			dataOffset += nbBytes;
-			// Check if we have reach the packet length field
+			// Check if we have reached the packet length field
 			if ((!newLengthFound) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
 			{
 				newLengthFound = true;
@@ -205,9 +210,9 @@ void RfReceiverIsr()
 				{
 					// Update CC1101's packet length register
 					gRfReceiver.setPacketLength(message.data[MICRONET_LEN_OFFSET_1] + 2);
-					// If CC1101 has already passed the number of bytes of the packet the fact of setting packet length to value
-					// below the number of byte already counted by CC1101 will make GDO0 not be deasserted, so we have to
-					// add an extra check to leave the loop
+					// If CC1101 has already passed the number of bytes requested in the LEN field, setting packet length
+					// to a value below the number of byte already counted by CC1101 will make GDO0 not to be deasserted,
+					// so we have to add an extra check to leave the loop
 					if (dataOffset >= message.data[MICRONET_LEN_OFFSET_1] + 2)
 					{
 						break;
@@ -224,7 +229,7 @@ void RfReceiverIsr()
 		// Continue reading as long as CC1101 doesn't tell us that the packet reception is finished
 	} while (digitalRead(GDO0_PIN));
 
-	// Collect remaining byte that could have been missed in the last loop
+	// Collect remaining bytes that could have been missed in the last loop
 	nbBytes = gRfReceiver.GetRxFifoNbBytes();
 	if (nbBytes > 0)
 	{
@@ -233,9 +238,9 @@ void RfReceiverIsr()
 	}
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	gRfReceiver.SetRx();
-	// Don't consider the last two status byte added by CC1101 in the packet length
+	// Don't consider the last two status bytes added by CC1101 in the packet length
 	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
-	// Get RSSI from status bytes appended to the packet
+	// Get RSSI for this message
 	message.rssi = gRfReceiver.getRssi();
 
 	// Add message to the store
@@ -319,10 +324,10 @@ void PrintData(MicronetData_t *micronetData)
 void MenuAbout()
 {
 	Serial.println("MicronetToNMEA, Version 0.1a");
-	if (gAttachedNetworkId != 0)
+	if (config.attachedNetworkId != 0)
 	{
 		Serial.print("Attached to Micronet Network ");
-		Serial.println(gAttachedNetworkId, HEX);
+		Serial.println(config.attachedNetworkId, HEX);
 	}
 	else
 	{
@@ -495,7 +500,7 @@ void MenuAttachNetwork()
 	}
 	else
 	{
-		gAttachedNetworkId = newNetworkId;
+		config.attachedNetworkId = newNetworkId;
 		Serial.print("Now attached to NetworkID ");
 		Serial.println(newNetworkId, HEX);
 	}
@@ -505,7 +510,7 @@ void MenuConvertToNmea()
 {
 	bool exitNmeaLoop = false;
 
-	if (gAttachedNetworkId == 0)
+	if (config.attachedNetworkId == 0)
 	{
 		Serial.println("No Micronet network has been attached.");
 		Serial.println("Scan and attach a Micronet network first.");
@@ -525,7 +530,7 @@ void MenuConvertToNmea()
 		{
 			if (gMicronetDecoder.VerifyHeaderCrc(message))
 			{
-				if (gMicronetDecoder.GetNetworkId(message) == gAttachedNetworkId)
+				if (gMicronetDecoder.GetNetworkId(message) == config.attachedNetworkId)
 				{
 					gMicronetDecoder.DecodeMessage(message);
 					PrintData(gMicronetDecoder.GetCurrentData());
@@ -542,6 +547,8 @@ void MenuConvertToNmea()
 				exitNmeaLoop = true;
 			}
 		}
+
+		yield();
 	} while (!exitNmeaLoop);
 }
 
@@ -575,6 +582,13 @@ void MenuScanAllMicronetTraffic()
 				exitSniffLoop = true;
 			}
 		}
+		yield();
 	} while (!exitSniffLoop);
 }
 
+void MenuSaveConfiguration()
+{
+	Serial.print("Saving configuration to EEPROM ... ");
+	config.SaveToEeprom();
+	Serial.println("done");
+}

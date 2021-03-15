@@ -1,29 +1,55 @@
-/*
- * PacketDecoder.h
- *
- *  Created on: 12 mars 2021
- *      Author: Ronan
+/***************************************************************************
+ *                                                                         *
+ * Project:  MicronetToNMEA                                                *
+ * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Author:   Ronan Demoment                                                *
+ *                                                                         *
+ ***************************************************************************
+ *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************
  */
 
 #ifndef MICRONETDECODER_H_
 #define MICRONETDECODER_H_
 
+/***************************************************************************/
+/*                              Includes                                   */
+/***************************************************************************/
+
 #include "Micronet.h"
 
 #include <stdint.h>
+
+/***************************************************************************/
+/*                              Constants                                  */
+/***************************************************************************/
 
 #define DEVICE_TYPE_HULL_TRANSMITTER    0x01
 #define DEVICE_TYPE_WIND_TRANSDUCER     0x02
 #define DEVICE_TYPE_DUAL_DISPLAY        0x81
 #define DEVICE_TYPE_ANALOG_WIND_DISPLAY 0x83
 
-typedef enum {
-	MSG_CATEGORY_WIND
-} MessageCategory_t;
+/***************************************************************************/
+/*                                Types                                    */
+/***************************************************************************/
 
 typedef struct {
 	bool valid;
-	bool updated;
 	float value;
 	uint32_t timeStamp;
 } DataValue_t;
@@ -53,9 +79,9 @@ public:
 	uint8_t GetDestination(MicronetMessage_t *message);
 	uint8_t GetHeaderCrc(MicronetMessage_t *message);
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
+
 	void DecodeMessage(MicronetMessage_t *message);
-	void PrintRawMessage(MicronetMessage_t *message);
-	void PrintCurrentData();
+
 	MicronetData_t *GetCurrentData();
 
 private:
@@ -65,5 +91,9 @@ private:
 	void UpdateMicronetData(uint8_t fieldId, int16_t value);
 	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
 };
+
+/***************************************************************************/
+/*                              Prototypes                                 */
+/***************************************************************************/
 
 #endif /* MICRONETDECODER_H_ */
