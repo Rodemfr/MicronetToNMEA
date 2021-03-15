@@ -33,6 +33,7 @@
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
 #include "Configuration.h"
+#include "NmeaEncoder.h"
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -75,6 +76,7 @@ MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder; // Micronet message decoder
 Configuration config;
+NmeaEncoder gNmeaEncoder;
 
 MenuEntry_t mainMenu[] =
 {
@@ -84,7 +86,7 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
-{ "Save configuration to EEPROM", MenuSaveConfiguration},
+{ "Save configuration to EEPROM", MenuSaveConfiguration },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -333,6 +335,8 @@ void MenuAbout()
 	{
 		Serial.print("No Micronet Network attached");
 	}
+	Serial.print("Serial speed : ");
+	Serial.println(config.serialSpeed);
 	Serial.println("");
 	Serial.println("Provides the following NMEA sentences :");
 	Serial.println(" - INDPT (Depth below surface)");
@@ -509,6 +513,7 @@ void MenuAttachNetwork()
 void MenuConvertToNmea()
 {
 	bool exitNmeaLoop = false;
+	char nmeaSentence[256];
 
 	if (config.attachedNetworkId == 0)
 	{
@@ -533,7 +538,12 @@ void MenuConvertToNmea()
 				if (gMicronetDecoder.GetNetworkId(message) == config.attachedNetworkId)
 				{
 					gMicronetDecoder.DecodeMessage(message);
-					PrintData(gMicronetDecoder.GetCurrentData());
+//					PrintData(gMicronetDecoder.GetCurrentData());
+//					PrintRawMessage(message);
+					if (gNmeaEncoder.EncodeINVWR(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					{
+						Serial.print(nmeaSentence);
+					}
 				}
 				gMessageFifo.DeleteMessage();
 			}
