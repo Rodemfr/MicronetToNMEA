@@ -82,7 +82,7 @@ bool firstLoop;
 MenuEntry_t mainMenu[] =
 {
 { "MicronetToNMEA menu", nullptr },
-{ "About MicronetToNMEA", MenuAbout },
+{ "General info on MicronetToNMEA", MenuAbout },
 { "Scan Micronet networks", MenuScanNetworks },
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
@@ -362,6 +362,7 @@ void MenuAbout()
 	Serial.println(" - INVWT (True wind)");
 	Serial.println(" - INMTW (Water temperature)");
 	Serial.println(" - INVHW (Speed on water)");
+	Serial.println(" - INVLW (Distance log)");
 }
 
 void MenuScanNetworks()
