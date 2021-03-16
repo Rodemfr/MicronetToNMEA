@@ -67,7 +67,7 @@ NmeaEncoder::~NmeaEncoder()
 {
 }
 
-bool NmeaEncoder::EncodeVWR(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeMWV_R(MicronetData_t *micronetData, char *sentence)
 {
 	bool update = false;
 
@@ -77,8 +77,10 @@ bool NmeaEncoder::EncodeVWR(MicronetData_t *micronetData, char *sentence)
 
 	if (update)
 	{
-		sprintf(sentence, "$INVWR,%.1f,%c,%.1f,N,,M,,K", fabsf(micronetData->awa.value),
-				micronetData->awa.value < 0 ? 'L' : 'R', micronetData->aws.value);
+		float absAwa = micronetData->awa.value;
+		if (absAwa < 0.0f)
+			absAwa += 360.0f;
+		sprintf(sentence, "$INMWV,%.1f,R,%.1f,N,A", absAwa, micronetData->aws.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vwr = millis();
@@ -87,7 +89,7 @@ bool NmeaEncoder::EncodeVWR(MicronetData_t *micronetData, char *sentence)
 	return update;
 }
 
-bool NmeaEncoder::EncodeVWT(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeMWV_T(MicronetData_t *micronetData, char *sentence)
 {
 	bool update = false;
 
@@ -97,8 +99,10 @@ bool NmeaEncoder::EncodeVWT(MicronetData_t *micronetData, char *sentence)
 
 	if (update)
 	{
-		sprintf(sentence, "$INVWT,%.1f,%c,%.1f,N,,M,,K", fabsf(micronetData->twa.value),
-				micronetData->awa.value < 0 ? 'L' : 'R', micronetData->tws.value);
+		float absTwa = micronetData->twa.value;
+		if (absTwa < 0.0f)
+			absTwa += 360.0f;
+		sprintf(sentence, "$INMWV,%.1f,T,%.1f,N,A", absTwa, micronetData->tws.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vwt = millis();
@@ -106,6 +110,46 @@ bool NmeaEncoder::EncodeVWT(MicronetData_t *micronetData, char *sentence)
 
 	return update;
 }
+
+//bool NmeaEncoder::EncodeVWR(MicronetData_t *micronetData, char *sentence)
+//{
+//	bool update = false;
+//
+//	update |= (micronetData->awa.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+//	update |= (micronetData->aws.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+//	update &= (micronetData->awa.valid && micronetData->aws.valid);
+//
+//	if (update)
+//	{
+//		sprintf(sentence, "$INVWR,%.1f,%c,%.1f,N,,M,,K", fabsf(micronetData->awa.value), micronetData->awa.value < 0 ? 'L' : 'R',
+//				micronetData->aws.value);
+//		AddNmeaChecksum(sentence);
+//
+//		timeStamps.vwr = millis();
+//	}
+//
+//	return update;
+//}
+//
+//bool NmeaEncoder::EncodeVWT(MicronetData_t *micronetData, char *sentence)
+//{
+//	bool update = false;
+//
+//	update |= (micronetData->twa.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+//	update |= (micronetData->tws.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+//	update &= (micronetData->twa.valid && micronetData->tws.valid);
+//
+//	if (update)
+//	{
+//		sprintf(sentence, "$INVWT,%.1f,%c,%.1f,N,,M,,K", fabsf(micronetData->twa.value), micronetData->awa.value < 0 ? 'L' : 'R',
+//				micronetData->tws.value);
+//		AddNmeaChecksum(sentence);
+//
+//		timeStamps.vwt = millis();
+//	}
+//
+//	return update;
+//}
 
 bool NmeaEncoder::EncodeDPT(MicronetData_t *micronetData, char *sentence)
 {

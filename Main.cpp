@@ -75,7 +75,7 @@ CC1101Driver gRfReceiver;         // CC1101 Driver object
 MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder; // Micronet message decoder
-Configuration config;
+Configuration gConfig;
 NmeaEncoder gNmeaEncoder;
 bool firstLoop;
 
@@ -97,9 +97,9 @@ MenuEntry_t mainMenu[] =
 void setup()
 {
 	// Load configuration from EEPROM
-	config.LoadFromEeprom();
+	gConfig.LoadFromEeprom();
 
-	Serial.begin(config.serialSpeed);
+	Serial.begin(gConfig.serialSpeed);
 
 	// Setup serial menu
 	gMenuManager.SetMenu(mainMenu);
@@ -170,7 +170,7 @@ void setup()
 
 void loop()
 {
-	if ((firstLoop) && (config.attachedNetworkId != 0))
+	if ((firstLoop) && (gConfig.attachedNetworkId != 0))
 	{
 		MenuConvertToNmea();
 		gMenuManager.PrintMenu();
@@ -192,8 +192,6 @@ void RfReceiverIsr()
 	int dataOffset;
 	bool newLengthFound = false;
 
-	digitalWrite(GDO2_PIN, HIGH);
-
 	dataOffset = 0;
 	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
 	// begin collecting bytes right now. This way we will be able to instruct CC1101 to change packet size on the fly as soon as we will
@@ -207,7 +205,6 @@ void RfReceiverIsr()
 		{
 			// Yes : ignore current packet and restart CC1101 reception for the next packet
 			gRfReceiver.RestartRx();
-			digitalWrite(GDO2_PIN, LOW);
 			return;
 		}
 		// Are there new bytes in the FIFO ?
@@ -239,7 +236,6 @@ void RfReceiverIsr()
 				{
 					// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
 					gRfReceiver.RestartRx();
-					digitalWrite(GDO2_PIN, LOW);
 					return;
 				}
 			}
@@ -263,8 +259,6 @@ void RfReceiverIsr()
 
 	// Add message to the store
 	gMessageFifo.Push(message);
-
-	digitalWrite(GDO2_PIN, LOW);
 }
 
 void PrintRawMessage(MicronetMessage_t *message)
@@ -344,25 +338,25 @@ void PrintDecoderData(MicronetData_t *micronetData)
 void MenuAbout()
 {
 	Serial.println("MicronetToNMEA, Version 0.1a");
-	if (config.attachedNetworkId != 0)
+	if (gConfig.attachedNetworkId != 0)
 	{
 		Serial.print("Attached to Micronet Network ");
-		Serial.println(config.attachedNetworkId, HEX);
+		Serial.println(gConfig.attachedNetworkId, HEX);
 	}
 	else
 	{
 		Serial.print("No Micronet Network attached");
 	}
 	Serial.print("Serial speed : ");
-	Serial.println(config.serialSpeed);
+	Serial.println(gConfig.serialSpeed);
 	Serial.println("");
 	Serial.println("Provides the following NMEA sentences :");
-	Serial.println(" - INDPT (Depth below transducer)");
-	Serial.println(" - INVWR (Apparent wind)");
-	Serial.println(" - INVWT (True wind)");
-	Serial.println(" - INMTW (Water temperature)");
-	Serial.println(" - INVHW (Speed on water)");
-	Serial.println(" - INVLW (Distance log)");
+	Serial.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
+	Serial.println(" - INMWV (Apparent wind. T120 required)");
+	Serial.println(" - INMWT (True wind. T120 and T121 with Speedo/Temp sensor required)");
+	Serial.println(" - INMTW (Water temperature. T121 with Speedo/Temp sensor required)");
+	Serial.println(" - INVHW (Speed on water. T121 with Speedo/Temp sensor required)");
+	Serial.println(" - INVLW (Distance log T121 with Speedo/Temp sensor required)");
 }
 
 void MenuScanNetworks()
@@ -524,7 +518,7 @@ void MenuAttachNetwork()
 	}
 	else
 	{
-		config.attachedNetworkId = newNetworkId;
+		gConfig.attachedNetworkId = newNetworkId;
 		Serial.print("Now attached to NetworkID ");
 		Serial.println(newNetworkId, HEX);
 	}
@@ -535,14 +529,15 @@ void MenuConvertToNmea()
 	bool exitNmeaLoop = false;
 	char nmeaSentence[256];
 
-	if (config.attachedNetworkId == 0)
+	if (gConfig.attachedNetworkId == 0)
 	{
 		Serial.println("No Micronet network has been attached.");
 		Serial.println("Scan and attach a Micronet network first.");
 		return;
 	}
 
-	Serial.println("Starting Micronet to NMEA 0183 conversion.");
+	Serial.println("");
+	Serial.println("Starting Micronet to NMEA0183 conversion.");
 	Serial.println("Press ESC key at any time to stop conversion and come back to menu.");
 	Serial.println("");
 
@@ -555,13 +550,13 @@ void MenuConvertToNmea()
 		{
 			if (gMicronetDecoder.VerifyHeaderCrc(message))
 			{
-				if (gMicronetDecoder.GetNetworkId(message) == config.attachedNetworkId)
+				if (gMicronetDecoder.GetNetworkId(message) == gConfig.attachedNetworkId)
 				{
 					gMicronetDecoder.DecodeMessage(message);
 
-					if (gNmeaEncoder.EncodeVWR(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeMWV_R(gMicronetDecoder.GetCurrentData(), nmeaSentence))
 						Serial.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVWT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeMWV_T(gMicronetDecoder.GetCurrentData(), nmeaSentence))
 						Serial.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeDPT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
 						Serial.print(nmeaSentence);
@@ -626,6 +621,6 @@ void MenuScanAllMicronetTraffic()
 void MenuSaveConfiguration()
 {
 	Serial.print("Saving configuration to EEPROM ... ");
-	config.SaveToEeprom();
+	gConfig.SaveToEeprom();
 	Serial.println("done");
 }

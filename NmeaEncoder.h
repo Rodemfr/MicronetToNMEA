@@ -64,8 +64,10 @@ public:
 	NmeaEncoder();
 	virtual ~NmeaEncoder();
 
-	bool EncodeVWR(MicronetData_t *micronetData, char *sentence);
-	bool EncodeVWT(MicronetData_t *micronetData, char *sentence);
+	bool EncodeMWV_R(MicronetData_t *micronetData, char *sentence);
+	bool EncodeMWV_T(MicronetData_t *micronetData, char *sentence);
+//	bool EncodeVWR(MicronetData_t *micronetData, char *sentence);
+//	bool EncodeVWT(MicronetData_t *micronetData, char *sentence);
 	bool EncodeDPT(MicronetData_t *micronetData, char *sentence);
 	bool EncodeMTW(MicronetData_t *micronetData, char *sentence);
 	bool EncodeVLW(MicronetData_t *micronetData, char *sentence);
