@@ -58,6 +58,8 @@ typedef struct {
 	DataValue_t stw;
 	DataValue_t awa;
 	DataValue_t aws;
+	DataValue_t twa;
+	DataValue_t tws;
 	DataValue_t dpt;
 	DataValue_t vcc;
 	DataValue_t log;
@@ -86,10 +88,14 @@ public:
 
 private:
 	MicronetData_t micronetData;
+
+	void DecodeSendDataMessage(MicronetMessage_t *message);
+	void DecodeSetCalibrationMessage(MicronetMessage_t *message);
 	int DecodeDataField(MicronetMessage_t *message, int offset);
 	void UpdateMicronetData(uint8_t fieldId, int8_t value);
 	void UpdateMicronetData(uint8_t fieldId, int16_t value);
 	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
+	void CalculateTrueWind();
 };
 
 /***************************************************************************/

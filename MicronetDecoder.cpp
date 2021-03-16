@@ -32,6 +32,7 @@
 
 #include <Arduino.h>
 #include <string.h>
+#include <cmath>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -126,17 +127,43 @@ bool MicronetDecoder::VerifyHeaderCrc(MicronetMessage_t *message)
 
 void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
 {
-	if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_SEND_DATA)
+	switch (message->data[MICRONET_MI_OFFSET])
 	{
-		int fieldOffset = MICRONET_PAYLOAD_OFFSET;
-		while (fieldOffset < message->len)
+	case MICRONET_MESSAGE_ID_SEND_DATA:
+		DecodeSendDataMessage(message);
+		break;
+	case MICRONET_MESSAGE_ID_SET_CALIBRATION:
+		DecodeSetCalibrationMessage(message);
+		break;
+	}
+}
+
+void MicronetDecoder::DecodeSendDataMessage(MicronetMessage_t *message)
+{
+	int fieldOffset = MICRONET_PAYLOAD_OFFSET;
+	while (fieldOffset < message->len)
+	{
+		fieldOffset = DecodeDataField(message, fieldOffset);
+		if (fieldOffset < 0)
 		{
-			fieldOffset = DecodeDataField(message, fieldOffset);
-			if (fieldOffset < 0)
-			{
-				break;
-			}
+			break;
 		}
+	}
+	CalculateTrueWind();
+}
+
+void MicronetDecoder::DecodeSetCalibrationMessage(MicronetMessage_t *message)
+{
+	uint32_t value;
+
+	switch (message->data[MICRONET_PAYLOAD_OFFSET + 1])
+	{
+	case MICRONET_CALIBRATION_SPEED_FACTOR_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
+		{
+			value = message->data[MICRONET_PAYLOAD_OFFSET + 3];
+		}
+		break;
 	}
 }
 
@@ -148,7 +175,8 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 
 	if (message->data[offset] == MICRONET_FIELD_TYPE_3)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
+				+ message->data[offset + 3];
 		if (crc == message->data[offset + 4])
 		{
 			value8 = message->data[offset + 3];
@@ -157,8 +185,8 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_4)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
-				+ message->data[offset + 4];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
+				+ message->data[offset + 3] + message->data[offset + 4];
 		if (crc == message->data[offset + 5])
 		{
 			value16 = message->data[offset + 3];
@@ -168,8 +196,8 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_5)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
-				+ message->data[offset + 4] + message->data[offset + 5];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
+				+ message->data[offset + 3] + message->data[offset + 4] + message->data[offset + 5];
 		if (crc == message->data[offset + 6])
 		{
 			value16 = message->data[offset + 3];
@@ -179,9 +207,10 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_A)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
-				+ message->data[offset + 4] + message->data[offset + 5] + message->data[offset + 6] + message->data[offset + 7]
-				+ message->data[offset + 8] + message->data[offset + 9] + message->data[offset + 10];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
+				+ message->data[offset + 3] + message->data[offset + 4] + message->data[offset + 5]
+				+ message->data[offset + 6] + message->data[offset + 7] + message->data[offset + 8]
+				+ message->data[offset + 9] + message->data[offset + 10];
 		if (crc == message->data[offset + 11])
 		{
 			value_32_1 = message->data[offset + 3];
@@ -268,4 +297,28 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_
 MicronetData_t* MicronetDecoder::GetCurrentData()
 {
 	return &micronetData;
+}
+
+void MicronetDecoder::CalculateTrueWind()
+{
+	if ((micronetData.awa.valid) && (micronetData.aws.valid) && (micronetData.stw.valid))
+	{
+		if ((!micronetData.twa.valid) || (!micronetData.tws.valid)
+				|| (micronetData.awa.timeStamp > micronetData.twa.timeStamp)
+				|| (micronetData.aws.timeStamp > micronetData.tws.timeStamp)
+				|| (micronetData.stw.timeStamp > micronetData.twa.timeStamp))
+		{
+			float twLon, twLat;
+			twLon = (micronetData.aws.value * cosf(micronetData.awa.value * M_PI / 180.0f)) - micronetData.stw.value;
+			twLat = (micronetData.aws.value * sinf(micronetData.awa.value * M_PI / 180.0f));
+
+			micronetData.tws.value = sqrtf(twLon * twLon + twLat * twLat);
+			micronetData.tws.valid = true;
+			micronetData.tws.timeStamp = millis();
+
+			micronetData.twa.value = atan2f(twLat, twLon) * 180.0f / M_PI;
+			micronetData.twa.valid = true;
+			micronetData.twa.timeStamp = millis();
+		}
+	}
 }

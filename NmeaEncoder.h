@@ -45,6 +45,15 @@
 
 using namespace std;
 
+typedef struct {
+	uint32_t vwr;
+	uint32_t vwt;
+	uint32_t dpt;
+	uint32_t mtw;
+	uint32_t vlw;
+	uint32_t vhw;
+} SentencesTimeStamps_t;
+
 /***************************************************************************/
 /*                               Classes                                   */
 /***************************************************************************/
@@ -55,14 +64,16 @@ public:
 	NmeaEncoder();
 	virtual ~NmeaEncoder();
 
-	bool EncodeINVWR(MicronetData_t *micronetData, char *sentence);
-	bool EncodeINVWT(MicronetData_t *micronetData, char *sentence);
+	bool EncodeVWR(MicronetData_t *micronetData, char *sentence);
+	bool EncodeVWT(MicronetData_t *micronetData, char *sentence);
+	bool EncodeDPT(MicronetData_t *micronetData, char *sentence);
+	bool EncodeMTW(MicronetData_t *micronetData, char *sentence);
+	bool EncodeVLW(MicronetData_t *micronetData, char *sentence);
+	bool EncodeVHW(MicronetData_t *micronetData, char *sentence);
 
 private:
-	uint32_t INVWRTimeStamp;
-	uint32_t INVWTTimeStamp;
-
-	uint8_t NmeaChecksum(char *sentence);
+	SentencesTimeStamps_t timeStamps;
+	uint8_t AddNmeaChecksum(char *sentence);
 };
 
 /***************************************************************************/

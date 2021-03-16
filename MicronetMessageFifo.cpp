@@ -144,12 +144,12 @@ void MicronetMessageFifo::DeleteMessage()
 	if (nbMessages > 0)
 	{
 		// Yes : delete the next one
+		nbMessages--;
 		readIndex++;
 		if (readIndex >= MESSAGE_STORE_SIZE)
 		{
 			readIndex = 0;
 		}
-		nbMessages--;
 	}
 
 	interrupts();

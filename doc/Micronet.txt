@@ -102,7 +102,7 @@ Example : Wind direction calibration +10 deg
 |    NID    |DT|  DID   |MI|SO|DE|CS| LEN |??|PI|PL| VA  |SQ|CS|
 |             MESSAGE HEADER              |     CORRECTION     |
 
-Example : Wind Speed Calibration +7 deg
+Example : Wind Speed Calibration +7%
 |83 03 77 37|83|03 77 37|06|09|00|77|12 12|FF 06 01 07 0B 18|
 |    NID    |DT|  DID   |MI|SO|DE|CS| LEN |??|PI|PL|VA|SQ|CS|
 |             MESSAGE HEADER              |    CORRECTION   |

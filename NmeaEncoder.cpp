@@ -32,10 +32,13 @@
 
 #include <Arduino.h>
 #include <stdio.h>
+#include <string.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
+
+#define MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS 100
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -55,63 +58,133 @@ using namespace std;
 /*                              Functions                                  */
 /***************************************************************************/
 
-NmeaEncoder::NmeaEncoder() :
-		INVWRTimeStamp(0)
+NmeaEncoder::NmeaEncoder()
 {
+	memset(&timeStamps, 0, sizeof(timeStamps));
 }
 
 NmeaEncoder::~NmeaEncoder()
 {
 }
 
-bool NmeaEncoder::EncodeINVWR(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeVWR(MicronetData_t *micronetData, char *sentence)
 {
 	bool update = false;
-	char crcString[8];
 
-	update |= (micronetData->awa.timeStamp > INVWRTimeStamp + 100);
-	update |= (micronetData->aws.timeStamp > INVWRTimeStamp + 100);
-	update &= (micronetData->aws.valid || micronetData->aws.valid);
+	update |= (micronetData->awa.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update |= (micronetData->aws.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= (micronetData->awa.valid && micronetData->aws.valid);
 
 	if (update)
 	{
-		// $--VWR,x.x,a,x.x,N,x.x,M,x.x,K*hh<CR><LF>
-		sprintf(sentence, "$INVWR,%.1f,%c,%.1f,N,,M,,K", (float)fabs(micronetData->awa.value),
+		sprintf(sentence, "$INVWR,%.1f,%c,%.1f,N,,M,,K", fabsf(micronetData->awa.value),
 				micronetData->awa.value < 0 ? 'L' : 'R', micronetData->aws.value);
-		sprintf(crcString, "*%02x%c%c", (int)NmeaChecksum(sentence), 13, 10);
-		strcat(sentence, crcString);
+		AddNmeaChecksum(sentence);
 
-		INVWRTimeStamp = millis();
+		timeStamps.vwr = millis();
 	}
+
 	return update;
 }
 
-// FIXME : Make calculation of true wind with STW
-bool NmeaEncoder::EncodeINVWT(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeVWT(MicronetData_t *micronetData, char *sentence)
 {
 	bool update = false;
-	char crcString[8];
 
-	update |= (micronetData->awa.timeStamp > INVWRTimeStamp + 100);
-	update |= (micronetData->aws.timeStamp > INVWRTimeStamp + 100);
-	update &= (micronetData->aws.valid || micronetData->aws.valid);
+	update |= (micronetData->twa.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update |= (micronetData->tws.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= (micronetData->twa.valid && micronetData->tws.valid);
 
 	if (update)
 	{
-		// $--VWR,x.x,a,x.x,N,x.x,M,x.x,K*hh<CR><LF>
-		sprintf(sentence, "$INVWT,%.1f,%c,%.1f,N,,M,,K", (float)fabs(micronetData->awa.value),
-				micronetData->awa.value < 0 ? 'L' : 'R', micronetData->aws.value);
-		sprintf(crcString, "*%02x%c%c", (int)NmeaChecksum(sentence), 13, 10);
-		strcat(sentence, crcString);
+		sprintf(sentence, "$INVWT,%.1f,%c,%.1f,N,,M,,K", fabsf(micronetData->twa.value),
+				micronetData->awa.value < 0 ? 'L' : 'R', micronetData->tws.value);
+		AddNmeaChecksum(sentence);
 
-		INVWTTimeStamp = millis();
+		timeStamps.vwt = millis();
 	}
+
 	return update;
 }
 
-uint8_t NmeaEncoder::NmeaChecksum(char *sentence)
+bool NmeaEncoder::EncodeDPT(MicronetData_t *micronetData, char *sentence)
+{
+	bool update = false;
+
+	update |= (micronetData->dpt.timeStamp > timeStamps.dpt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= micronetData->dpt.valid;
+
+	if (update)
+	{
+		// TODO : Add distance to keel when it will be available from decoder data
+		sprintf(sentence, "$INDPT,%.1f,0.0", micronetData->dpt.value);
+		AddNmeaChecksum(sentence);
+
+		timeStamps.dpt = millis();
+	}
+
+	return update;
+}
+
+bool NmeaEncoder::EncodeMTW(MicronetData_t *micronetData, char *sentence)
+{
+	bool update = false;
+
+	update |= (micronetData->stp.timeStamp > timeStamps.mtw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= micronetData->stp.valid;
+
+	if (update)
+	{
+		sprintf(sentence, "$INMTW,%.1f,C", micronetData->stp.value);
+		AddNmeaChecksum(sentence);
+
+		timeStamps.mtw = millis();
+	}
+
+	return update;
+}
+
+bool NmeaEncoder::EncodeVLW(MicronetData_t *micronetData, char *sentence)
+{
+	bool update = false;
+
+	update |= (micronetData->log.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update |= (micronetData->trip.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= (micronetData->log.valid && micronetData->trip.valid);
+
+	if (update)
+	{
+		sprintf(sentence, "$INVLW,%.1f,N,%.1f,N", micronetData->log.value, micronetData->trip.value);
+		AddNmeaChecksum(sentence);
+
+		timeStamps.vlw = millis();
+	}
+
+	return update;
+}
+
+bool NmeaEncoder::EncodeVHW(MicronetData_t *micronetData, char *sentence)
+{
+	bool update = false;
+
+	update |= (micronetData->stw.timeStamp > timeStamps.vhw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= micronetData->stw.valid;
+
+	if (update)
+	{
+		sprintf(sentence, "$INVHW,,T,,M,%.1f,N,,K", micronetData->stw.value);
+		AddNmeaChecksum(sentence);
+
+		timeStamps.vhw = millis();
+	}
+
+	return update;
+}
+
+uint8_t NmeaEncoder::AddNmeaChecksum(char *sentence)
 {
 	uint8_t crc = 0;
+	char crcString[8];
 	char *pChar = sentence + 1;
 
 	while (*pChar != 0)
@@ -119,6 +192,9 @@ uint8_t NmeaEncoder::NmeaChecksum(char *sentence)
 		crc ^= (*pChar);
 		pChar++;
 	}
+
+	sprintf(crcString, "*%02x%c%c", crc, 13, 10);
+	strcat(sentence, crcString);
 
 	return crc;
 }

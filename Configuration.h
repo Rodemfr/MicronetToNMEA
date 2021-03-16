@@ -56,6 +56,8 @@ public:
 
 	uint32_t serialSpeed;
 	uint32_t attachedNetworkId;
+	uint8_t speedFactor;
+	uint8_t windDirOffset;
 };
 
 /***************************************************************************/
