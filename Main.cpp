@@ -59,7 +59,7 @@
 
 void RfReceiverIsr();
 void PrintRawMessage(MicronetMessage_t *message);
-void PrintData(MicronetData_t *micronetData);
+void PrintDecoderData(MicronetData_t *micronetData);
 void MenuAbout();
 void MenuScanNetworks();
 void MenuAttachNetwork();
@@ -173,6 +173,7 @@ void loop()
 	if ((firstLoop) && (config.attachedNetworkId != 0))
 	{
 		MenuConvertToNmea();
+		gMenuManager.PrintMenu();
 	}
 
 	// Process console input
@@ -191,6 +192,8 @@ void RfReceiverIsr()
 	int dataOffset;
 	bool newLengthFound = false;
 
+	digitalWrite(GDO2_PIN, HIGH);
+
 	dataOffset = 0;
 	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
 	// begin collecting bytes right now. This way we will be able to instruct CC1101 to change packet size on the fly as soon as we will
@@ -204,6 +207,7 @@ void RfReceiverIsr()
 		{
 			// Yes : ignore current packet and restart CC1101 reception for the next packet
 			gRfReceiver.RestartRx();
+			digitalWrite(GDO2_PIN, LOW);
 			return;
 		}
 		// Are there new bytes in the FIFO ?
@@ -235,6 +239,7 @@ void RfReceiverIsr()
 				{
 					// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
 					gRfReceiver.RestartRx();
+					digitalWrite(GDO2_PIN, LOW);
 					return;
 				}
 			}
@@ -258,6 +263,8 @@ void RfReceiverIsr()
 
 	// Add message to the store
 	gMessageFifo.Push(message);
+
+	digitalWrite(GDO2_PIN, LOW);
 }
 
 void PrintRawMessage(MicronetMessage_t *message)
@@ -280,7 +287,7 @@ void PrintRawMessage(MicronetMessage_t *message)
 	Serial.println();
 }
 
-void PrintData(MicronetData_t *micronetData)
+void PrintDecoderData(MicronetData_t *micronetData)
 {
 	if (micronetData->awa.valid)
 	{
@@ -350,8 +357,9 @@ void MenuAbout()
 	Serial.println(config.serialSpeed);
 	Serial.println("");
 	Serial.println("Provides the following NMEA sentences :");
-	Serial.println(" - INDPT (Depth below surface)");
-	Serial.println(" - INMVW (Apparent & true wind speed)");
+	Serial.println(" - INDPT (Depth below transducer)");
+	Serial.println(" - INVWR (Apparent wind)");
+	Serial.println(" - INVWT (True wind)");
 	Serial.println(" - INMTW (Water temperature)");
 	Serial.println(" - INVHW (Speed on water)");
 }
@@ -549,15 +557,22 @@ void MenuConvertToNmea()
 				if (gMicronetDecoder.GetNetworkId(message) == config.attachedNetworkId)
 				{
 					gMicronetDecoder.DecodeMessage(message);
-//					PrintData(gMicronetDecoder.GetCurrentData());
-//					PrintRawMessage(message);
-					if (gNmeaEncoder.EncodeINVWR(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+
+					if (gNmeaEncoder.EncodeVWR(gMicronetDecoder.GetCurrentData(), nmeaSentence))
 						Serial.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeINVWT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeVWT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+						Serial.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeDPT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+						Serial.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeMTW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+						Serial.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeVLW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+						Serial.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeVHW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
 						Serial.print(nmeaSentence);
 				}
-				gMessageFifo.DeleteMessage();
 			}
+			gMessageFifo.DeleteMessage();
 		}
 
 		while (Serial.available() > 0)
