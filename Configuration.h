@@ -56,8 +56,13 @@ public:
 
 	uint32_t serialSpeed;
 	uint32_t attachedNetworkId;
-	uint8_t speedFactor;
-	uint8_t windDirOffset;
+	float waterSpeedFactor_per;
+	float waterTemperatureOffset_C;
+	float distanceToDepthTransducer_m;
+	int16_t windDirectionOffset_deg;
+	int16_t headingDirectionOffset_deg;
+	int16_t magneticVariation_deg;
+	int16_t windShift;
 };
 
 /***************************************************************************/

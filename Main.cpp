@@ -81,7 +81,7 @@ bool firstLoop;
 
 MenuEntry_t mainMenu[] =
 {
-{ "MicronetToNMEA menu", nullptr },
+{ "MicronetToNMEA", nullptr },
 { "General info on MicronetToNMEA", MenuAbout },
 { "Scan Micronet networks", MenuScanNetworks },
 { "Attach converter to a network", MenuAttachNetwork },
@@ -220,7 +220,7 @@ void RfReceiverIsr()
 				// Yes : check that this is a valid length
 				if ((message.data[MICRONET_LEN_OFFSET_1] == message.data[MICRONET_LEN_OFFSET_2])
 						&& (message.data[MICRONET_LEN_OFFSET_1] < MICRONET_MAX_MESSAGE_LENGTH - 3)
-						&& ((message.data[MICRONET_LEN_OFFSET_1] + 2) >= MICRONET_PAYLOAD_OFFSET)) // 13
+						&& ((message.data[MICRONET_LEN_OFFSET_1] + 2) >= MICRONET_PAYLOAD_OFFSET))
 				{
 					// Update CC1101's packet length register
 					gRfReceiver.setPacketLength(message.data[MICRONET_LEN_OFFSET_1] + 2);
@@ -251,7 +251,7 @@ void RfReceiverIsr()
 		dataOffset += nbBytes;
 	}
 	// Restart CC1101 reception as soon as possible not to miss the next packet
-	gRfReceiver.SetRx();
+	gRfReceiver.RestartRx();
 	// Don't consider the last two status bytes added by CC1101 in the packet length
 	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
 	// Get RSSI for this message

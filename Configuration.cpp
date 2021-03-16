@@ -50,7 +50,14 @@ typedef struct
 	uint32_t magicWord;
 	uint32_t serialSpeed;
 	uint32_t attachedNetworkId;
-	uint16_t checksum;
+	float waterSpeedFactor_per;
+	float waterTemperatureOffset_C;
+	float distanceToDepthTransducer_m;
+	int16_t windDirectionOffset_deg;
+	int16_t headingDirectionOffset_deg;
+	int16_t magneticVariation_deg;
+	int16_t windShift;
+	uint8_t checksum;
 } ConfigBlock_t;
 #pragma pack()
 
@@ -71,6 +78,13 @@ Configuration::Configuration()
 	// Set default configuration
 	serialSpeed = 4800;
 	attachedNetworkId = 0;
+	waterSpeedFactor_per = 0;
+	waterTemperatureOffset_C = 0;
+	distanceToDepthTransducer_m = 0;
+	windDirectionOffset_deg = 0;
+	headingDirectionOffset_deg = 0;
+	magneticVariation_deg = 0;
+	windShift = 0;
 }
 
 Configuration::~Configuration()
@@ -82,6 +96,8 @@ void Configuration::LoadFromEeprom()
 	ConfigBlock_t configBlock;
 	uint16_t *pShortConfig = (uint16_t*) (&configBlock);
 
+	memset(&configBlock, 0, sizeof(configBlock));
+
 	eeprom_read_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 
 	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
@@ -91,10 +107,18 @@ void Configuration::LoadFromEeprom()
 		{
 			checksum += pShortConfig[i];
 		}
+
 		if (checksum == configBlock.checksum)
 		{
 			serialSpeed = configBlock.serialSpeed;
 			attachedNetworkId = configBlock.attachedNetworkId;
+			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
+			waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
+			distanceToDepthTransducer_m = configBlock.distanceToDepthTransducer_m;
+			windDirectionOffset_deg = configBlock.windDirectionOffset_deg;
+			headingDirectionOffset_deg = configBlock.headingDirectionOffset_deg;
+			magneticVariation_deg = configBlock.magneticVariation_deg;
+			windShift = configBlock.windShift;
 		}
 	}
 }
@@ -103,12 +127,20 @@ void Configuration::SaveToEeprom()
 {
 	ConfigBlock_t configBlock;
 	uint16_t *pShortConfig = (uint16_t*) (&configBlock);
-	uint16_t checksum = 0;
+	uint8_t checksum = 0;
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
 	configBlock.serialSpeed = serialSpeed;
 	configBlock.attachedNetworkId = attachedNetworkId;
-	for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 2) / 2; i++)
+	configBlock.waterSpeedFactor_per = waterSpeedFactor_per;
+	configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
+	configBlock.distanceToDepthTransducer_m = distanceToDepthTransducer_m;
+	configBlock.windDirectionOffset_deg = windDirectionOffset_deg;
+	configBlock.headingDirectionOffset_deg = headingDirectionOffset_deg;
+	configBlock.magneticVariation_deg = magneticVariation_deg;
+	configBlock.windShift = windShift;
+
+	for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
 	{
 		checksum += pShortConfig[i];
 	}
