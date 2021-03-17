@@ -23,7 +23,7 @@ DT + DID = Device ID (4 bytes) - Unique number identifying the device. The first
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to properly decode it. 
      0x01 Request Data
      0x02 Send Data
-     0x06 Set Calibration
+     0x06 Set Parameter
      0x0a ?
      0x0b ?
 
@@ -93,9 +93,9 @@ FP = Field Property ??
 
 FC = Field checksum. Sum of the all the byte of the field.
 
-**************************************
-*** Message 0x06 (Set Calibration) ***
-**************************************
+************************************
+*** Message 0x06 (Set Parameter) ***
+************************************
 
 Example : Wind direction calibration +10 deg
 |83 03 77 37|83|03 77 37|06|09|09|80|13 13|FF|07|02|0A 00|04 16|

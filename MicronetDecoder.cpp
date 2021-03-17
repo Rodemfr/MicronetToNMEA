@@ -154,17 +154,53 @@ void MicronetDecoder::DecodeSendDataMessage(MicronetMessage_t *message)
 
 void MicronetDecoder::DecodeSetCalibrationMessage(MicronetMessage_t *message)
 {
-	uint32_t value;
-
 	switch (message->data[MICRONET_PAYLOAD_OFFSET + 1])
 	{
+	case MICRONET_CALIBRATION_WATER_SPEED_FACTOR_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
+		{
+			int8_t value = message->data[MICRONET_PAYLOAD_OFFSET + 3];
+		}
+		break;
 	case MICRONET_CALIBRATION_SPEED_FACTOR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			value = message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			int8_t value = message->data[MICRONET_PAYLOAD_OFFSET + 3];
 		}
 		break;
 	}
+
+//	   0x00 Water speed factor
+//	      VA = 8bit unsigned integer. Value is 0x32 + speed correction in % (e.g. 0x30<=>-2%, 0x37<=>+5%)
+//	   0x02 Water temperature offset
+//	      VA = 8bit signed interger. Value is temperature offset * 2, coded in Celsius
+//	   0x03 Distance from depth transducer to waterline or keel
+//	      VA = 8bit signed interger of the offset in ft*10. If the value is positive, it is the distance to waterline. If negative, to the keel.
+//	   0x04 Speed filtering level
+//	      VA = 0x00 : AUTO
+//	      VA = 0x10 : SLOW
+//	      VA = 0x20 : MED
+//	      VA = 0x30 : FAST
+//	   0x05 Wind Speed or Compass heading filtering level
+//	      VA = 0x00 : AUTO (Wind Speed)
+//	      VA = 0x01 : SLOW (Wind Speed)
+//	      VA = 0x02 : MED (Wind Speed)
+//	      VA = 0x03 : FAST (Wind Speed)
+//	      VA = 0x00 : AUTO (Heading) - I see the same code for both Wind and Compass here ? How does the device distinguish ?
+//	      VA = 0x10 : SLOW (Heading)
+//	      VA = 0x20 : MED (Heading)
+//	      VA = 0x30 : FAST (Heading)
+//	   0x06 Wind speed factor
+//	      VA = Speed correction as signed 8bit interger in percent
+//	   0x07 Wind direction offset
+//	      VA = An signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+//	   0x09 Compass heading direction offset
+//	      VA = An signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+//	   0x0D Compass magnetic variation
+//	      VA = Variation as signed 8bit interger in degrees
+//	   0x0E Wind shift
+//	      VA = 8bit unsigned integer
+
 }
 
 int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
