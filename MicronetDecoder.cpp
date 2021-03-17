@@ -63,7 +63,7 @@ MicronetDecoder::MicronetDecoder()
 	// 0.0f in a float is not a binary 0, so let set it manually
 	micronetData.waterSpeedfactor_per = 0.0f;
 	micronetData.waterTemperatureOffset_C = 0.0f;
-	micronetData.distanceFromDepthTransducer_m = 0.0f;
+	micronetData.depthOffset_m = 0.0f;
 	micronetData.windSpeedFactor_per = 0.0f;
 	micronetData.windDirectionOffset_deg = 0.0f;
 	micronetData.headingOffset_deg = 0.0f;
@@ -170,46 +170,65 @@ void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
 	case MICRONET_CALIBRATION_WATER_SPEED_FACTOR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			int32_t value = (uint8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			int32_t value = (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
 			value -= 0x32;
-			micronetData.waterSpeedfactor_per = 1.0f + (((float)value) / 100.0f);
+			micronetData.waterSpeedfactor_per = 1.0f + (((float) value) / 100.0f);
 		}
-		Serial.print("WATER SPEED FACTOR :");
-		Serial.println(micronetData.waterSpeedfactor_per);
 		break;
 	case MICRONET_CALIBRATION_WIND_SPEED_FACTOR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			int32_t value = (int8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.windSpeedFactor_per = 1.0f + (((float)value) / 100.0f);
+			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.windSpeedFactor_per = 1.0f + (((float) value) / 100.0f);
 		}
-		Serial.print("WIND SPEED FACTOR :");
-		Serial.println(micronetData.windSpeedFactor_per);
 		break;
 	case MICRONET_CALIBRATION_WATER_TEMP_OFFSET_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			int32_t value = (int8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.waterTemperatureOffset_C = ((float)value) / 2.0f;
+			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.waterTemperatureOffset_C = ((float) value) / 2.0f;
 		}
-		Serial.print("WATER TEMP OFFSET :");
-		Serial.println(micronetData.waterTemperatureOffset_C);
+		break;
+	case MICRONET_CALIBRATION_DEPTH_OFFSET_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
+		{
+			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.depthOffset_m = ((float) value) * 0.3048f / 10.0f;
+		}
+		break;
+	case MICRONET_CALIBRATION_WINDIR_OFFSET_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 2)
+		{
+			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 4];
+			value <<= 8;
+			value |= (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.windDirectionOffset_deg = (float) value;
+		}
+		break;
+	case MICRONET_CALIBRATION_HEADING_OFFSET_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 2)
+		{
+			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 4];
+			value <<= 8;
+			value |= (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.headingOffset_deg = (float) value;
+		}
+		break;
+	case MICRONET_CALIBRATION_MAGVAR_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
+		{
+			int8_t value = (int8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.magneticVariation_deg = (float) value;
+		}
+		break;
+	case MICRONET_CALIBRATION_WIND_SHIFT_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
+		{
+			uint8_t value = (uint8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.windShift = (float) value;
+		}
 		break;
 	}
-
-//	   0x02 Water temperature offset
-//	      VA = 8bit signed interger. Value is temperature offset * 2, coded in Celsius
-//	   0x03 Distance from depth transducer to waterline or keel
-//	      VA = 8bit signed interger of the offset in ft*10. If the value is positive, it is the distance to waterline. If negative, to the keel.
-//	   0x07 Wind direction offset
-//	      VA = An signed 16-bit integer in degrees ! LITTLE ENDIAN VALUE !
-//	   0x09 Compass heading direction offset
-//	      VA = An signed 16-bit integer in degrees ! LITTLE ENDIAN VALUE !
-//	   0x0D Compass magnetic variation
-//	      VA = Variation as signed 8bit interger in degrees
-//	   0x0E Wind shift
-//	      VA = 8bit unsigned integer
-
 }
 
 int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
@@ -278,7 +297,7 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int8_t value)
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_STP:
-		micronetData.stp.value = ((float) value) / 2.0f;
+		micronetData.stp.value = (((float) value) / 2.0f) + micronetData.waterTemperatureOffset_C;
 		micronetData.stp.valid = true;
 		micronetData.stp.timeStamp = millis();
 		break;
@@ -290,14 +309,14 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_STW:
-		micronetData.stw.value = ((float) value) / 100.0f;
+		micronetData.stw.value = (((float) value) / 100.0f) * micronetData.waterSpeedfactor_per;
 		micronetData.stw.valid = true;
 		micronetData.stw.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_DPT:
 		if (value < MAXIMUM_VALID_DEPTH_FT * 10)
 		{
-			micronetData.dpt.value = ((float) value) * 0.3048f / 10.0f;
+			micronetData.dpt.value = (((float) value) * 0.3048f / 10.0f)  + micronetData.depthOffset_m;
 			micronetData.dpt.valid = true;
 			micronetData.dpt.timeStamp = millis();
 		}
@@ -307,12 +326,12 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 		}
 		break;
 	case MICRONET_FIELD_ID_AWS:
-		micronetData.aws.value = ((float) value) / 10.0f;
+		micronetData.aws.value = (((float) value) / 10.0f) * micronetData.windSpeedFactor_per;
 		micronetData.aws.valid = true;
 		micronetData.aws.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_AWA:
-		micronetData.awa.value = (float) value;
+		micronetData.awa.value = ((float) value) + micronetData.windDirectionOffset_deg;
 		micronetData.awa.valid = true;
 		micronetData.awa.timeStamp = millis();
 		break;
@@ -329,6 +348,7 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_LOG:
+		// TODO : Shall speed factor be applied on log ?
 		micronetData.trip.value = ((float) value1) / 100.0f;
 		micronetData.trip.valid = true;
 		micronetData.trip.timeStamp = millis();

@@ -69,7 +69,7 @@ typedef struct {
 	// System parameters
 	float waterSpeedfactor_per;
 	float waterTemperatureOffset_C;
-	float distanceFromDepthTransducer_m;
+	float depthOffset_m;
 	float windSpeedFactor_per;
 	float windDirectionOffset_deg;
 	float headingOffset_deg;
