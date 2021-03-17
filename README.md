@@ -9,7 +9,7 @@ MicronetToNMEA utimate goal is to understand the Micronet protocol and enable va
 The project requires the following hardware :
 - A boat with Raymarine Wireless system.
 - Teendy 3.5 board. Any other arduino comptabile board should be fine.
-- A small CC1101 based board. Once again, any board should be fine as long as you can connect its SPI bus to the MCU.
+- A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU.
 
 ## Author
 
