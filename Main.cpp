@@ -338,6 +338,8 @@ void PrintDecoderData(MicronetData_t *micronetData)
 void MenuAbout()
 {
 	Serial.println("MicronetToNMEA, Version 0.1a");
+	Serial.print("Serial speed : ");
+	Serial.println(gConfig.serialSpeed);
 	if (gConfig.attachedNetworkId != 0)
 	{
 		Serial.print("Attached to Micronet Network ");
@@ -345,11 +347,8 @@ void MenuAbout()
 	}
 	else
 	{
-		Serial.print("No Micronet Network attached");
+		Serial.println("No Micronet Network attached");
 	}
-	Serial.print("Serial speed : ");
-	Serial.println(gConfig.serialSpeed);
-	Serial.println("");
 	Serial.println("Provides the following NMEA sentences :");
 	Serial.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
 	Serial.println(" - INMWV (Apparent wind. T120 required)");

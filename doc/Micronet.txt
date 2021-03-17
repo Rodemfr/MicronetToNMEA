@@ -136,12 +136,12 @@ PI Parameter ID
    0x06 Wind speed factor
       VA = Speed correction as signed 8bit interger in percent
    0x07 Wind direction offset
-      VA = An signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
-   0x09 Compass heading direction offset
-      VA = An signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+      VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+   0x09 Compass heading offset
+      VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
    0x0D Compass magnetic variation
       VA = Variation as signed 8bit interger in degrees
-   0x0E Wind shift
+   0x0E Wind shift - What is it ?
       VA = 8bit unsigned integer
 
 

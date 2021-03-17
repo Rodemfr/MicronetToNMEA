@@ -94,7 +94,7 @@ Configuration::~Configuration()
 void Configuration::LoadFromEeprom()
 {
 	ConfigBlock_t configBlock;
-	uint16_t *pShortConfig = (uint16_t*) (&configBlock);
+	uint8_t *pConfig = (uint8_t*) (&configBlock);
 
 	memset(&configBlock, 0, sizeof(configBlock));
 
@@ -102,10 +102,10 @@ void Configuration::LoadFromEeprom()
 
 	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
 	{
-		uint16_t checksum = 0;
+		uint8_t checksum = 0;
 		for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 2) / 2; i++)
 		{
-			checksum += pShortConfig[i];
+			checksum += pConfig[i];
 		}
 
 		if (checksum == configBlock.checksum)
@@ -126,7 +126,7 @@ void Configuration::LoadFromEeprom()
 void Configuration::SaveToEeprom()
 {
 	ConfigBlock_t configBlock;
-	uint16_t *pShortConfig = (uint16_t*) (&configBlock);
+	uint8_t *pConfig = (uint8_t*) (&configBlock);
 	uint8_t checksum = 0;
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
@@ -142,7 +142,7 @@ void Configuration::SaveToEeprom()
 
 	for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
 	{
-		checksum += pShortConfig[i];
+		checksum += pConfig[i];
 	}
 	configBlock.checksum = checksum;
 

@@ -55,6 +55,7 @@ typedef struct {
 } DataValue_t;
 
 typedef struct {
+	// Data from transducers
 	DataValue_t stw;
 	DataValue_t awa;
 	DataValue_t aws;
@@ -65,6 +66,15 @@ typedef struct {
 	DataValue_t log;
 	DataValue_t trip;
 	DataValue_t stp;
+	// System parameters
+	float waterSpeedfactor_per;
+	float waterTemperatureOffset_C;
+	float distanceFromDepthTransducer_m;
+	float windSpeedFactor_per;
+	float windDirectionOffset_deg;
+	float headingOffset_deg;
+	float magneticVariation_deg;
+	float windShift;
 } MicronetData_t;
 
 class MicronetDecoder
@@ -90,7 +100,7 @@ private:
 	MicronetData_t micronetData;
 
 	void DecodeSendDataMessage(MicronetMessage_t *message);
-	void DecodeSetCalibrationMessage(MicronetMessage_t *message);
+	void DecodeSetParameterMessage(MicronetMessage_t *message);
 	int DecodeDataField(MicronetMessage_t *message, int offset);
 	void UpdateMicronetData(uint8_t fieldId, int8_t value);
 	void UpdateMicronetData(uint8_t fieldId, int16_t value);

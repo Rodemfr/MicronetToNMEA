@@ -59,6 +59,17 @@
 MicronetDecoder::MicronetDecoder()
 {
 	memset(&micronetData, 0, sizeof(micronetData));
+
+	// 0.0f in a float is not a binary 0, so let set it manually
+	micronetData.waterSpeedfactor_per = 0.0f;
+	micronetData.waterTemperatureOffset_C = 0.0f;
+	micronetData.distanceFromDepthTransducer_m = 0.0f;
+	micronetData.windSpeedFactor_per = 0.0f;
+	micronetData.windDirectionOffset_deg = 0.0f;
+	micronetData.headingOffset_deg = 0.0f;
+	micronetData.magneticVariation_deg = 0.0f;
+	micronetData.windShift = 0.0f;
+
 }
 
 MicronetDecoder::~MicronetDecoder()
@@ -133,7 +144,7 @@ void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
 		DecodeSendDataMessage(message);
 		break;
 	case MICRONET_MESSAGE_ID_SET_CALIBRATION:
-		DecodeSetCalibrationMessage(message);
+		DecodeSetParameterMessage(message);
 		break;
 	}
 }
@@ -152,20 +163,23 @@ void MicronetDecoder::DecodeSendDataMessage(MicronetMessage_t *message)
 	CalculateTrueWind();
 }
 
-void MicronetDecoder::DecodeSetCalibrationMessage(MicronetMessage_t *message)
+void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
 {
 	switch (message->data[MICRONET_PAYLOAD_OFFSET + 1])
 	{
 	case MICRONET_CALIBRATION_WATER_SPEED_FACTOR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			int8_t value = message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			int32_t value = (uint8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			value -= 0x32;
+			micronetData.waterSpeedfactor_per = 1.0f + (((float)value) / 100.0f);
 		}
 		break;
-	case MICRONET_CALIBRATION_SPEED_FACTOR_ID:
+	case MICRONET_CALIBRATION_WIND_SPEED_FACTOR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			int8_t value = message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			int32_t value = (int8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.windSpeedFactor_per = 1.0f + (((float)value) / 100.0f);
 		}
 		break;
 	}
@@ -193,9 +207,9 @@ void MicronetDecoder::DecodeSetCalibrationMessage(MicronetMessage_t *message)
 //	   0x06 Wind speed factor
 //	      VA = Speed correction as signed 8bit interger in percent
 //	   0x07 Wind direction offset
-//	      VA = An signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+//	      VA = An signed 16-bit integer in degrees ! LITTLE ENDIAN VALUE !
 //	   0x09 Compass heading direction offset
-//	      VA = An signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+//	      VA = An signed 16-bit integer in degrees ! LITTLE ENDIAN VALUE !
 //	   0x0D Compass magnetic variation
 //	      VA = Variation as signed 8bit interger in degrees
 //	   0x0E Wind shift
