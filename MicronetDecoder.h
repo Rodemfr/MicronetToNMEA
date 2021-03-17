@@ -67,7 +67,8 @@ typedef struct {
 	DataValue_t trip;
 	DataValue_t stp;
 	// System parameters
-	float waterSpeedfactor_per;
+	bool calibrationUpdated;
+	float waterSpeedFactor_per;
 	float waterTemperatureOffset_C;
 	float depthOffset_m;
 	float windSpeedFactor_per;

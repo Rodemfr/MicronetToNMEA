@@ -65,7 +65,7 @@ void MenuScanNetworks();
 void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
-void MenuSaveConfiguration();
+void UpdateAndSaveCalibration();
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -75,7 +75,7 @@ CC1101Driver gRfReceiver;         // CC1101 Driver object
 MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder; // Micronet message decoder
-Configuration gConfig;
+Configuration gConfiguration;
 NmeaEncoder gNmeaEncoder;
 bool firstLoop;
 
@@ -87,7 +87,6 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
-{ "Save configuration to EEPROM", MenuSaveConfiguration },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -97,9 +96,9 @@ MenuEntry_t mainMenu[] =
 void setup()
 {
 	// Load configuration from EEPROM
-	gConfig.LoadFromEeprom();
+	gConfiguration.LoadFromEeprom();
 
-	Serial.begin(gConfig.serialSpeed);
+	Serial.begin(gConfiguration.serialSpeed);
 
 	// Setup serial menu
 	gMenuManager.SetMenu(mainMenu);
@@ -170,7 +169,7 @@ void setup()
 
 void loop()
 {
-	if ((firstLoop) && (gConfig.attachedNetworkId != 0))
+	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
 	{
 		MenuConvertToNmea();
 		gMenuManager.PrintMenu();
@@ -339,11 +338,11 @@ void MenuAbout()
 {
 	Serial.println("MicronetToNMEA, Version 0.1a");
 	Serial.print("Serial speed : ");
-	Serial.println(gConfig.serialSpeed);
-	if (gConfig.attachedNetworkId != 0)
+	Serial.println(gConfiguration.serialSpeed);
+	if (gConfiguration.attachedNetworkId != 0)
 	{
 		Serial.print("Attached to Micronet Network ");
-		Serial.println(gConfig.attachedNetworkId, HEX);
+		Serial.println(gConfiguration.attachedNetworkId, HEX);
 	}
 	else
 	{
@@ -517,9 +516,10 @@ void MenuAttachNetwork()
 	}
 	else
 	{
-		gConfig.attachedNetworkId = newNetworkId;
+		gConfiguration.attachedNetworkId = newNetworkId;
 		Serial.print("Now attached to NetworkID ");
 		Serial.println(newNetworkId, HEX);
+		gConfiguration.SaveToEeprom();
 	}
 }
 
@@ -528,7 +528,7 @@ void MenuConvertToNmea()
 	bool exitNmeaLoop = false;
 	char nmeaSentence[256];
 
-	if (gConfig.attachedNetworkId == 0)
+	if (gConfiguration.attachedNetworkId == 0)
 	{
 		Serial.println("No Micronet network has been attached.");
 		Serial.println("Scan and attach a Micronet network first.");
@@ -549,7 +549,7 @@ void MenuConvertToNmea()
 		{
 			if (gMicronetDecoder.VerifyHeaderCrc(message))
 			{
-				if (gMicronetDecoder.GetNetworkId(message) == gConfig.attachedNetworkId)
+				if (gMicronetDecoder.GetNetworkId(message) == gConfiguration.attachedNetworkId)
 				{
 					gMicronetDecoder.DecodeMessage(message);
 
@@ -565,6 +565,10 @@ void MenuConvertToNmea()
 						Serial.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeVHW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
 						Serial.print(nmeaSentence);
+					if (gMicronetDecoder.GetCurrentData()->calibrationUpdated)
+					{
+						UpdateAndSaveCalibration();
+					}
 				}
 			}
 			gMessageFifo.DeleteMessage();
@@ -617,9 +621,17 @@ void MenuScanAllMicronetTraffic()
 	} while (!exitSniffLoop);
 }
 
-void MenuSaveConfiguration()
+void UpdateAndSaveCalibration()
 {
-	Serial.print("Saving configuration to EEPROM ... ");
-	gConfig.SaveToEeprom();
-	Serial.println("done");
+	MicronetData_t *data = gMicronetDecoder.GetCurrentData();
+	gConfiguration.waterSpeedFactor_per = data->waterSpeedFactor_per;
+	gConfiguration.waterTemperatureOffset_C = data->waterTemperatureOffset_C;
+	gConfiguration.depthOffset_m = data->depthOffset_m;
+	gConfiguration.windSpeedFactor_per = data->windSpeedFactor_per;
+	gConfiguration.windDirectionOffset_deg = data->windDirectionOffset_deg;
+	gConfiguration.headingOffset_deg = data->headingOffset_deg;
+	gConfiguration.magneticVariation_deg = data->magneticVariation_deg;
+	gConfiguration.windShift = data->windShift;
+
+	gConfiguration.SaveToEeprom();
 }

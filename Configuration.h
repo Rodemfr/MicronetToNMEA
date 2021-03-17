@@ -58,11 +58,12 @@ public:
 	uint32_t attachedNetworkId;
 	float waterSpeedFactor_per;
 	float waterTemperatureOffset_C;
-	float distanceToDepthTransducer_m;
-	int16_t windDirectionOffset_deg;
-	int16_t headingDirectionOffset_deg;
-	int16_t magneticVariation_deg;
-	int16_t windShift;
+	float depthOffset_m;
+	float windSpeedFactor_per;
+	float windDirectionOffset_deg;
+	float headingOffset_deg;
+	float magneticVariation_deg;
+	float windShift;
 };
 
 /***************************************************************************/

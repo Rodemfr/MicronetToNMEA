@@ -52,11 +52,12 @@ typedef struct
 	uint32_t attachedNetworkId;
 	float waterSpeedFactor_per;
 	float waterTemperatureOffset_C;
-	float distanceToDepthTransducer_m;
-	int16_t windDirectionOffset_deg;
-	int16_t headingDirectionOffset_deg;
-	int16_t magneticVariation_deg;
-	int16_t windShift;
+	float depthOffset_m;
+	float windSpeedFactor_per;
+	float windDirectionOffset_deg;
+	float headingOffset_deg;
+	float magneticVariation_deg;
+	float windShift;
 	uint8_t checksum;
 } ConfigBlock_t;
 #pragma pack()
@@ -80,9 +81,10 @@ Configuration::Configuration()
 	attachedNetworkId = 0;
 	waterSpeedFactor_per = 0;
 	waterTemperatureOffset_C = 0;
-	distanceToDepthTransducer_m = 0;
+	depthOffset_m = 0;
+	windSpeedFactor_per = 0.0f;
 	windDirectionOffset_deg = 0;
-	headingDirectionOffset_deg = 0;
+	headingOffset_deg = 0;
 	magneticVariation_deg = 0;
 	windShift = 0;
 }
@@ -97,13 +99,12 @@ void Configuration::LoadFromEeprom()
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
 
 	memset(&configBlock, 0, sizeof(configBlock));
-
 	eeprom_read_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 
 	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
 	{
 		uint8_t checksum = 0;
-		for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 2) / 2; i++)
+		for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 1); i++)
 		{
 			checksum += pConfig[i];
 		}
@@ -114,9 +115,10 @@ void Configuration::LoadFromEeprom()
 			attachedNetworkId = configBlock.attachedNetworkId;
 			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
 			waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
-			distanceToDepthTransducer_m = configBlock.distanceToDepthTransducer_m;
+			depthOffset_m = configBlock.depthOffset_m;
+			windSpeedFactor_per = configBlock.windDirectionOffset_deg;
 			windDirectionOffset_deg = configBlock.windDirectionOffset_deg;
-			headingDirectionOffset_deg = configBlock.headingDirectionOffset_deg;
+			headingOffset_deg = configBlock.headingOffset_deg;
 			magneticVariation_deg = configBlock.magneticVariation_deg;
 			windShift = configBlock.windShift;
 		}
@@ -125,18 +127,22 @@ void Configuration::LoadFromEeprom()
 
 void Configuration::SaveToEeprom()
 {
-	ConfigBlock_t configBlock;
+	ConfigBlock_t configBlock, compareBlock;
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
+	uint8_t *pCompare = (uint8_t*) (&compareBlock);
 	uint8_t checksum = 0;
+
+	eeprom_read_block(&compareBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
 	configBlock.serialSpeed = serialSpeed;
 	configBlock.attachedNetworkId = attachedNetworkId;
 	configBlock.waterSpeedFactor_per = waterSpeedFactor_per;
 	configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
-	configBlock.distanceToDepthTransducer_m = distanceToDepthTransducer_m;
+	configBlock.depthOffset_m = depthOffset_m;
+	configBlock.windSpeedFactor_per = windSpeedFactor_per;
 	configBlock.windDirectionOffset_deg = windDirectionOffset_deg;
-	configBlock.headingDirectionOffset_deg = headingDirectionOffset_deg;
+	configBlock.headingOffset_deg = headingOffset_deg;
 	configBlock.magneticVariation_deg = magneticVariation_deg;
 	configBlock.windShift = windShift;
 
@@ -146,5 +152,11 @@ void Configuration::SaveToEeprom()
 	}
 	configBlock.checksum = checksum;
 
-	eeprom_write_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
+	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
+	{
+		if (pConfig[i] != pCompare[i]) {
+			eeprom_write_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
+			break;
+		}
+	}
 }
