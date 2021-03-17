@@ -28,7 +28,7 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "CC1101Driver.h"
+#include "ELECHOUSE_CC1101_SRC_DRV.h"
 #include "MicronetDecoder.h"
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
@@ -66,12 +66,13 @@ void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void UpdateAndSaveCalibration();
+void RestartRfRx();
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
-CC1101Driver gRfReceiver;         // CC1101 Driver object
+ELECHOUSE_CC1101 gRfReceiver;         // CC1101 Driver object
 MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder; // Micronet message decoder
@@ -144,7 +145,7 @@ void setup()
 	gRfReceiver.setWhiteData(0); // Turn data whitening on / off. 0 = Whitening off. 1 = Whitening on.
 	gRfReceiver.setPktFormat(0); // Format of RX and TX data. 0 = Normal mode, use FIFOs for RX and TX. 1 = Synchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins. 2 = Random TX mode; sends random data using PN9 generator. Used for test. Works as normal mode, setting 0 (00), in RX. 3 = Asynchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins.
 	gRfReceiver.setLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
-	gRfReceiver.setPacketLength(52); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
+	gRfReceiver.setPacketLength(60); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
 	gRfReceiver.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.
 	gRfReceiver.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
 	gRfReceiver.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
@@ -152,6 +153,26 @@ void setup()
 	gRfReceiver.setFEC(0); // Enable Forward Error Correction (FEC) with interleaving for packet payload (Only supported for fixed packet length mode. 0 = Disable. 1 = Enable.
 	gRfReceiver.setPQT(4); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
 	gRfReceiver.setAppendStatus(0); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
+
+
+//	int CC1101Driver::GetRxFifoNbBytes()
+//	{
+//		return SpiReadStatus(CC1101_RXBYTES);
+//	}
+//
+//	void CC1101Driver::ReadRxFifo(uint8_t *rxBuffer, int nbBytes)
+//	{
+//		SpiReadBurstReg(CC1101_RXFIFO, rxBuffer, nbBytes);
+//	}
+//
+//	void CC1101Driver::RestartRx()
+//	{
+//		SpiStrobe(CC1101_SIDLE);
+//		SpiStrobe(CC1101_SFRX);
+//		SpiStrobe(CC1101_SRX);        //start receive
+//		trxstate = 2;
+//	}
+
 
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
@@ -198,19 +219,20 @@ void RfReceiverIsr()
 	do
 	{
 		// How many bytes are already in the FIFO ?
-		nbBytes = gRfReceiver.GetRxFifoNbBytes();
+		nbBytes = gRfReceiver.SpiReadStatus(CC1101_RXBYTES);
 		// Check for FIFO overflow
 		if (nbBytes & 0x80)
 		{
 			// Yes : ignore current packet and restart CC1101 reception for the next packet
-			gRfReceiver.RestartRx();
+			RestartRfRx();
 			return;
 		}
 		// Are there new bytes in the FIFO ?
 		if (nbBytes > 0)
 		{
 			// Yes : read them
-			gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
+			//gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
+			gRfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
 			dataOffset += nbBytes;
 			// Check if we have reached the packet length field
 			if ((!newLengthFound) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
@@ -234,7 +256,7 @@ void RfReceiverIsr()
 				else
 				{
 					// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
-					gRfReceiver.RestartRx();
+					RestartRfRx();
 					return;
 				}
 			}
@@ -243,14 +265,14 @@ void RfReceiverIsr()
 	} while (digitalRead(GDO0_PIN));
 
 	// Collect remaining bytes that could have been missed in the last loop
-	nbBytes = gRfReceiver.GetRxFifoNbBytes();
+	nbBytes = gRfReceiver.SpiReadStatus(CC1101_RXBYTES);
 	if (nbBytes > 0)
 	{
-		gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
+		gRfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 	}
 	// Restart CC1101 reception as soon as possible not to miss the next packet
-	gRfReceiver.RestartRx();
+	RestartRfRx();
 	// Don't consider the last two status bytes added by CC1101 in the packet length
 	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
 	// Get RSSI for this message
@@ -634,4 +656,11 @@ void UpdateAndSaveCalibration()
 	gConfiguration.windShift = data->windShift;
 
 	gConfiguration.SaveToEeprom();
+}
+
+void RestartRfRx()
+{
+	gRfReceiver.setSidle();
+	gRfReceiver.SpiStrobe(CC1101_SFRX);
+	gRfReceiver.SetRx();
 }
