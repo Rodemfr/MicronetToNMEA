@@ -116,9 +116,9 @@ PI Parameter ID
    0x00 Water speed factor
       VA = 8bit unsigned integer. Value is 0x32 + speed correction in % (e.g. 0x30<=>-2%, 0x37<=>+5%)
    0x02 Water temperature offset
-      VA = 8bit signed interger. Value is temperature offset * 2, coded in Celsius
+      VA = 8bit signed integer. Value is temperature offset * 2, coded in Celsius
    0x03 Distance from depth transducer to waterline or keel
-      VA = 8bit signed interger of the offset in ft*10. If the value is positive, it is the distance to waterline. If negative, to the keel.
+      VA = 8bit signed integer of the offset in ft*10. If the value is positive, it is the distance to waterline. If negative, to the keel.
    0x04 Speed filtering level
       VA = 0x00 : AUTO
       VA = 0x10 : SLOW
@@ -134,13 +134,13 @@ PI Parameter ID
       VA = 0x20 : MED (Heading)
       VA = 0x30 : FAST (Heading)
    0x06 Wind speed factor
-      VA = Speed correction as signed 8bit interger in percent
+      VA = Speed correction as signed 8bit integer in percent
    0x07 Wind direction offset
       VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
    0x09 Compass heading offset
       VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
    0x0D Compass magnetic variation
-      VA = Variation as signed 8bit interger in degrees
+      VA = Variation as signed 8bit integer in degrees
    0x0E Wind shift - What is it ?
       VA = 8bit unsigned integer
 

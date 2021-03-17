@@ -174,6 +174,8 @@ void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
 			value -= 0x32;
 			micronetData.waterSpeedfactor_per = 1.0f + (((float)value) / 100.0f);
 		}
+		Serial.print("WATER SPEED FACTOR :");
+		Serial.println(micronetData.waterSpeedfactor_per);
 		break;
 	case MICRONET_CALIBRATION_WIND_SPEED_FACTOR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
@@ -181,31 +183,24 @@ void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
 			int32_t value = (int8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
 			micronetData.windSpeedFactor_per = 1.0f + (((float)value) / 100.0f);
 		}
+		Serial.print("WIND SPEED FACTOR :");
+		Serial.println(micronetData.windSpeedFactor_per);
+		break;
+	case MICRONET_CALIBRATION_WATER_TEMP_OFFSET_ID:
+		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
+		{
+			int32_t value = (int8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			micronetData.waterTemperatureOffset_C = ((float)value) / 2.0f;
+		}
+		Serial.print("WATER TEMP OFFSET :");
+		Serial.println(micronetData.waterTemperatureOffset_C);
 		break;
 	}
 
-//	   0x00 Water speed factor
-//	      VA = 8bit unsigned integer. Value is 0x32 + speed correction in % (e.g. 0x30<=>-2%, 0x37<=>+5%)
 //	   0x02 Water temperature offset
 //	      VA = 8bit signed interger. Value is temperature offset * 2, coded in Celsius
 //	   0x03 Distance from depth transducer to waterline or keel
 //	      VA = 8bit signed interger of the offset in ft*10. If the value is positive, it is the distance to waterline. If negative, to the keel.
-//	   0x04 Speed filtering level
-//	      VA = 0x00 : AUTO
-//	      VA = 0x10 : SLOW
-//	      VA = 0x20 : MED
-//	      VA = 0x30 : FAST
-//	   0x05 Wind Speed or Compass heading filtering level
-//	      VA = 0x00 : AUTO (Wind Speed)
-//	      VA = 0x01 : SLOW (Wind Speed)
-//	      VA = 0x02 : MED (Wind Speed)
-//	      VA = 0x03 : FAST (Wind Speed)
-//	      VA = 0x00 : AUTO (Heading) - I see the same code for both Wind and Compass here ? How does the device distinguish ?
-//	      VA = 0x10 : SLOW (Heading)
-//	      VA = 0x20 : MED (Heading)
-//	      VA = 0x30 : FAST (Heading)
-//	   0x06 Wind speed factor
-//	      VA = Speed correction as signed 8bit interger in percent
 //	   0x07 Wind direction offset
 //	      VA = An signed 16-bit integer in degrees ! LITTLE ENDIAN VALUE !
 //	   0x09 Compass heading direction offset
