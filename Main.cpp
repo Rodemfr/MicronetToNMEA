@@ -58,6 +58,7 @@
 /***************************************************************************/
 
 void RfReceiverIsr();
+void RfFlushAndRestartRx();
 void PrintRawMessage(MicronetMessage_t *message);
 void PrintDecoderData(MicronetData_t *micronetData);
 void MenuAbout();
@@ -66,7 +67,6 @@ void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void UpdateAndSaveCalibration();
-void RestartRfRx();
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -224,7 +224,7 @@ void RfReceiverIsr()
 		if (nbBytes & 0x80)
 		{
 			// Yes : ignore current packet and restart CC1101 reception for the next packet
-			RestartRfRx();
+			RfFlushAndRestartRx();
 			return;
 		}
 		// Are there new bytes in the FIFO ?
@@ -256,7 +256,7 @@ void RfReceiverIsr()
 				else
 				{
 					// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
-					RestartRfRx();
+					RfFlushAndRestartRx();
 					return;
 				}
 			}
@@ -272,7 +272,7 @@ void RfReceiverIsr()
 		dataOffset += nbBytes;
 	}
 	// Restart CC1101 reception as soon as possible not to miss the next packet
-	RestartRfRx();
+	RfFlushAndRestartRx();
 	// Don't consider the last two status bytes added by CC1101 in the packet length
 	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
 	// Get RSSI for this message
@@ -280,6 +280,13 @@ void RfReceiverIsr()
 
 	// Add message to the store
 	gMessageFifo.Push(message);
+}
+
+void RfFlushAndRestartRx()
+{
+	gRfReceiver.setSidle();
+	gRfReceiver.SpiStrobe(CC1101_SFRX);
+	gRfReceiver.SetRx();
 }
 
 void PrintRawMessage(MicronetMessage_t *message)
@@ -656,11 +663,4 @@ void UpdateAndSaveCalibration()
 	gConfiguration.windShift = data->windShift;
 
 	gConfiguration.SaveToEeprom();
-}
-
-void RestartRfRx()
-{
-	gRfReceiver.setSidle();
-	gRfReceiver.SpiStrobe(CC1101_SFRX);
-	gRfReceiver.SetRx();
 }

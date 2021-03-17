@@ -1,6 +1,6 @@
 # MicronetToNMEA
 
-MicronetToNMEA is an Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to an standard NMEA stream.
+MicronetToNMEA is an Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to a standard NMEA stream.
 
 ## Description
 
@@ -17,13 +17,14 @@ The project requires the following hardware :
 
 ## License
 
-I need to clarify all licence restrictions implied by CC1101 driver usage before publishing this code to the public.
-If everything is OK, it will be released under a classic open source license.
+MicronetToNMEA is licensed under GPLv3. See LICENSE.txt file for more details.
 
 ## Compilation
 
 The source code includes project files for Sloeber (i.e. Eclipse). Just import the project in Sloeber and compile it.
+If you prefer not to use Sloeber, you can create a new Arduino Sketch and import the all .h and .cpp inside. It will work.
 
 ## Acknowledgments
 
-* Thanks to the guys of YBW.com forum who started the work of investigating Micronet's protocol. The story continues...
+* Thanks to the guys of YBW.com forum who started the work of investigating Micronet's protocol.
+
