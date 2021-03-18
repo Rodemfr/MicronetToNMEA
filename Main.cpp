@@ -380,7 +380,7 @@ void MenuAbout()
 	Serial.println("Provides the following NMEA sentences :");
 	Serial.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
 	Serial.println(" - INMWV (Apparent wind. T120 required)");
-	Serial.println(" - INMWT (True wind. T120 and T121 with Speedo/Temp sensor required)");
+	Serial.println(" - INMWV (True wind. T120 and T121 with Speedo/Temp sensor required)");
 	Serial.println(" - INMTW (Water temperature. T121 with Speedo/Temp sensor required)");
 	Serial.println(" - INVHW (Speed on water. T121 with Speedo/Temp sensor required)");
 	Serial.println(" - INVLW (Distance log T121 with Speedo/Temp sensor required)");
