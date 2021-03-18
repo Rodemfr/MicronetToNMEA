@@ -175,11 +175,11 @@ void setup()
 
 void loop()
 {
-//	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
-//	{
-//		MenuConvertToNmea();
-//		gMenuManager.PrintMenu();
-//	}
+	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
+	{
+		MenuConvertToNmea();
+		gMenuManager.PrintMenu();
+	}
 
 	// Process console input
 	while (Serial.available() > 0)
