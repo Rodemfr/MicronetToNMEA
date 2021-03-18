@@ -44,6 +44,10 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+#define CS0_PIN              10
+#define MOSI_PIN             11
+#define MISO_PIN             12
+#define SCK_PIN              14
 #define GDO0_PIN             24
 #define GDO2_PIN             25
 #define LED_PIN              LED_BUILTIN
@@ -105,9 +109,10 @@ void setup()
 	gMenuManager.SetMenu(mainMenu);
 
 	// Set SPI pin configuration
-	SPI.setMOSI(11);
-	SPI.setMISO(12);
-	SPI.setSCK(14);
+	SPI.setMOSI(MOSI_PIN);
+	SPI.setMISO(MISO_PIN);
+	SPI.setSCK(SCK_PIN);
+	SPI.setCS(CS0_PIN);
 	SPI.begin();
 
 	// Check connection to CC1101
@@ -154,26 +159,6 @@ void setup()
 	gRfReceiver.setPQT(4); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
 	gRfReceiver.setAppendStatus(0); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 
-
-//	int CC1101Driver::GetRxFifoNbBytes()
-//	{
-//		return SpiReadStatus(CC1101_RXBYTES);
-//	}
-//
-//	void CC1101Driver::ReadRxFifo(uint8_t *rxBuffer, int nbBytes)
-//	{
-//		SpiReadBurstReg(CC1101_RXFIFO, rxBuffer, nbBytes);
-//	}
-//
-//	void CC1101Driver::RestartRx()
-//	{
-//		SpiStrobe(CC1101_SIDLE);
-//		SpiStrobe(CC1101_SFRX);
-//		SpiStrobe(CC1101_SRX);        //start receive
-//		trxstate = 2;
-//	}
-
-
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
 	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfReceiverIsr, RISING);
@@ -190,11 +175,11 @@ void setup()
 
 void loop()
 {
-	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
-	{
-		MenuConvertToNmea();
-		gMenuManager.PrintMenu();
-	}
+//	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
+//	{
+//		MenuConvertToNmea();
+//		gMenuManager.PrintMenu();
+//	}
 
 	// Process console input
 	while (Serial.available() > 0)
@@ -366,8 +351,10 @@ void PrintDecoderData(MicronetData_t *micronetData)
 void MenuAbout()
 {
 	Serial.println("MicronetToNMEA, Version 0.1a");
+
 	Serial.print("Serial speed : ");
 	Serial.println(gConfiguration.serialSpeed);
+
 	if (gConfiguration.attachedNetworkId != 0)
 	{
 		Serial.print("Attached to Micronet Network ");
@@ -377,6 +364,16 @@ void MenuAbout()
 	{
 		Serial.println("No Micronet Network attached");
 	}
+
+	Serial.print("Wind speed factor = ");
+	Serial.println(gConfiguration.windSpeedFactor_per);
+	Serial.print("Wind direction offset = ");
+	Serial.println((int)(gConfiguration.windDirectionOffset_deg));
+	Serial.print("Water speed factor = ");
+	Serial.println(gConfiguration.waterSpeedFactor_per);
+	Serial.print("Water temperature offset = ");
+	Serial.println((int)(gConfiguration.waterTemperatureOffset_C));
+
 	Serial.println("Provides the following NMEA sentences :");
 	Serial.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
 	Serial.println(" - INMWV (Apparent wind. T120 required)");

@@ -79,14 +79,14 @@ Configuration::Configuration()
 	// Set default configuration
 	serialSpeed = 4800;
 	attachedNetworkId = 0;
-	waterSpeedFactor_per = 0;
+	waterSpeedFactor_per = 1.0f;
 	waterTemperatureOffset_C = 0;
 	depthOffset_m = 0;
-	windSpeedFactor_per = 0.0f;
+	windSpeedFactor_per = 1.0f;
 	windDirectionOffset_deg = 0;
 	headingOffset_deg = 0;
 	magneticVariation_deg = 0;
-	windShift = 0;
+	windShift = 10;
 }
 
 Configuration::~Configuration()
