@@ -50,7 +50,7 @@ GND  <-> GND
 If you want to use a different board and/or pinout, you have to edit the related define statements at the beginning of Main.cpp file.
 
 MicronetToNMEA is controlled through a console connected to USB/UART0. Just connect the USB connector of the board to your PC and
-use a terminal like TeraTerm with the following configuration : 4800 bauds, 8 bit data, 1 stop bit, no parity.
+use a terminal like TeraTerm with the following configuration : 34800 bauds, 8 bit data, 1 stop bit, no parity.
 
 ## Quick Start & general guidance
 

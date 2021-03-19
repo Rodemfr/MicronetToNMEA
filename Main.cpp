@@ -34,11 +34,11 @@
 #include "MenuManager.h"
 #include "Configuration.h"
 #include "NmeaEncoder.h"
-
 #include <Arduino.h>
 #include <SPI.h>
 #include <wiring.h>
 #include <iostream>
+#include "GnssDecoder.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -52,6 +52,11 @@
 #define GDO2_PIN             25
 #define LED_PIN              LED_BUILTIN
 #define MAX_SCANNED_NETWORKS 5
+
+#define GNSS_SERIAL   Serial1
+#define GNNS_BAUDRATE 38400
+#define GNNS_RX_PIN   0
+#define GNNS_TX_PIN   1
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -71,17 +76,19 @@ void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void UpdateAndSaveCalibration();
+void LoadCalibration();
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
-ELECHOUSE_CC1101 gRfReceiver;         // CC1101 Driver object
+ELECHOUSE_CC1101 gRfReceiver;     // CC1101 Driver object
 MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetDecoder gMicronetDecoder; // Micronet message decoder
 Configuration gConfiguration;
 NmeaEncoder gNmeaEncoder;
+GnssDecoder gGnssDecoder;
 bool firstLoop;
 
 MenuEntry_t mainMenu[] =
@@ -102,6 +109,7 @@ void setup()
 {
 	// Load configuration from EEPROM
 	gConfiguration.LoadFromEeprom();
+	LoadCalibration();
 
 	Serial.begin(gConfiguration.serialSpeed);
 
@@ -171,6 +179,10 @@ void setup()
 
 	// For the main loop to know when it is executing for the first time
 	firstLoop = true;
+
+	GNSS_SERIAL.begin(GNNS_BAUDRATE);
+	GNSS_SERIAL.setRX(GNNS_RX_PIN);
+	GNSS_SERIAL.setTX(GNNS_TX_PIN);
 }
 
 void loop()
@@ -188,6 +200,14 @@ void loop()
 	}
 
 	firstLoop = false;
+}
+
+void serialEvent1()
+{
+	while (GNSS_SERIAL.available() > 0)
+	{
+		gGnssDecoder.PushChar(GNSS_SERIAL.read());
+	}
 }
 
 void RfReceiverIsr()
@@ -368,11 +388,11 @@ void MenuAbout()
 	Serial.print("Wind speed factor = ");
 	Serial.println(gConfiguration.windSpeedFactor_per);
 	Serial.print("Wind direction offset = ");
-	Serial.println((int)(gConfiguration.windDirectionOffset_deg));
+	Serial.println((int) (gConfiguration.windDirectionOffset_deg));
 	Serial.print("Water speed factor = ");
 	Serial.println(gConfiguration.waterSpeedFactor_per);
 	Serial.print("Water temperature offset = ");
-	Serial.println((int)(gConfiguration.waterTemperatureOffset_C));
+	Serial.println((int) (gConfiguration.waterTemperatureOffset_C));
 
 	Serial.println("Provides the following NMEA sentences :");
 	Serial.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
@@ -593,12 +613,21 @@ void MenuConvertToNmea()
 						Serial.print(nmeaSentence);
 					if (gMicronetDecoder.GetCurrentData()->calibrationUpdated)
 					{
+						gMicronetDecoder.GetCurrentData()->calibrationUpdated = false;
+						Serial.println("GLOUPS !");
 						UpdateAndSaveCalibration();
 					}
 				}
 			}
 			gMessageFifo.DeleteMessage();
 		}
+
+		int nbGnssSentences = gGnssDecoder.GetNbSentences();
+		for (int i = 0; i < nbGnssSentences; i++)
+		{
+			Serial.println(gGnssDecoder.GetSentence(i));
+		}
+		gGnssDecoder.resetSentences();
 
 		while (Serial.available() > 0)
 		{
@@ -650,6 +679,7 @@ void MenuScanAllMicronetTraffic()
 void UpdateAndSaveCalibration()
 {
 	MicronetData_t *data = gMicronetDecoder.GetCurrentData();
+
 	gConfiguration.waterSpeedFactor_per = data->waterSpeedFactor_per;
 	gConfiguration.waterTemperatureOffset_C = data->waterTemperatureOffset_C;
 	gConfiguration.depthOffset_m = data->depthOffset_m;
@@ -658,6 +688,22 @@ void UpdateAndSaveCalibration()
 	gConfiguration.headingOffset_deg = data->headingOffset_deg;
 	gConfiguration.magneticVariation_deg = data->magneticVariation_deg;
 	gConfiguration.windShift = data->windShift;
+
+	gConfiguration.SaveToEeprom();
+}
+
+void LoadCalibration()
+{
+	MicronetData_t *data = gMicronetDecoder.GetCurrentData();
+
+	data->waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
+	data->waterTemperatureOffset_C = gConfiguration.waterTemperatureOffset_C;
+	data->depthOffset_m = gConfiguration.depthOffset_m;
+	data->windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
+	data->windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
+	data->headingOffset_deg = gConfiguration.headingOffset_deg;
+	data->magneticVariation_deg = gConfiguration.magneticVariation_deg;
+	data->windShift = gConfiguration.windShift;
 
 	gConfiguration.SaveToEeprom();
 }

@@ -28,39 +28,22 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "Configuration.h"
+#include "GnssDecoder.h"
 
 #include <Arduino.h>
-#include <avr/eeprom.h>
+#include <string.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define EEPROM_CONFIG_OFFSET 0
-#define CONFIG_MAGIC_NUMBER  0x4D544E4D
+/***************************************************************************/
+/*                                Macros                                   */
+/***************************************************************************/
 
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
-
-#pragma pack(1)
-typedef struct
-{
-	uint32_t magicWord;
-	uint32_t serialSpeed;
-	uint32_t attachedNetworkId;
-	float waterSpeedFactor_per;
-	float waterTemperatureOffset_C;
-	float depthOffset_m;
-	float windSpeedFactor_per;
-	float windDirectionOffset_deg;
-	float headingOffset_deg;
-	float magneticVariation_deg;
-	float windShift;
-	uint8_t checksum;
-} ConfigBlock_t;
-#pragma pack()
 
 /***************************************************************************/
 /*                           Local prototypes                              */
@@ -74,90 +57,63 @@ typedef struct
 /*                              Functions                                  */
 /***************************************************************************/
 
-Configuration::Configuration()
+GnssDecoder::GnssDecoder()
 {
-	// Set default configuration
-	serialSpeed = 34800;
-	attachedNetworkId = 0;
-	waterSpeedFactor_per = 1.0f;
-	waterTemperatureOffset_C = 0;
-	depthOffset_m = 0;
-	windSpeedFactor_per = 1.0f;
-	windDirectionOffset_deg = 0;
-	headingOffset_deg = 0;
-	magneticVariation_deg = 0;
-	windShift = 10;
+	writeIndex = 0;
+	sentenceWriteIndex = 0;
+	serialBuffer[0] = 0;
 }
 
-Configuration::~Configuration()
+GnssDecoder::~GnssDecoder()
 {
 }
 
-void Configuration::LoadFromEeprom()
+void GnssDecoder::PushChar(char c)
 {
-	ConfigBlock_t configBlock;
-	uint8_t *pConfig = (uint8_t*) (&configBlock);
-
-	memset(&configBlock, 0, sizeof(configBlock));
-	eeprom_read_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
-
-	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
+	if (serialBuffer[0] != '$')
 	{
-		uint8_t checksum = 0;
-		for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 1); i++)
+		serialBuffer[0] = c;
+		writeIndex = 1;
+		return;
+	}
+
+	if (c == 13)
+	{
+		if ((writeIndex >= 10) && (sentenceWriteIndex < NMEA_SENTENCE_HISTORY_SIZE))
 		{
-			checksum += pConfig[i];
+			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer, writeIndex);
+			sentenceBuffer[sentenceWriteIndex][writeIndex] = 0;
+			sentenceWriteIndex++;
 		}
-
-		if (checksum == configBlock.checksum)
+		else
 		{
-			serialSpeed = configBlock.serialSpeed;
-			attachedNetworkId = configBlock.attachedNetworkId;
-			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
-			waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
-			depthOffset_m = configBlock.depthOffset_m;
-			windSpeedFactor_per = configBlock.windSpeedFactor_per;
-			windDirectionOffset_deg = configBlock.windDirectionOffset_deg;
-			headingOffset_deg = configBlock.headingOffset_deg;
-			magneticVariation_deg = configBlock.magneticVariation_deg;
-			windShift = configBlock.windShift;
+			serialBuffer[0] = 0;
+			writeIndex = 0;
+			return;
 		}
+	}
+
+	serialBuffer[writeIndex++] = c;
+
+	if (writeIndex >= NMEA_SENTENCE_MAX_LENGTH)
+	{
+		serialBuffer[0] = 0;
+		writeIndex = 0;
+		return;
 	}
 }
 
-void Configuration::SaveToEeprom()
+int GnssDecoder::GetNbSentences()
 {
-	ConfigBlock_t configBlock, compareBlock;
-	uint8_t *pConfig = (uint8_t*) (&configBlock);
-	uint8_t *pCompare = (uint8_t*) (&compareBlock);
-	uint8_t checksum = 0;
+	return sentenceWriteIndex;
+}
 
-	eeprom_read_block(&compareBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
+const char *GnssDecoder::GetSentence(int i)
+{
+	return sentenceBuffer[i];
+}
 
-	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
-	configBlock.serialSpeed = serialSpeed;
-	configBlock.attachedNetworkId = attachedNetworkId;
-	configBlock.waterSpeedFactor_per = waterSpeedFactor_per;
-	configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
-	configBlock.depthOffset_m = depthOffset_m;
-	configBlock.windSpeedFactor_per = windSpeedFactor_per;
-	configBlock.windDirectionOffset_deg = windDirectionOffset_deg;
-	configBlock.headingOffset_deg = headingOffset_deg;
-	configBlock.magneticVariation_deg = magneticVariation_deg;
-	configBlock.windShift = windShift;
-
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
-	{
-		checksum += pConfig[i];
-	}
-	configBlock.checksum = checksum;
-
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
-	{
-		if (pConfig[i] != pCompare[i]) {
-			Serial.println("SAVING !!!");
-			eeprom_write_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
-			break;
-		}
-	}
+void GnssDecoder::resetSentences()
+{
+	sentenceWriteIndex = 0;
 }
