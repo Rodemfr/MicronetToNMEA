@@ -56,11 +56,17 @@ MenuManager::MenuManager()
 {
 	menuLength = 0;
 	menu = nullptr;
+	console = &Serial;
 }
 
 MenuManager::~MenuManager()
 {
 
+}
+
+void MenuManager::SetConsole(Stream *console)
+{
+	this->console = console;
 }
 
 void MenuManager::SetMenu(MenuEntry_t *menu)
@@ -82,14 +88,14 @@ void MenuManager::PushChar(char c)
 		{
 			if (menu[entry].entryCallback != nullptr)
 			{
-				Serial.println(entry);
-				Serial.println("");
+				console->println(entry);
+				console->println("");
 				menu[entry].entryCallback();
 				PrintPrompt();
 			}
 		}
 	} else if (c == 0x30) {
-		Serial.println("0");
+		console->println("0");
 		PrintMenu();
 	}
 }
@@ -101,23 +107,23 @@ void MenuManager::PrintMenu()
 		return;
 	}
 
-	Serial.println("");
-	Serial.print("*** ");
-	Serial.print(menu[0].description);
-	Serial.println(" ***");
-	Serial.println("");
-	Serial.println("0 - Print this menu");
+	console->println("");
+	console->print("*** ");
+	console->print(menu[0].description);
+	console->println(" ***");
+	console->println("");
+	console->println("0 - Print this menu");
 	for (int i = 1; i < menuLength; i++)
 	{
-		Serial.print(i);
-		Serial.print(" - ");
-		Serial.println(menu[i].description);
+		console->print(i);
+		console->print(" - ");
+		console->println(menu[i].description);
 	}
 	PrintPrompt();
 }
 
 void MenuManager::PrintPrompt()
 {
-	Serial.println("");
-	Serial.print("Choice : ");
+	console->println("");
+	console->print("Choice : ");
 }

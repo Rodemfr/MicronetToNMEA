@@ -54,9 +54,19 @@
 #define MAX_SCANNED_NETWORKS 5
 
 #define GNSS_SERIAL   Serial1
-#define GNNS_BAUDRATE 38400
-#define GNNS_RX_PIN   0
-#define GNNS_TX_PIN   1
+#define GNSS_BAUDRATE 38400
+#define GNSS_RX_PIN   0
+#define GNSS_TX_PIN   1
+
+#define USB_CONSOLE  Serial
+#define USB_BAUDRATE 115200
+
+#define BLTO_SERIAL   Serial4
+#define BLTO_BAUDRATE 115200
+#define BLTO_RX_PIN   31
+#define BLTO_TX_PIN   32
+
+#define USE_BT_SERIAL 0
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -75,7 +85,7 @@ void MenuScanNetworks();
 void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
-void UpdateAndSaveCalibration();
+void SaveCalibration();
 void LoadCalibration();
 
 /***************************************************************************/
@@ -111,9 +121,19 @@ void setup()
 	gConfiguration.LoadFromEeprom();
 	LoadCalibration();
 
-	Serial.begin(gConfiguration.serialSpeed);
+#if (USE_BT_SERIAL == 1)
+	BLTO_SERIAL.begin(BLTO_BAUDRATE);
+	BLTO_SERIAL.setRX(31);
+	BLTO_SERIAL.setTX(32);
+	BLTO_SERIAL.println("AT");
+#define CONSOLE BLTO_SERIAL
+#else
+	USB_CONSOLE.begin(USB_BAUDRATE);
+#define CONSOLE USB_CONSOLE
+#endif
 
 	// Setup serial menu
+	gMenuManager.SetConsole(&CONSOLE);
 	gMenuManager.SetMenu(mainMenu);
 
 	// Set SPI pin configuration
@@ -126,9 +146,9 @@ void setup()
 	// Check connection to CC1101
 	if (!gRfReceiver.getCC1101())
 	{
-		Serial.println("Failed");
-		Serial.println("Aborting execution : Verify connection to CC1101 board");
-		Serial.println("Halted");
+		CONSOLE.println("Failed");
+		CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
+		CONSOLE.println("Halted");
 
 		while (1)
 		{
@@ -180,9 +200,9 @@ void setup()
 	// For the main loop to know when it is executing for the first time
 	firstLoop = true;
 
-	GNSS_SERIAL.begin(GNNS_BAUDRATE);
-	GNSS_SERIAL.setRX(GNNS_RX_PIN);
-	GNSS_SERIAL.setTX(GNNS_TX_PIN);
+	GNSS_SERIAL.begin(GNSS_BAUDRATE);
+	GNSS_SERIAL.setRX(GNSS_RX_PIN);
+	GNSS_SERIAL.setTX(GNSS_TX_PIN);
 }
 
 void loop()
@@ -194,9 +214,9 @@ void loop()
 	}
 
 	// Process console input
-	while (Serial.available() > 0)
+	while (CONSOLE.available() > 0)
 	{
-		gMenuManager.PushChar(Serial.read());
+		gMenuManager.PushChar(CONSOLE.read());
 	}
 
 	firstLoop = false;
@@ -300,107 +320,106 @@ void PrintRawMessage(MicronetMessage_t *message)
 	{
 		if (message->data[j] < 16)
 		{
-			Serial.print("0");
+			CONSOLE.print("0");
 		}
-		Serial.print(message->data[j], HEX);
-		Serial.print(" ");
+		CONSOLE.print(message->data[j], HEX);
+		CONSOLE.print(" ");
 	}
-	Serial.print(" (");
-	Serial.print((int) message->len);
-	Serial.print(",");
-	Serial.print((int) message->rssi);
-	Serial.print(")");
+	CONSOLE.print(" (");
+	CONSOLE.print((int) message->len);
+	CONSOLE.print(",");
+	CONSOLE.print((int) message->rssi);
+	CONSOLE.print(")");
 
-	Serial.println();
+	CONSOLE.println();
 }
 
 void PrintDecoderData(MicronetData_t *micronetData)
 {
 	if (micronetData->awa.valid)
 	{
-		Serial.print("AWA ");
-		Serial.print(micronetData->awa.value);
-		Serial.print("deg | ");
+		CONSOLE.print("AWA ");
+		CONSOLE.print(micronetData->awa.value);
+		CONSOLE.print("deg | ");
 	}
 	if (micronetData->aws.valid)
 	{
-		Serial.print("AWS ");
-		Serial.print(micronetData->aws.value);
-		Serial.print("kt | ");
+		CONSOLE.print("AWS ");
+		CONSOLE.print(micronetData->aws.value);
+		CONSOLE.print("kt | ");
 	}
 	if (micronetData->stw.valid)
 	{
-		Serial.print("STW ");
-		Serial.print(micronetData->stw.value);
-		Serial.print("kt | ");
+		CONSOLE.print("STW ");
+		CONSOLE.print(micronetData->stw.value);
+		CONSOLE.print("kt | ");
 	}
 	if (micronetData->dpt.valid)
 	{
-		Serial.print("DPT ");
-		Serial.print(micronetData->dpt.value);
-		Serial.print("M | ");
+		CONSOLE.print("DPT ");
+		CONSOLE.print(micronetData->dpt.value);
+		CONSOLE.print("M | ");
 	}
 	if (micronetData->vcc.valid)
 	{
-		Serial.print("VCC ");
-		Serial.print(micronetData->vcc.value);
-		Serial.print("V | ");
+		CONSOLE.print("VCC ");
+		CONSOLE.print(micronetData->vcc.value);
+		CONSOLE.print("V | ");
 	}
 	if (micronetData->log.valid)
 	{
-		Serial.print("LOG ");
-		Serial.print(micronetData->log.value);
-		Serial.print("NM | ");
+		CONSOLE.print("LOG ");
+		CONSOLE.print(micronetData->log.value);
+		CONSOLE.print("NM | ");
 	}
 	if (micronetData->trip.valid)
 	{
-		Serial.print("TRIP ");
-		Serial.print(micronetData->trip.value);
-		Serial.print("NM | ");
+		CONSOLE.print("TRIP ");
+		CONSOLE.print(micronetData->trip.value);
+		CONSOLE.print("NM | ");
 	}
 	if (micronetData->stp.valid)
 	{
-		Serial.print("STP ");
-		Serial.print(micronetData->stp.value);
-		Serial.print("degC | ");
+		CONSOLE.print("STP ");
+		CONSOLE.print(micronetData->stp.value);
+		CONSOLE.print("degC | ");
 	}
 
-	Serial.println();
+	CONSOLE.println();
 }
 
 void MenuAbout()
 {
-	Serial.println("MicronetToNMEA, Version 0.1a");
+	CONSOLE.println("MicronetToNMEA, Version 0.1a");
 
-	Serial.print("Serial speed : ");
-	Serial.println(gConfiguration.serialSpeed);
+	CONSOLE.print("Serial speed : ");
 
 	if (gConfiguration.attachedNetworkId != 0)
 	{
-		Serial.print("Attached to Micronet Network ");
-		Serial.println(gConfiguration.attachedNetworkId, HEX);
+		CONSOLE.print("Attached to Micronet Network ");
+		CONSOLE.println(gConfiguration.attachedNetworkId, HEX);
 	}
 	else
 	{
-		Serial.println("No Micronet Network attached");
+		CONSOLE.println("No Micronet Network attached");
 	}
 
-	Serial.print("Wind speed factor = ");
-	Serial.println(gConfiguration.windSpeedFactor_per);
-	Serial.print("Wind direction offset = ");
-	Serial.println((int) (gConfiguration.windDirectionOffset_deg));
-	Serial.print("Water speed factor = ");
-	Serial.println(gConfiguration.waterSpeedFactor_per);
-	Serial.print("Water temperature offset = ");
-	Serial.println((int) (gConfiguration.waterTemperatureOffset_C));
+	CONSOLE.print("Wind speed factor = ");
+	CONSOLE.println(gConfiguration.windSpeedFactor_per);
+	CONSOLE.print("Wind direction offset = ");
+	CONSOLE.println((int) (gConfiguration.windDirectionOffset_deg));
+	CONSOLE.print("Water speed factor = ");
+	CONSOLE.println(gConfiguration.waterSpeedFactor_per);
+	CONSOLE.print("Water temperature offset = ");
+	CONSOLE.println((int) (gConfiguration.waterTemperatureOffset_C));
 
-	Serial.println("Provides the following NMEA sentences :");
-	Serial.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
-	Serial.println(" - INMWV (Apparent wind. T120 required)");
-	Serial.println(" - INMWV (True wind. T120 and T121 with Speedo/Temp sensor required)");
-	Serial.println(" - INMTW (Water temperature. T121 with Speedo/Temp sensor required)");
-	Serial.println(" - INVHW (Speed on water. T121 with Speedo/Temp sensor required)");
-	Serial.println(" - INVLW (Distance log T121 with Speedo/Temp sensor required)");
+	CONSOLE.println("Provides the following NMEA sentences :");
+	CONSOLE.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
+	CONSOLE.println(" - INMWV (Apparent wind. T120 required)");
+	CONSOLE.println(" - INMWV (True wind. T120 and T121 with Speedo/Temp sensor required)");
+	CONSOLE.println(" - INMTW (Water temperature. T121 with Speedo/Temp sensor required)");
+	CONSOLE.println(" - INVHW (Speed on water. T121 with Speedo/Temp sensor required)");
+	CONSOLE.println(" - INVLW (Distance log T121 with Speedo/Temp sensor required)");
 }
 
 void MenuScanNetworks()
@@ -410,7 +429,7 @@ void MenuScanNetworks()
 	{ 0 };
 	int16_t rssiArray[MAX_SCANNED_NETWORKS];
 
-	Serial.print("Scanning Micronet networks for 5 seconds ... ");
+	CONSOLE.print("Scanning Micronet networks for 5 seconds ... ");
 
 	gMessageFifo.ResetFifo();
 	unsigned long startTime = millis();
@@ -456,39 +475,39 @@ void MenuScanNetworks()
 		}
 	} while ((millis() - startTime) < 5000);
 
-	Serial.println("done");
-	Serial.println("");
+	CONSOLE.println("done");
+	CONSOLE.println("");
 
 	if (nidArray[0] != 0)
 	{
-		Serial.println("List of scanned networks :");
-		Serial.println("");
+		CONSOLE.println("List of scanned networks :");
+		CONSOLE.println("");
 		for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
 		{
 			if (nidArray[i] == 0)
 			{
 				break;
 			}
-			Serial.print("Network ");
-			Serial.print(i);
-			Serial.print(" - ");
-			Serial.print(nidArray[i], HEX);
-			Serial.print(" (");
+			CONSOLE.print("Network ");
+			CONSOLE.print(i);
+			CONSOLE.print(" - ");
+			CONSOLE.print(nidArray[i], HEX);
+			CONSOLE.print(" (");
 			if (rssiArray[i] < 70)
-				Serial.print("very strong");
+				CONSOLE.print("very strong");
 			else if (rssiArray[i] < 80)
-				Serial.print("strong");
+				CONSOLE.print("strong");
 			else if (rssiArray[i] < 90)
-				Serial.print("normal");
+				CONSOLE.print("normal");
 			else
-				Serial.print("low");
-			Serial.println(")");
+				CONSOLE.print("low");
+			CONSOLE.println(")");
 		}
 	}
 	else
 	{
-		Serial.println("/!\\ No Micronet network found /!\\");
-		Serial.println("Check that your Micronet network is powered on.");
+		CONSOLE.println("/!\\ No Micronet network found /!\\");
+		CONSOLE.println("Check that your Micronet network is powered on.");
 	}
 }
 
@@ -497,29 +516,29 @@ void MenuAttachNetwork()
 	char input[16], c;
 	uint32_t charIndex = 0;
 
-	Serial.print("Enter Network ID to attach to : ");
+	CONSOLE.print("Enter Network ID to attach to : ");
 
 	do
 	{
-		if (Serial.available())
+		if (CONSOLE.available())
 		{
-			c = Serial.read();
+			c = CONSOLE.read();
 			if (c == 0x0d)
 			{
-				Serial.println("");
+				CONSOLE.println("");
 				break;
 			}
 			else if ((c == 0x08) && (charIndex > 0))
 			{
 				charIndex--;
-				Serial.print(c);
-				Serial.print(" ");
-				Serial.print(c);
+				CONSOLE.print(c);
+				CONSOLE.print(" ");
+				CONSOLE.print(c);
 			}
 			else if (charIndex < sizeof(input))
 			{
 				input[charIndex++] = c;
-				Serial.print(c);
+				CONSOLE.print(c);
 			}
 		};
 	} while (1);
@@ -558,13 +577,13 @@ void MenuAttachNetwork()
 
 	if (invalidInput)
 	{
-		Serial.println("Invalid Network ID entered, ignoring input.");
+		CONSOLE.println("Invalid Network ID entered, ignoring input.");
 	}
 	else
 	{
 		gConfiguration.attachedNetworkId = newNetworkId;
-		Serial.print("Now attached to NetworkID ");
-		Serial.println(newNetworkId, HEX);
+		CONSOLE.print("Now attached to NetworkID ");
+		CONSOLE.println(newNetworkId, HEX);
 		gConfiguration.SaveToEeprom();
 	}
 }
@@ -576,15 +595,15 @@ void MenuConvertToNmea()
 
 	if (gConfiguration.attachedNetworkId == 0)
 	{
-		Serial.println("No Micronet network has been attached.");
-		Serial.println("Scan and attach a Micronet network first.");
+		CONSOLE.println("No Micronet network has been attached.");
+		CONSOLE.println("Scan and attach a Micronet network first.");
 		return;
 	}
 
-	Serial.println("");
-	Serial.println("Starting Micronet to NMEA0183 conversion.");
-	Serial.println("Press ESC key at any time to stop conversion and come back to menu.");
-	Serial.println("");
+	CONSOLE.println("");
+	CONSOLE.println("Starting Micronet to NMEA0183 conversion.");
+	CONSOLE.println("Press ESC key at any time to stop conversion and come back to menu.");
+	CONSOLE.println("");
 
 	gMessageFifo.ResetFifo();
 
@@ -600,22 +619,21 @@ void MenuConvertToNmea()
 					gMicronetDecoder.DecodeMessage(message);
 
 					if (gNmeaEncoder.EncodeMWV_R(gMicronetDecoder.GetCurrentData(), nmeaSentence))
-						Serial.print(nmeaSentence);
+						CONSOLE.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeMWV_T(gMicronetDecoder.GetCurrentData(), nmeaSentence))
-						Serial.print(nmeaSentence);
+						CONSOLE.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeDPT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
-						Serial.print(nmeaSentence);
+						CONSOLE.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeMTW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
-						Serial.print(nmeaSentence);
+						CONSOLE.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeVLW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
-						Serial.print(nmeaSentence);
+						CONSOLE.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeVHW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
-						Serial.print(nmeaSentence);
+						CONSOLE.print(nmeaSentence);
 					if (gMicronetDecoder.GetCurrentData()->calibrationUpdated)
 					{
 						gMicronetDecoder.GetCurrentData()->calibrationUpdated = false;
-						Serial.println("GLOUPS !");
-						UpdateAndSaveCalibration();
+						SaveCalibration();
 					}
 				}
 			}
@@ -625,15 +643,15 @@ void MenuConvertToNmea()
 		int nbGnssSentences = gGnssDecoder.GetNbSentences();
 		for (int i = 0; i < nbGnssSentences; i++)
 		{
-			Serial.println(gGnssDecoder.GetSentence(i));
+			CONSOLE.println(gGnssDecoder.GetSentence(i));
 		}
 		gGnssDecoder.resetSentences();
 
-		while (Serial.available() > 0)
+		while (CONSOLE.available() > 0)
 		{
-			if (Serial.read() == 0x1b)
+			if (CONSOLE.read() == 0x1b)
 			{
-				Serial.println("ESC key pressed, stopping conversion.");
+				CONSOLE.println("ESC key pressed, stopping conversion.");
 				exitNmeaLoop = true;
 			}
 		}
@@ -646,9 +664,9 @@ void MenuScanAllMicronetTraffic()
 {
 	bool exitSniffLoop = false;
 
-	Serial.println("Starting Micronet traffic scanning.");
-	Serial.println("Press ESC key at any time to stop scanning and come back to menu.");
-	Serial.println("");
+	CONSOLE.println("Starting Micronet traffic scanning.");
+	CONSOLE.println("Press ESC key at any time to stop scanning and come back to menu.");
+	CONSOLE.println("");
 
 	gMessageFifo.ResetFifo();
 
@@ -664,11 +682,11 @@ void MenuScanAllMicronetTraffic()
 			gMessageFifo.DeleteMessage();
 		}
 
-		while (Serial.available() > 0)
+		while (CONSOLE.available() > 0)
 		{
-			if (Serial.read() == 0x1b)
+			if (CONSOLE.read() == 0x1b)
 			{
-				Serial.println("ESC key pressed, stopping scan.");
+				CONSOLE.println("ESC key pressed, stopping scan.");
 				exitSniffLoop = true;
 			}
 		}
@@ -676,7 +694,7 @@ void MenuScanAllMicronetTraffic()
 	} while (!exitSniffLoop);
 }
 
-void UpdateAndSaveCalibration()
+void SaveCalibration()
 {
 	MicronetData_t *data = gMicronetDecoder.GetCurrentData();
 

@@ -31,6 +31,8 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include <Arduino.h>
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
@@ -52,11 +54,13 @@ public:
 	MenuManager();
 	virtual ~MenuManager();
 
+	void SetConsole(Stream *console);
 	void SetMenu(MenuEntry_t *menu);
 	void PushChar(char c);
 	void PrintMenu();
 
 private:
+	Stream *console;
 	MenuEntry_t *menu;
 	int menuLength;
 

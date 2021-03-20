@@ -136,6 +136,8 @@ void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
 		DecodeSetParameterMessage(message);
 		break;
 	}
+
+	// TODO : make invalid values which have not been updated for too long (3s ?)
 }
 
 void MicronetDecoder::DecodeSendDataMessage(MicronetMessage_t *message)

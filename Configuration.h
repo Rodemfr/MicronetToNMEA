@@ -54,7 +54,6 @@ public:
 	void LoadFromEeprom();
 	void SaveToEeprom();
 
-	uint32_t serialSpeed;
 	uint32_t attachedNetworkId;
 	float waterSpeedFactor_per;
 	float waterTemperatureOffset_C;

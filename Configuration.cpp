@@ -48,7 +48,6 @@
 typedef struct
 {
 	uint32_t magicWord;
-	uint32_t serialSpeed;
 	uint32_t attachedNetworkId;
 	float waterSpeedFactor_per;
 	float waterTemperatureOffset_C;
@@ -77,7 +76,6 @@ typedef struct
 Configuration::Configuration()
 {
 	// Set default configuration
-	serialSpeed = 34800;
 	attachedNetworkId = 0;
 	waterSpeedFactor_per = 1.0f;
 	waterTemperatureOffset_C = 0;
@@ -111,7 +109,6 @@ void Configuration::LoadFromEeprom()
 
 		if (checksum == configBlock.checksum)
 		{
-			serialSpeed = configBlock.serialSpeed;
 			attachedNetworkId = configBlock.attachedNetworkId;
 			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
 			waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
@@ -135,7 +132,6 @@ void Configuration::SaveToEeprom()
 	eeprom_read_block(&compareBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
-	configBlock.serialSpeed = serialSpeed;
 	configBlock.attachedNetworkId = attachedNetworkId;
 	configBlock.waterSpeedFactor_per = waterSpeedFactor_per;
 	configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
@@ -155,7 +151,6 @@ void Configuration::SaveToEeprom()
 	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
 	{
 		if (pConfig[i] != pCompare[i]) {
-			Serial.println("SAVING !!!");
 			eeprom_write_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 			break;
 		}
