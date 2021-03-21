@@ -28,45 +28,25 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "ELECHOUSE_CC1101_SRC_DRV.h"
+#include "BoardConfig.h"
 #include "MicronetDecoder.h"
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
 #include "Configuration.h"
 #include "NmeaEncoder.h"
+#include "GnssDecoder.h"
+
 #include <Arduino.h>
 #include <SPI.h>
 #include <wiring.h>
 #include <iostream>
-#include "GnssDecoder.h"
+#include <ELECHOUSE_CC1101_SRC_DRV.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define CS0_PIN              10
-#define MOSI_PIN             11
-#define MISO_PIN             12
-#define SCK_PIN              14
-#define GDO0_PIN             24
-#define GDO2_PIN             25
-#define LED_PIN              LED_BUILTIN
 #define MAX_SCANNED_NETWORKS 5
-
-#define GNSS_SERIAL   Serial1
-#define GNSS_BAUDRATE 38400
-#define GNSS_RX_PIN   0
-#define GNSS_TX_PIN   1
-
-#define USB_CONSOLE  Serial
-#define USB_BAUDRATE 115200
-
-#define BLTO_SERIAL   Serial4
-#define BLTO_BAUDRATE 115200
-#define BLTO_RX_PIN   31
-#define BLTO_TX_PIN   32
-
-#define USE_BT_SERIAL 0
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -121,19 +101,20 @@ void setup()
 	gConfiguration.LoadFromEeprom();
 	LoadCalibration();
 
-#if (USE_BT_SERIAL == 1)
-	BLTO_SERIAL.begin(BLTO_BAUDRATE);
-	BLTO_SERIAL.setRX(31);
-	BLTO_SERIAL.setTX(32);
-	BLTO_SERIAL.println("AT");
-#define CONSOLE BLTO_SERIAL
-#else
-	USB_CONSOLE.begin(USB_BAUDRATE);
-#define CONSOLE USB_CONSOLE
-#endif
+	// Init serial link with HC-06
+	BLU_CONSOLE.begin(BLU_BAUDRATE);
+	BLU_CONSOLE.setRX(BLU_RX_PIN);
+	BLU_CONSOLE.setTX(BLU_TX_PIN);
 
-	// Setup serial menu
-	gMenuManager.SetConsole(&CONSOLE);
+	// Init USB serial link
+	USB_CONSOLE.begin(USB_BAUDRATE);
+
+	// Init NMEA GNSS serial link
+	GNSS_SERIAL.begin(GNSS_BAUDRATE);
+	GNSS_SERIAL.setRX(GNSS_RX_PIN);
+	GNSS_SERIAL.setTX(GNSS_TX_PIN);
+
+	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
 
 	// Set SPI pin configuration
@@ -160,8 +141,8 @@ void setup()
 	}
 
 	// Configure CC1101 for listening Micronet devices
-	gRfReceiver.Init(); // must be set to initialize the gReceiver!
-	gRfReceiver.setGDO(GDO0_PIN, GDO2_PIN); // set lib internal gdo pins (gdo0,gdo2). Gdo2 not use for this example.
+	gRfReceiver.Init();
+	gRfReceiver.setGDO(GDO0_PIN, GDO2_PIN); // Practicaly, GDO2 pin isn't used. You don't need to wire it
 	gRfReceiver.setCCMode(1); // set config for internal transmission mode.
 	gRfReceiver.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
 	gRfReceiver.setMHZ(869.785); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
@@ -199,14 +180,12 @@ void setup()
 
 	// For the main loop to know when it is executing for the first time
 	firstLoop = true;
-
-	GNSS_SERIAL.begin(GNSS_BAUDRATE);
-	GNSS_SERIAL.setRX(GNSS_RX_PIN);
-	GNSS_SERIAL.setTX(GNSS_TX_PIN);
 }
 
 void loop()
 {
+	// If this is the first loop, we verify if we are already attached to a Micronet network. if yes,
+	// We directly jump to NMEA conversion mode.
 	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
 	{
 		MenuConvertToNmea();
@@ -224,8 +203,12 @@ void loop()
 
 void serialEvent1()
 {
+	// This callback is call each time we received data from the NMEA GNSS
 	while (GNSS_SERIAL.available() > 0)
 	{
+		// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it
+		// to repeat it later to the console output. This way, there is not risk to interleave GNSS related sentence
+		// and Micronet related sentences.
 		gGnssDecoder.PushChar(GNSS_SERIAL.read());
 	}
 }
@@ -239,8 +222,8 @@ void RfReceiverIsr()
 
 	dataOffset = 0;
 	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
-	// begin collecting bytes right now. This way we will be able to instruct CC1101 to change packet size on the fly as soon as we will
-	// have identified the length field
+	// begin collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
+	// CC1101 to change packet size on the fly as soon as we will have identified the length field
 	do
 	{
 		// How many bytes are already in the FIFO ?
@@ -256,7 +239,6 @@ void RfReceiverIsr()
 		if (nbBytes > 0)
 		{
 			// Yes : read them
-			//gRfReceiver.ReadRxFifo(message.data + dataOffset, nbBytes);
 			gRfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
 			dataOffset += nbBytes;
 			// Check if we have reached the packet length field
@@ -298,12 +280,10 @@ void RfReceiverIsr()
 	}
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	RfFlushAndRestartRx();
-	// Don't consider the last two status bytes added by CC1101 in the packet length
+	// Fill message structure
 	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
-	// Get RSSI for this message
 	message.rssi = gRfReceiver.getRssi();
-
-	// Add message to the store
+	// Add message to the store for later processing by the main loop
 	gMessageFifo.Push(message);
 }
 
@@ -330,60 +310,6 @@ void PrintRawMessage(MicronetMessage_t *message)
 	CONSOLE.print(",");
 	CONSOLE.print((int) message->rssi);
 	CONSOLE.print(")");
-
-	CONSOLE.println();
-}
-
-void PrintDecoderData(MicronetData_t *micronetData)
-{
-	if (micronetData->awa.valid)
-	{
-		CONSOLE.print("AWA ");
-		CONSOLE.print(micronetData->awa.value);
-		CONSOLE.print("deg | ");
-	}
-	if (micronetData->aws.valid)
-	{
-		CONSOLE.print("AWS ");
-		CONSOLE.print(micronetData->aws.value);
-		CONSOLE.print("kt | ");
-	}
-	if (micronetData->stw.valid)
-	{
-		CONSOLE.print("STW ");
-		CONSOLE.print(micronetData->stw.value);
-		CONSOLE.print("kt | ");
-	}
-	if (micronetData->dpt.valid)
-	{
-		CONSOLE.print("DPT ");
-		CONSOLE.print(micronetData->dpt.value);
-		CONSOLE.print("M | ");
-	}
-	if (micronetData->vcc.valid)
-	{
-		CONSOLE.print("VCC ");
-		CONSOLE.print(micronetData->vcc.value);
-		CONSOLE.print("V | ");
-	}
-	if (micronetData->log.valid)
-	{
-		CONSOLE.print("LOG ");
-		CONSOLE.print(micronetData->log.value);
-		CONSOLE.print("NM | ");
-	}
-	if (micronetData->trip.valid)
-	{
-		CONSOLE.print("TRIP ");
-		CONSOLE.print(micronetData->trip.value);
-		CONSOLE.print("NM | ");
-	}
-	if (micronetData->stp.valid)
-	{
-		CONSOLE.print("STP ");
-		CONSOLE.print(micronetData->stp.value);
-		CONSOLE.print("degC | ");
-	}
 
 	CONSOLE.println();
 }
@@ -425,9 +351,11 @@ void MenuAbout()
 void MenuScanNetworks()
 {
 	MicronetMessage_t *message;
-	uint32_t nidArray[MAX_SCANNED_NETWORKS] =
-	{ 0 };
+	uint32_t nidArray[MAX_SCANNED_NETWORKS];
 	int16_t rssiArray[MAX_SCANNED_NETWORKS];
+
+	memset(nidArray, 0, sizeof(nidArray));
+	memset(rssiArray, 0, sizeof(rssiArray));
 
 	CONSOLE.print("Scanning Micronet networks for 5 seconds ... ");
 
@@ -437,37 +365,45 @@ void MenuScanNetworks()
 	{
 		if ((message = gMessageFifo.Peek()) != nullptr)
 		{
-			// TODO : check that header is valid
-			uint32_t nid = gMicronetDecoder.GetNetworkId(message);
-			int16_t rssi = message->rssi;
-			for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
+			// Only consider messages with a valid CRC
+			if (gMicronetDecoder.VerifyHeaderCrc(message))
 			{
-				if (nidArray[i] == 0)
+				uint32_t nid = gMicronetDecoder.GetNetworkId(message);
+				CONSOLE.println(nid, HEX);
+				int16_t rssi = message->rssi;
+				// Store the network in the array by order of reception power
+				for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
 				{
-					nidArray[i] = nid;
-					rssiArray[i] = rssi;
-					break;
-				}
-				else if (nidArray[i] == nid)
-				{
-					if (rssi > rssiArray[i])
+					if (nidArray[i] == 0)
 					{
-						rssiArray[i] = rssi;
-					}
-					break;
-				}
-				else
-				{
-					if (rssi > rssiArray[i])
-					{
-						for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j++)
-						{
-							nidArray[j] = nidArray[j - 1];
-							rssiArray[j] = rssiArray[j - 1];
-						}
+						// New network
 						nidArray[i] = nid;
 						rssiArray[i] = rssi;
 						break;
+					}
+					else if (nidArray[i] == nid)
+					{
+						// Already scanned network : update RSSI if stronger
+						if (rssi > rssiArray[i])
+						{
+							rssiArray[i] = rssi;
+						}
+						break;
+					}
+					else
+					{
+						// New network to be inserted in the list : shift the list down
+						if (rssi > rssiArray[i])
+						{
+							for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j++)
+							{
+								nidArray[j] = nidArray[j - 1];
+								rssiArray[j] = rssiArray[j - 1];
+							}
+							nidArray[i] = nid;
+							rssiArray[i] = rssi;
+							break;
+						}
 					}
 				}
 			}
@@ -478,30 +414,30 @@ void MenuScanNetworks()
 	CONSOLE.println("done");
 	CONSOLE.println("");
 
+	// Print result
 	if (nidArray[0] != 0)
 	{
 		CONSOLE.println("List of scanned networks :");
 		CONSOLE.println("");
 		for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
 		{
-			if (nidArray[i] == 0)
+			if (nidArray[i] != 0)
 			{
-				break;
+				CONSOLE.print("Network ");
+				CONSOLE.print(i);
+				CONSOLE.print(" - ");
+				CONSOLE.print(nidArray[i], HEX);
+				CONSOLE.print(" (");
+				if (rssiArray[i] < 70)
+					CONSOLE.print("very strong");
+				else if (rssiArray[i] < 80)
+					CONSOLE.print("strong");
+				else if (rssiArray[i] < 90)
+					CONSOLE.print("normal");
+				else
+					CONSOLE.print("low");
+				CONSOLE.println(")");
 			}
-			CONSOLE.print("Network ");
-			CONSOLE.print(i);
-			CONSOLE.print(" - ");
-			CONSOLE.print(nidArray[i], HEX);
-			CONSOLE.print(" (");
-			if (rssiArray[i] < 70)
-				CONSOLE.print("very strong");
-			else if (rssiArray[i] < 80)
-				CONSOLE.print("strong");
-			else if (rssiArray[i] < 90)
-				CONSOLE.print("normal");
-			else
-				CONSOLE.print("low");
-			CONSOLE.println(")");
 		}
 	}
 	else

@@ -24,101 +24,53 @@
  ***************************************************************************
  */
 
+#ifndef BOARDCONFIG_H_
+#define BOARDCONFIG_H_
+
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
-
-#include "BoardConfig.h"
-#include "MenuManager.h"
-
-#include <Arduino.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-/***************************************************************************/
-/*                             Local types                                 */
-/***************************************************************************/
+// CC1101/SPI pins
+#define CS0_PIN              10
+#define MOSI_PIN             11
+#define MISO_PIN             12
+#define SCK_PIN              14
+#define GDO0_PIN             24
+#define GDO2_PIN             25
+
+// ERROR LED pin
+#define LED_PIN              LED_BUILTIN
+
+// NMEA/GNSS UART pins
+#define GNSS_SERIAL   Serial1
+#define GNSS_BAUDRATE 38400
+#define GNSS_RX_PIN   0
+#define GNSS_TX_PIN   1
+
+// Wired console params
+#define USB_CONSOLE  Serial
+#define USB_BAUDRATE 115200
+
+// Wireless Bluetooth console params
+#define BLU_CONSOLE  Serial4
+#define BLU_BAUDRATE 115200
+#define BLU_RX_PIN   31
+#define BLU_TX_PIN   32
+
+// The console to use for menu and NMEA output
+#define CONSOLE BLU_CONSOLE
 
 /***************************************************************************/
-/*                           Local prototypes                              */
+/*                                Types                                    */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                               Globals                                   */
+/*                              Prototypes                                 */
 /***************************************************************************/
 
-/***************************************************************************/
-/*                              Functions                                  */
-/***************************************************************************/
-
-MenuManager::MenuManager()
-{
-	menuLength = 0;
-	menu = nullptr;
-}
-
-MenuManager::~MenuManager()
-{
-
-}
-
-void MenuManager::SetMenu(MenuEntry_t *menu)
-{
-	this->menu = menu;
-	menuLength = 0;
-	while (menu[menuLength].description != nullptr)
-	{
-		menuLength++;
-	}
-}
-
-void MenuManager::PushChar(char c)
-{
-	if ((c > 0x30) && (c <= 0x39))
-	{
-		int entry = c - 0x30;
-		if ((entry > 0) && (entry < menuLength))
-		{
-			if (menu[entry].entryCallback != nullptr)
-			{
-				CONSOLE.println(entry);
-				CONSOLE.println("");
-				menu[entry].entryCallback();
-				PrintPrompt();
-			}
-		}
-	} else if (c == 0x30) {
-		CONSOLE.println("0");
-		PrintMenu();
-	}
-}
-
-void MenuManager::PrintMenu()
-{
-	if ((menu == nullptr) || (menuLength < 2))
-	{
-		return;
-	}
-
-	CONSOLE.println("");
-	CONSOLE.print("*** ");
-	CONSOLE.print(menu[0].description);
-	CONSOLE.println(" ***");
-	CONSOLE.println("");
-	CONSOLE.println("0 - Print this menu");
-	for (int i = 1; i < menuLength; i++)
-	{
-		CONSOLE.print(i);
-		CONSOLE.print(" - ");
-		CONSOLE.println(menu[i].description);
-	}
-	PrintPrompt();
-}
-
-void MenuManager::PrintPrompt()
-{
-	CONSOLE.println("");
-	CONSOLE.print("Choice : ");
-}
+#endif /* BOARDCONFIG_H_ */
