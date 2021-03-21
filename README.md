@@ -10,6 +10,10 @@ The project requires the following hardware :
 - A Teensy 3.5 board. Any other arduino comptabile board should be fine with minor adaptations of SW.
 - A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU.
 
+Optionally, you can add :
+- A NMEA GNSS, connected through UART to add your position, SOG and COG to the output stream
+- A Bluetooth transceiver to be able to connect your PC or your tablet to MicronetToNMEA without cable   
+
 The type of construction described here is fun and interesting to play with, but anywone with a little bit
 of experience at sea knows that it will not last long in the wet, salty and brutal environment of a sailing boat.
 MicronetToNMEA will abandon you just when you really need it.
@@ -35,22 +39,54 @@ If you prefer not to use Sloeber, you can create a new Arduino Sketch and import
 
 ## Setting up HW
 
-The SW is configured by default to run on a Teensy 3.5 board and expects the following connection with CC1101 :
+The SW is configured by default to run on a Teensy 3.5 board. It requires to be connected via SPI bus to a CC1101 IC with the following scheme :
 
 ```
-SI   <-- Pin 11 (MOSI0)
-SO   --> Pin 12 (MISO0)
-SCK  <-- Pin 14 (SCK0)
-CS   <-- Pin 10 (CS0)
-GD0  --> Pin 24
+CC1101     Teensy
+SI     <-- Pin 11 (MOSI0)
+SO     --> Pin 12 (MISO0)
+SCK    <-- Pin 14 (SCK0)
+CS     <-- Pin 10 (CS0)
+GD0    --> Pin 24
+GND    <-> GND
+3.3V   <-- 3.3V
+```
+
+MicronetToNMEA can also collect sentences from an NMEA GNSS wich should be connected to UART 1 of the teensy board :
+
+```
+GNSS     Teensy
+TXD  <-- Pin 0  (RX1)
+RXD  --> Pin 1  (TX1)
 GND  <-> GND
-3.3V <-> 3.3V
+3.3V <-- 3.3V
 ```
 
-If you want to use a different board and/or pinout, you have to edit the related define statements at the beginning of Main.cpp file.
+Nothing is to be done on the SW side wether a GNSS is connected or not.
 
-MicronetToNMEA is controlled through a console connected to USB/UART0. Just connect the USB connector of the board to your PC and
-use a terminal like TeraTerm with the following configuration : 34800 bauds, 8 bit data, 1 stop bit, no parity.
+By default, MicronetToNMEA is controlled through a console connected to USB/UART0 (115200 bauds, 8 bit data, 1 stop bit, no parity), but if you want to be able to connect to MicronetToNMEA with Bluetooth, connect HC-06 compatible Bluetooth board as follows :
+
+```
+HC-06     Teensy
+TXD   <-- Pin 31  (RX4)
+RXD   --> Pin 32  (TX4)
+GND   <-> GND
+5V    <-- 5V
+```
+
+Then, open BoardConfig.h and replace
+
+```
+#define CONSOLE USB_CONSOLE
+```
+
+by
+
+```
+#define CONSOLE BLU_CONSOLE
+```
+
+If you want to use a different MCU board and/or pinout, you have to edit the related define statements at the beginning in the BoardConfig.h file.
 
 ## Quick Start & general guidance
 
@@ -60,7 +96,7 @@ Power up your Micornet network.
 
 As a first step, you need to attach MicronetToNMEA to your Micronet network, for this, you have to scan existing networks (menu 2). It will list
 you all the detected network in your vincinity (20-30m range max), in decreasing order of reception power. Yours is very likely at the top.
-Write down the identifier of your network and enter it in menu 3.
+Write down the identifier of your network and attache MicronetToNMEA to it with menu 3.
  
 You are now ready to convert your Micronet data to NMEA0183 with menu 4.
 
