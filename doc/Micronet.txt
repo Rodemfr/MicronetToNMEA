@@ -38,6 +38,8 @@ DT + DID = Device ID (4 bytes) - Unique number identifying the device. The first
           0x03 NMEA Converter
           0x04 Mast Rotation Sensor
           0x05 MOB
+          0x06 SDPOD
+          
           0x83 Analog Wind Display
           0x81 Dual Display
 
@@ -126,7 +128,15 @@ FI = Field ID
      0x04 DPT*10(FT)                 A value of 5001(500.1ft) is given by the hull transmitter when depth is not available.
      0x05 AWS*10(KT) 
      0x06 AWA(DEG)
+     0x07 HDG (3 bytes) --> Format to come
+     0x08 SOG/COG (8 bytes) --> Format to come
+     0c0A BTW (12 bytes) --> Format to come
+     0x0B XTE (3 bytes) --> Format to come
+     0x0C TIME (3 bytes) --> Format to come
+     0x0D Date (7 bytes) --> Format to come
+     0x18 VMG-WP (3 byte) --> Format to come
      0x1b VCC*10(V)
+     0x1F DTW (8 bytes) --> Format to come
      0x21 AWS*10(KT)                 Seems the same than 0x05 ?
      0x22 AWA(DEG)                   Seems the same than 0x06 ?
 
