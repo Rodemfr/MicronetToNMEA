@@ -72,7 +72,9 @@ void LoadCalibration();
 uint8_t BuildWindTransducerMessage(uint8_t *buffer, uint32_t networkId, uint32_t deviceId, float awa, float aws);
 uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
-uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint16_t value2);
+uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
+uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
+uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -783,12 +785,12 @@ uint8_t BuildWindTransducerMessage(uint8_t *buffer, uint32_t networkId, uint32_t
 	buffer[offset++] = 0x0c;
 	buffer[offset++] = 0x0c;
 
-	offset += Add16bitField(buffer + offset, 0x05, aws * 10);
-	offset += Add16bitField(buffer + offset, 0x06, awa);
+	offset += Add16bitField(buffer + offset, 0x05, aws * 10); // AWS
+	offset += Add16bitField(buffer + offset, 0x06, awa); // AWA
 
-//	int fieldLength = 4;
+//	int fieldLength = 3;
 //	buffer[offset++] = fieldLength + 2;
-//	buffer[offset++] = 0x08;
+//	buffer[offset++] = 0x0d;
 //	buffer[offset++] = 0x05;
 //	for (int i = 0; i < fieldLength; i++)
 //		buffer[offset++] = 0;
@@ -798,9 +800,13 @@ uint8_t BuildWindTransducerMessage(uint8_t *buffer, uint32_t networkId, uint32_t
 //		crc += buffer[i];
 //	}
 //	buffer[offset++] = crc;
-	offset += AddDual16bitField(buffer + offset, 0x08, 10, 25);
 
-	//offset += AddPositionField(buffer + offset, -45.5f, 78.3333f);
+	offset += Add24bitField(buffer + offset, 0x0d, 0x060620); // Date
+	//offset += Add16bitField(buffer + offset, 0x0c, 0x1002); // Time
+	//offset += Add16bitField(buffer + offset, 0x0b, -123); // XTE
+	//offset += AddDual32bitField(buffer + offset, 0x0a, 0x00500001, 0x00010001); // BTW
+	//offset += AddDual16bitField(buffer + offset, 0x08, 10, 25); // SOG/COG
+	//offset += AddPositionField(buffer + offset, -45.5f, 78.3333f); // Position
 
 	buffer[lengthOffset] = offset - crcStart - 2;
 	buffer[lengthOffset + 1] = offset - crcStart - 2;
@@ -831,7 +837,29 @@ uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value)
 	return offset;
 }
 
-uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint16_t value2)
+uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x05;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value >> 16) & 0xff;
+	buffer[offset++] = (value >> 8) & 0xff;
+	buffer[offset++] = value & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 6; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
+uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2)
 {
 	int offset = 0;
 
@@ -854,6 +882,33 @@ uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, ui
 	return offset;
 }
 
+uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x0a;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value1 >> 24) & 0xff;
+	buffer[offset++] = (value1 >> 16) & 0xff;
+	buffer[offset++] = (value1 >> 8) & 0xff;
+	buffer[offset++] = value1 & 0xff;
+	buffer[offset++] = (value2 >> 24) & 0xff;
+	buffer[offset++] = (value2 >> 16) & 0xff;
+	buffer[offset++] = (value2 >> 8) & 0xff;
+	buffer[offset++] = value2 & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 11; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
 uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude)
 {
 	int offset = 0;
@@ -864,17 +919,19 @@ uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude)
 	buffer[offset++] = 0x05;
 
 	// Direction flags
-	if (latitude > 0.0f) dir |= 0x01;
-	if (longitude > 0.0f) dir |= 0x02;
+	if (latitude > 0.0f)
+		dir |= 0x01;
+	if (longitude > 0.0f)
+		dir |= 0x02;
 	// Latitude
 	latitude = fabsf(latitude);
-	buffer[offset++] = (uint8_t)floorf(latitude);
+	buffer[offset++] = (uint8_t) floorf(latitude);
 	uint16_t latMin = 60000.0f * (latitude - floorf(latitude));
 	buffer[offset++] = (latMin >> 8) & 0xff;
 	buffer[offset++] = latMin & 0xff;
 	// Longitude
 	longitude = fabsf(longitude);
-	buffer[offset++] = (uint8_t)floorf(longitude);
+	buffer[offset++] = (uint8_t) floorf(longitude);
 	uint16_t lonMin = 60000.0f * (longitude - floorf(longitude));
 	buffer[offset++] = (lonMin >> 8) & 0xff;
 	buffer[offset++] = lonMin & 0xff;
