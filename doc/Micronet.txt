@@ -97,48 +97,87 @@ decoding by comparing each field position to the complete message size.
 Message examples :
 
 Message from wind transducer
-|83 03 77 37|02|03 90 87|02|01|09|5C|18 18|04 05 05 00 2C 3A|04 06 05 FF FB 09|
-|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| AWS |FC|FF|FI|FP| AWA |FC|
+|83 03 77 37|02|03 90 87|02|01|09|5C|18 18|04 05 05 00 2C 3A|04 06 05 FF FB 09|	
+|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN |FL|FI|FP| AWS |FC|FL|FI|FP| AWA |FC|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |
 
 Message sent by an analog wind display
 |83 03 77 37|83|03 77 37|02|09|00|73|1A 1A|05 21 05 00 00 09 34|05 22 05 00 64 09 99|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| AWS |??|FC|FF|FI|FP| AWA |??|FC|
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a dual display
 |83 03 77 37|81|03 70 82|02|09|00|B5|1A 1A|05|21|05|00 00|09|34|05 22 05 00 33|09|68|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| AWS |??|FC|FF|FI|FP| AWA |??|FC|
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a hull transmitter
 |83 03 77 37|01|0B C0 22|02|01|09|2E|49 49|04|04|05|13 89|A9|04|1B|05|00 89|AD|05|21|05|00 00|06|31|05|22|05|FF F5|06|26|04|01|05|00 BB|C5|0A|02|05|00 00 00 95|00 00 00 1C|C2|03|03|05|25|30|04|05|03|00 00|0C|04|06|03|FF F5|01|
-|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FF|FI|FP| DPT |FC|FF|FI|FP| VCC |FC|FF|FI|FP| AWS |??|FC|FF|FI|FP| AWA |??|FC|FF|FI|FP| SPD |FC|FF|FI|FP|   TRIP    |    LOG    |FC|FF|FI|FP|T |FC|FF|FI|FP| AWS |FC|FF|FI|FP| AWA |FC|
+|    NID    |DT|  DID   |MI|SO|DE|CS| LEN |FL|FI|FP| DPT |FC|FL|FI|FP| VCC |FC|FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|FL|FI|FP| SPD |FC|FL|FI|FP|   TRIP    |    LOG    |FC|FL|FI|FP|T |FC|FL|FI|FP| AWS |FC|FL|FI|FP| AWA |FC|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |       FIELD3       |       FIELD4       |     FIELD5      |              FIELD6               |    FIELD7    |      FIELD8     |     FIELD9      |
 
-FF = Field format - (FF + 2) is the total number of the field, allowing to skip in case the format/ID would be unknown
-     0x04 Total field description is on 6 bytes, including CRC. Value is on a 16-bits integer.
-     0x05 Total field description is on 7 bytes, including CRC. In this case there is an extra byte after the 16-bit integer value which is unidentified yet.
-     0x0a Total field description is on 12 bytes, including CRC. Two values are encoded on a 32-bit integer each.
+Observed Field formats :
+
+|01|02|03|04|05|06|07|08|09|10|11|12|
+|03|FI|FP|VA|FC| -> value on a 8bit integer
+|04|FI|FP| VAL |FC| -> value on a 16bit integer
+|05|FI|FP| VAL |FP|FC| -> value on a 16bit integer followed by an unidentified byte
+|06|FI|FP| VAL1| VAL2|FC| -> values on two 16bit integer followed by an unidentified byte
+|0a|FI|FP|    VAL1   |    VAL2   |FC| -> two values both on a 32bit integer
+
+FL = Field Length - (FL + 2) is the total length of the field, including CRC, allowing to skip in case the format/ID would be unknown
+     0x03 Total field description is on 5 bytes, including CRC. Value is on a 8bit integer.
+     0x04 Total field description is on 6 bytes, including CRC. Value is on a 16bit integer.
+     0x05 Total field description is on 7 bytes, including CRC. In this case there is an extra byte after the 16bit integer value which is unidentified yet.
+     0x0a Total field description is on 12 bytes, including CRC. Two values are encoded on a 32bit integer each.
 
 FI = Field ID
-     0x01 SPD*100(KT)
-     0x02 TRIP*100(NM) + LOG*10(NM)
+     0x01 SPD
+          |04|FI|FP| VAL |F|
+          VAL = Speed * 100 (KT)
+     0x02 TRIP + LOG
+          |0a|FI|FP|    VAL1   |    VAL2   |FC|
+          VAL1 = Trip * 100 (NM)
+          VAL2 = Log *10 (NM) 
      0x03 T*2(degC)
-     0x04 DPT*10(FT)                 A value of 5001(500.1ft) is given by the hull transmitter when depth is not available.
-     0x05 AWS*10(KT) 
-     0x06 AWA(DEG)
-     0x07 HDG (3 bytes) --> Format to come
-     0x08 SOG/COG (8 bytes) --> Format to come
-     0c0A BTW (12 bytes) --> Format to come
-     0x0B XTE (3 bytes) --> Format to come
-     0x0C TIME (3 bytes) --> Format to come
-     0x0D Date (7 bytes) --> Format to come
-     0x18 VMG-WP (3 byte) --> Format to come
+          |03|FI|FP|VA|FC|
+          VA = T * 2 (°C)
+     0x04 DPT
+          |04|FI|FP| VAL |FC|
+          VAL = Depth * 10 (ft)
+          A value of 5001(500.1ft) is given by the hull transmitter when depth is not available.
+     0x05 AWS
+          |04|FI|FP| VAL |FC|
+          VAL = ApparentWindSpeed * 10 (kt)
+     0x06 AWA(DEG) :
+          |04|FI|FP| VAL |FC|
+          VAL = ApparentWindAngle (deg)
+          Values are between -180 and 180
+     0x07 HDG(DEG)
+          |04|FI|FP| VAL |FC|
+          VAL = MagHeading (deg)
+          Values are between 0 and 360
+     0x08 SOG/COG
+          |06|FI|FP|VAL1 |VAL2 |FC|
+          VAL1 = SOG * 10 (KT)
+          VAL2 = COG (Deg)
+     0x09 LAT/LON
+          |09|FI|FP|LA| LAM |LO| LOM |DI|FC|
+          LA = latitude in degrees (integer part)
+          LAM = minutes of latitude * 1000
+          LO = longitude in degrees (integer part)
+          LOM = minutes of longitude * 1000
+          DI = Flags : 0x00/0x01 -> South/North
+                       0x00/0x02 -> East/West
+     0x0A BTW (12 bytes) --> Format to be confirmed
+     0x0B XTE (3 bytes) --> Format to be confirmed
+     0x0C TIME (3 bytes) --> Format to be confirmed
+     0x0D Date (7 bytes) --> Format to be confirmed
+     0x18 VMG-WP (3 byte) --> Format to be confirmed
      0x1b VCC*10(V)
-     0x1F DTW (8 bytes) --> Format to come
-     0x21 AWS*10(KT)                 Seems the same than 0x05 ?
-     0x22 AWA(DEG)                   Seems the same than 0x06 ?
+     0x1F DTW (8 bytes) --> Format to be confirmed
+     0x21 AWS*10(KT) : format 0x05 - Seems the be same value than 0x05, but with the unidentified extra byte ?
+     0x22 AWA(DEG) : format 0x05 - Seems the be same value than 0x05, but with the unidentified extra byte ?
 
 FP = Field Property ??
      0x05 It seems to be the value used when the data comes from the measuring sensor
