@@ -134,44 +134,44 @@ FL = Field Length - (FL + 2) is the total length of the field, including CRC, al
 FI = Field ID
      0x01 SPD
           |01|02|03|04|05|06|
-          |04|FI|FP| VAL |FC|
+          |04|01|FP| VAL |FC|
           VAL = Speed * 100 (KT)
      0x02 TRIP + LOG
           |01|02|03|04|05|06|07|08|09|10|11|12|
-          |0a|FI|FP|    VAL1   |    VAL2   |FC|
+          |0a|02|FP|    VAL1   |    VAL2   |FC|
           VAL1 = Trip * 100 (NM)
           VAL2 = Log *10 (NM) 
      0x03 T*2(degC)
           |01|02|03|04|05|
-          |03|FI|FP|VA|FC|
+          |03|03|FP|VA|FC|
           VA = T * 2 (°C)
      0x04 DPT
           |01|02|03|04|05|06|
-          |04|FI|FP| VAL |FC|
+          |04|04|FP| VAL |FC|
           VAL = Depth * 10 (ft)
           A value of 5001(500.1ft) is given by the hull transmitter when depth is not available.
      0x05 AWS
           |01|02|03|04|05|06|
-          |04|FI|FP| VAL |FC|
+          |04|05|FP| VAL |FC|
           VAL = ApparentWindSpeed * 10 (kt)
      0x06 AWA(DEG) :
           |01|02|03|04|05|06|
-          |04|FI|FP| VAL |FC|
+          |04|06|FP| VAL |FC|
           VAL = ApparentWindAngle (deg)
           Values are between -180 and 180
      0x07 HDG(DEG)
           |01|02|03|04|05|06|
-          |04|FI|FP| VAL |FC|
+          |04|07|FP| VAL |FC|
           VAL = MagHeading (deg)
           Values are between 0 and 360
      0x08 SOG/COG
           |01|02|03|04|05|06|07|08|
-          |06|FI|FP|VAL1 |VAL2 |FC|
+          |06|08|FP|VAL1 |VAL2 |FC|
           VAL1 = SOG * 10 (KT)
           VAL2 = COG (Deg)
      0x09 LAT/LON
           |01|02|03|04|05|06|07|08|09|10|11|
-          |09|FI|FP|LA| LAM |LO| LOM |DI|FC|
+          |09|09|FP|LA| LAM |LO| LOM |DI|FC|
           LA = latitude in degrees (integer part)
           LAM = minutes of latitude * 1000
           LO = longitude in degrees (integer part)
@@ -180,30 +180,46 @@ FI = Field ID
                        0x00/0x02 -> West/East
      0x0A BTW
           |01|02|03|04|05|06|07|08|09|10|11|12|
-          |0a|FI|FP| VAL |??|??|??|??|??|??|FC|
+          |0a|0a|FP| VAL |??|??|??|??|??|??|FC|
           VAL = BTW (Deg)
           Values are between 0 and 360
      0x0B XTE
           |01|02|03|04|05|06|
-          |04|FI|FP| VAL |FC|
+          |04|0b|FP| VAL |FC|
           VAL = Deviation (NM)
           Positive deviation are right deviation, negative are left
      0x0C TIME
           |01|02|03|04|05|06|
-          |04|FI|FP|HH|MM|FC|
+          |04|0c|FP|HH|MM|FC|
           HH = Hours (24h format)
           MM = Minutes
      0x0D Date
           |01|02|03|04|05|06|07|
-          |05|FI|FP|DD|MM|YY|FC|
+          |05|0d|FP|DD|MM|YY|FC|
           DD = Day of month
           MM = Month (01 = January)
           YY = Year (from 2000)
-     0x18 VMG-WP (3 byte) --> Format to be confirmed
+     0x12 VMG-WP
+          |01|02|03|04|05|06|
+          |04|12|FP| VAL |FC|
+          VAL = Speed * 100 (KT)
      0x1b VCC*10(V)
-     0x1F DTW (8 bytes) --> Format to be confirmed
-     0x21 AWS*10(KT) : format 0x05 - Seems the be same value than 0x05, but with the unidentified extra byte ?
-     0x22 AWA(DEG) : format 0x05 - Seems the be same value than 0x05, but with the unidentified extra byte ?
+          |01|02|03|04|05|06|
+          |04|1b|FP| VAL |FC|
+          VAL = Voltage * 10 (V)
+     0x1F DTW
+          |01|02|03|04|05|06|07|08|
+          |06|1f|FP|    VAL    |FC|
+          VAL = Distance * 100 (NM)
+     0x21 AWS - Seems the be same value than 0x05, but with an unidentified extra byte ? 0x21 is used by non wind-transducer devices to repeat the value.
+          |01|02|03|04|05|06|07|
+          |04|05|FP| VAL |??|FC|
+          VAL = ApparentWindSpeed * 10 (kt)
+     0x22 AWA - Seems the be same value than 0x06, but with an unidentified extra byte ? 0x22 is used by non wind-transducer devices to repeat the value.
+          |01|02|03|04|05|06|07|
+          |04|05|FP| VAL |??|FC|
+          VAL = ApparentWindAngle (deg)
+          Values are between -180 and 180
 
 FP = Field Property ??
      0x05 It seems to be the value used when the data comes from the measuring sensor
