@@ -313,8 +313,8 @@ void RfTxMessage(MicronetMessage_t *message)
 	gRfReceiver.SpiStrobe(CC1101_SIDLE);
 	gRfReceiver.setSyncMode(0);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
-	gRfReceiver.setPacketLength(message->len + MICRONET_RF_SYNC_BYTE + 2);
-	for (int i = 0; i < MICRONET_RF_SYNC_BYTE; i++)
+	gRfReceiver.setPacketLength(message->len + MICRONET_RF_PREAMBLE_LENGTH + 2);
+	for (int i = 0; i < MICRONET_RF_PREAMBLE_LENGTH; i++)
 		gRfReceiver.SpiWriteReg(CC1101_TXFIFO, 0x55);
 	gRfReceiver.SpiWriteReg(CC1101_TXFIFO, MICRONET_RF_SYNC_BYTE);
 
@@ -323,7 +323,7 @@ void RfTxMessage(MicronetMessage_t *message)
 	gRfReceiver.SpiStrobe(CC1101_STX);                  //start send
 	delay(15);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);                 //flush TXfifo
-	CONSOLE.println(message->len + MICRONET_RF_SYNC_BYTE + 2);
+	CONSOLE.println(message->len + MICRONET_RF_PREAMBLE_LENGTH + 2);
 
 	RfFlushAndRestartRx();
 }
