@@ -74,10 +74,10 @@ void LoadCalibration();
 /*                               Globals                                   */
 /***************************************************************************/
 
-ELECHOUSE_CC1101 gRfReceiver;     // CC1101 Driver object
-MenuManager gMenuManager;         // Menu manager object
-MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-MicronetCodec gMicronetDecoder; // Micronet message decoder
+ELECHOUSE_CC1101 gRfReceiver;       // CC1101 Driver object
+MenuManager gMenuManager;           // Menu manager object
+MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
+MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
 Configuration gConfiguration;
 NmeaEncoder gNmeaEncoder;
 GnssDecoder gGnssDecoder;
@@ -296,7 +296,7 @@ void RfReceiverIsr()
 	message.rssi = gRfReceiver.getRssi();
 	message.timeStamp_us = timeStamp_us;
 	// Add message to the store for later processing by the main loop
-	gMessageFifo.Push(message);
+	gRxMessageFifo.Push(message);
 }
 
 void RfFlushAndRestartRx()
@@ -323,7 +323,6 @@ void RfTxMessage(MicronetMessage_t *message)
 	gRfReceiver.SpiStrobe(CC1101_STX);                  //start send
 	delay(15);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);                 //flush TXfifo
-	CONSOLE.println(message->len + MICRONET_RF_PREAMBLE_LENGTH + 2);
 
 	RfFlushAndRestartRx();
 }
@@ -393,16 +392,16 @@ void MenuScanNetworks()
 
 	CONSOLE.print("Scanning Micronet networks for 5 seconds ... ");
 
-	gMessageFifo.ResetFifo();
+	gRxMessageFifo.ResetFifo();
 	unsigned long startTime = millis();
 	do
 	{
-		if ((message = gMessageFifo.Peek()) != nullptr)
+		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
 			// Only consider messages with a valid CRC
-			if (gMicronetDecoder.VerifyHeaderCrc(message))
+			if (gMicronetCodec.VerifyHeaderCrc(message))
 			{
-				uint32_t nid = gMicronetDecoder.GetNetworkId(message);
+				uint32_t nid = gMicronetCodec.GetNetworkId(message);
 				CONSOLE.println(nid, HEX);
 				int16_t rssi = message->rssi;
 				// Store the network in the array by order of reception power
@@ -441,7 +440,7 @@ void MenuScanNetworks()
 					}
 				}
 			}
-			gMessageFifo.DeleteMessage();
+			gRxMessageFifo.DeleteMessage();
 		}
 	} while ((millis() - startTime) < 5000);
 
@@ -575,39 +574,39 @@ void MenuConvertToNmea()
 	CONSOLE.println("Press ESC key at any time to stop conversion and come back to menu.");
 	CONSOLE.println("");
 
-	gMessageFifo.ResetFifo();
+	gRxMessageFifo.ResetFifo();
 
 	MicronetMessage_t *message;
 	do
 	{
-		if ((message = gMessageFifo.Peek()) != nullptr)
+		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetDecoder.VerifyHeaderCrc(message))
+			if (gMicronetCodec.VerifyHeaderCrc(message))
 			{
-				if (gMicronetDecoder.GetNetworkId(message) == gConfiguration.attachedNetworkId)
+				if (gMicronetCodec.GetNetworkId(message) == gConfiguration.attachedNetworkId)
 				{
-					gMicronetDecoder.DecodeMessage(message);
+					gMicronetCodec.DecodeMessage(message);
 
-					if (gNmeaEncoder.EncodeMWV_R(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeMWV_R(gMicronetCodec.GetCurrentData(), nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMWV_T(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeMWV_T(gMicronetCodec.GetCurrentData(), nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeDPT(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeDPT(gMicronetCodec.GetCurrentData(), nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMTW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeMTW(gMicronetCodec.GetCurrentData(), nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVLW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeVLW(gMicronetCodec.GetCurrentData(), nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVHW(gMicronetDecoder.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeVHW(gMicronetCodec.GetCurrentData(), nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gMicronetDecoder.GetCurrentData()->calibrationUpdated)
+					if (gMicronetCodec.GetCurrentData()->calibrationUpdated)
 					{
-						gMicronetDecoder.GetCurrentData()->calibrationUpdated = false;
+						gMicronetCodec.GetCurrentData()->calibrationUpdated = false;
 						SaveCalibration();
 					}
 				}
 			}
-			gMessageFifo.DeleteMessage();
+			gRxMessageFifo.DeleteMessage();
 		}
 
 		int nbGnssSentences = gGnssDecoder.GetNbSentences();
@@ -616,6 +615,8 @@ void MenuConvertToNmea()
 			CONSOLE.println(gGnssDecoder.GetSentence(i));
 		}
 		gGnssDecoder.resetSentences();
+
+		//gMicronetDecoder.EncodeNmeaData(gGnssDecoder.GetCurrentData());
 
 		while (CONSOLE.available() > 0)
 		{
@@ -638,18 +639,18 @@ void MenuScanAllMicronetTraffic()
 	CONSOLE.println("Press ESC key at any time to stop scanning and come back to menu.");
 	CONSOLE.println("");
 
-	gMessageFifo.ResetFifo();
+	gRxMessageFifo.ResetFifo();
 
 	MicronetMessage_t *message;
 	do
 	{
-		if ((message = gMessageFifo.Peek()) != nullptr)
+		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetDecoder.VerifyHeaderCrc(message))
+			if (gMicronetCodec.VerifyHeaderCrc(message))
 			{
 				PrintRawMessage(message);
 			}
-			gMessageFifo.DeleteMessage();
+			gRxMessageFifo.DeleteMessage();
 		}
 
 		while (CONSOLE.available() > 0)
@@ -672,24 +673,24 @@ void MenuTransmissionTest()
 	CONSOLE.println("Press ESC key at any time to stop transmission and come back to menu.");
 	CONSOLE.println("");
 
-	gMessageFifo.ResetFifo();
+	gRxMessageFifo.ResetFifo();
 
 	do
 	{
 		MicronetMessage_t *message;
-		if ((message = gMessageFifo.Peek()) != nullptr)
+		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetDecoder.VerifyHeaderCrc(message))
+			if (gMicronetCodec.VerifyHeaderCrc(message))
 			{
 				if (message->data[MICRONET_MI_OFFSET] == 0x01)
 				{
 					MicronetMessage_t message;
-					gMicronetDecoder.BuildGnssMessage(&message, 0x83037737);
+					//gMicronetDecoder.BuildGnssMessage(&message, 0x83037737, );
 					delay(30);
 					RfTxMessage(&message);
 				}
 			}
-			gMessageFifo.DeleteMessage();
+			gRxMessageFifo.DeleteMessage();
 		}
 
 		while (CONSOLE.available() > 0)
@@ -706,7 +707,7 @@ void MenuTransmissionTest()
 
 void SaveCalibration()
 {
-	MicronetData_t *data = gMicronetDecoder.GetCurrentData();
+	MicronetData_t *data = gMicronetCodec.GetCurrentData();
 
 	gConfiguration.waterSpeedFactor_per = data->waterSpeedFactor_per;
 	gConfiguration.waterTemperatureOffset_C = data->waterTemperatureOffset_C;
@@ -722,7 +723,7 @@ void SaveCalibration()
 
 void LoadCalibration()
 {
-	MicronetData_t *data = gMicronetDecoder.GetCurrentData();
+	MicronetData_t *data = gMicronetCodec.GetCurrentData();
 
 	data->waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
 	data->waterTemperatureOffset_C = gConfiguration.waterTemperatureOffset_C;

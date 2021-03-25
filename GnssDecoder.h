@@ -44,6 +44,22 @@
 /*                                Types                                    */
 /***************************************************************************/
 
+typedef struct {
+	bool timeUpdated;
+	uint8_t hour;
+	uint8_t minute;
+	bool dateUpdated;
+	uint8_t day;
+	uint8_t month;
+	uint8_t year;
+	bool positionUpdated;
+	float latitude;
+	float longitude;
+	bool sogCogUpdated;
+	float sog;
+	float cog;
+} NmeaData_t;
+
 class GnssDecoder
 {
 public:
@@ -54,12 +70,20 @@ public:
 	int GetNbSentences();
 	const char *GetSentence(int i);
 	void resetSentences();
+	NmeaData_t *GetCurrentData();
 
 private:
 	uint8_t serialBuffer[NMEA_SENTENCE_MAX_LENGTH];
 	int writeIndex;
 	char sentenceBuffer[NMEA_SENTENCE_HISTORY_SIZE][NMEA_SENTENCE_MAX_LENGTH];
 	int sentenceWriteIndex;
+	NmeaData_t nmeaData;
+
+	void DecodeSentence(int sentenceIndex);
+	void DecodeRMCSentence(char *sentence);
+	void DecodeGGASentence(char *sentence);
+	void DecodeVTGSentence(char *sentence);
+	int16_t NibbleValue(char c);
 };
 
 /***************************************************************************/

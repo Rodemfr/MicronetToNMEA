@@ -391,9 +391,15 @@ void MicronetCodec::CalculateTrueWind()
 	}
 }
 
-void MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId)
+bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, NmeaData_t *nmeaData)
 {
 	int offset = 0;
+
+	if ((!nmeaData->timeUpdated) && (!nmeaData->dateUpdated) && (!nmeaData->sogCogUpdated) && (!nmeaData->positionUpdated))
+	{
+		message->len = 0;
+		return false;
+	}
 
 	// Network ID
 	message->data[offset++] = (networkId >> 24) & 0xff;
@@ -406,23 +412,42 @@ void MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	message->data[offset++] = 0x03;
 	message->data[offset++] = 0x04;
 	// Message info
-	message->data[offset++] = 0x02; // Send data
-	message->data[offset++] = 0x01; // Source
-	message->data[offset++] = 0x09; // Destination
+	message->data[offset++] = 0x02;
+	message->data[offset++] = 0x01;
+	message->data[offset++] = 0x09;
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
 	message->data[offset++] = 0x0c;
 	message->data[offset++] = 0x0c;
 	// Data fields
-	offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (18 << 8) + 4);
-	offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE, (15 << 16) + (03 << 8) + 21);
-	offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, 5.4f, 210.0f);
-	offset += AddPositionField(message->data + offset, -45.5f, 78.3333f);
+	if (nmeaData->timeUpdated)
+	{
+		nmeaData->timeUpdated = false;
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (nmeaData->hour << 8) + nmeaData->minute);
+	}
+	if (nmeaData->dateUpdated)
+	{
+		nmeaData->dateUpdated = false;
+		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE,
+				(nmeaData->day << 16) + (nmeaData->month << 8) + nmeaData->year);
+	}
+	if (nmeaData->sogCogUpdated)
+	{
+		nmeaData->sogCogUpdated = false;
+		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, nmeaData->sog, nmeaData->cog);
+	}
+	if (nmeaData->positionUpdated)
+	{
+		nmeaData->positionUpdated = false;
+		offset += AddPositionField(message->data + offset, nmeaData->latitude, nmeaData->longitude);
+	}
 
 	message->len = offset;
 
 	WriteHeaderLengthAndCrc(message);
+
+	return true;
 }
 
 void MicronetCodec::WriteHeaderLengthAndCrc(MicronetMessage_t *message)

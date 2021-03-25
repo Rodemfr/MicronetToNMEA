@@ -32,6 +32,8 @@
 /***************************************************************************/
 
 #include "Micronet.h"
+// TODO : better to handle a global data structure at Main.cpp level, common to all sources/dests of data
+#include "GnssDecoder.h"
 
 #include <stdint.h>
 
@@ -48,24 +50,26 @@
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef struct {
+typedef struct
+{
 	bool valid;
 	float value;
 	uint32_t timeStamp;
-} DataValue_t;
+} MicronetDataValue_t;
 
-typedef struct {
+typedef struct
+{
 	// Data from transducers
-	DataValue_t stw;
-	DataValue_t awa;
-	DataValue_t aws;
-	DataValue_t twa;
-	DataValue_t tws;
-	DataValue_t dpt;
-	DataValue_t vcc;
-	DataValue_t log;
-	DataValue_t trip;
-	DataValue_t stp;
+	MicronetDataValue_t stw;
+	MicronetDataValue_t awa;
+	MicronetDataValue_t aws;
+	MicronetDataValue_t twa;
+	MicronetDataValue_t tws;
+	MicronetDataValue_t dpt;
+	MicronetDataValue_t vcc;
+	MicronetDataValue_t log;
+	MicronetDataValue_t trip;
+	MicronetDataValue_t stp;
 	// System parameters
 	bool calibrationUpdated;
 	float waterSpeedFactor_per;
@@ -94,9 +98,9 @@ public:
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
 	void DecodeMessage(MicronetMessage_t *message);
-	void BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId);
+	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, NmeaData_t *nmeaData);
 
-	MicronetData_t *GetCurrentData();
+	MicronetData_t* GetCurrentData();
 
 private:
 	MicronetData_t micronetData;

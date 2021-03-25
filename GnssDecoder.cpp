@@ -62,6 +62,7 @@ GnssDecoder::GnssDecoder()
 	writeIndex = 0;
 	sentenceWriteIndex = 0;
 	serialBuffer[0] = 0;
+	memset(&nmeaData, 0, sizeof(nmeaData));
 }
 
 GnssDecoder::~GnssDecoder()
@@ -70,7 +71,7 @@ GnssDecoder::~GnssDecoder()
 
 void GnssDecoder::PushChar(char c)
 {
-	if (serialBuffer[0] != '$')
+	if ((serialBuffer[0] != '$') || (c == '$'))
 	{
 		serialBuffer[0] = c;
 		writeIndex = 1;
@@ -83,7 +84,9 @@ void GnssDecoder::PushChar(char c)
 		{
 			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer, writeIndex);
 			sentenceBuffer[sentenceWriteIndex][writeIndex] = 0;
+			DecodeSentence(sentenceWriteIndex);
 			sentenceWriteIndex++;
+
 		}
 		else
 		{
@@ -108,7 +111,7 @@ int GnssDecoder::GetNbSentences()
 	return sentenceWriteIndex;
 }
 
-const char *GnssDecoder::GetSentence(int i)
+const char* GnssDecoder::GetSentence(int i)
 {
 	return sentenceBuffer[i];
 }
@@ -116,4 +119,153 @@ const char *GnssDecoder::GetSentence(int i)
 void GnssDecoder::resetSentences()
 {
 	sentenceWriteIndex = 0;
+}
+
+NmeaData_t* GnssDecoder::GetCurrentData()
+{
+	return &nmeaData;
+}
+
+void GnssDecoder::DecodeSentence(int sentenceIndex)
+{
+	if (sentenceBuffer[sentenceIndex][0] != '$')
+		return;
+
+	char *pCs = strrchr(sentenceBuffer[sentenceIndex], '*') + 1;
+	if (pCs == nullptr)
+		return;
+	int16_t Cs = (NibbleValue(pCs[0]) << 4) | NibbleValue(pCs[1]);
+	if (Cs < 0)
+		return;
+
+	uint8_t crc = 0;
+	for (char *pC = sentenceBuffer[sentenceIndex] + 1; pC < (pCs - 1); pC++)
+	{
+		crc = crc ^ (*pC);
+	}
+
+	if (crc != Cs)
+		return;
+
+	uint32_t sId = ((uint8_t) sentenceBuffer[sentenceIndex][3]) << 16;
+	sId |= ((uint8_t) sentenceBuffer[sentenceIndex][4]) << 8;
+	sId |= ((uint8_t) sentenceBuffer[sentenceIndex][5]);
+
+	char *pField = sentenceBuffer[sentenceIndex] + 7;
+	switch (sId)
+	{
+	case 'RMC':
+		DecodeRMCSentence(pField);
+		break;
+	case 'GGA':
+		DecodeGGASentence(pField);
+		break;
+	case 'VTG':
+		DecodeVTGSentence(pField);
+		break;
+	}
+
+	return;
+}
+
+void GnssDecoder::DecodeRMCSentence(char *sentence)
+{
+	if (sentence[0] != ',')
+	{
+		nmeaData.hour = (sentence[0] - '0') * 10 + (sentence[1] - '0');
+		nmeaData.minute = (sentence[2] - '0') * 10 + (sentence[3] - '0');
+		nmeaData.timeUpdated = true;
+	}
+	for (int i = 0; i < 8; i++)
+	{
+		if ((sentence = strchr(sentence, ',')) == nullptr)
+			return;
+		sentence++;
+	}
+	if (sentence[0] != ',')
+	{
+		nmeaData.day = (sentence[0] - '0') * 10 + (sentence[1] - '0');
+		nmeaData.month = (sentence[2] - '0') * 10 + (sentence[3] - '0');
+		nmeaData.year = (sentence[4] - '0') * 10 + (sentence[5] - '0');
+		nmeaData.dateUpdated = true;
+	}
+}
+
+void GnssDecoder::DecodeGGASentence(char *sentence)
+{
+	float degs, mins;
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sentence[0] != ',')
+	{
+		degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
+		mins = (sentence[2] - '0') * 10 + (sentence[3] - '0')
+				+ ((sentence[4] - '0') / 10.0f + (sentence[5] - '0') / 100.0f + (sentence[6] - '0') / 1000.0f);
+		nmeaData.latitude = degs + mins / 60.0f;
+		if (sentence[8] == 'S')
+			nmeaData.latitude = -nmeaData.latitude;
+		nmeaData.positionUpdated = true;
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		if ((sentence = strchr(sentence, ',')) == nullptr)
+			return;
+		sentence++;
+	}
+	if (sentence[0] != ',')
+	{
+		degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
+		mins = (sentence[3] - '0') * 10 + (sentence[4] - '0')
+				+ ((sentence[5] - '0') / 10.0f + (sentence[6] - '0') / 100.0f + (sentence[7] - '0') / 1000.0f);
+		nmeaData.longitude = degs + mins / 60.0f;
+		if (sentence[9] == 'W')
+			nmeaData.longitude = -nmeaData.longitude;
+		nmeaData.positionUpdated = true;
+	}
+}
+
+void GnssDecoder::DecodeVTGSentence(char *sentence)
+{
+	float value;
+	for (int i = 0; i < 2; i++)
+	{
+		if ((sentence = strchr(sentence, ',')) == nullptr)
+			return;
+		sentence++;
+	}
+	if ((value = sscanf(sentence, "%f", &value)) == 1)
+	{
+		nmeaData.cog = value;
+		nmeaData.sogCogUpdated = true;
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		if ((sentence = strchr(sentence, ',')) == nullptr)
+			return;
+		sentence++;
+	}
+	if ((value = sscanf(sentence, "%f", &value)) == 1)
+	{
+		nmeaData.sog = value;
+		nmeaData.sogCogUpdated = true;
+	}
+}
+
+int16_t GnssDecoder::NibbleValue(char c)
+{
+if ((c >= '0') && (c <= '9'))
+{
+	return (c - '0');
+}
+else if ((c >= 'A') && (c <= 'F'))
+{
+	return (c - 'A') + 0x0a;
+}
+else if ((c >= 'a') && (c <= 'f'))
+{
+	return (c - 'a') + 0x0a;
+}
+
+return -1;
 }
