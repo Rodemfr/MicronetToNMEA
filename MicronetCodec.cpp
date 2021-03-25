@@ -28,7 +28,7 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "MicronetDecoder.h"
+#include "MicronetCodec.h"
 
 #include <Arduino.h>
 #include <string.h>
@@ -56,16 +56,16 @@
 /*                              Functions                                  */
 /***************************************************************************/
 
-MicronetDecoder::MicronetDecoder()
+MicronetCodec::MicronetCodec()
 {
 	memset(&micronetData, 0, sizeof(micronetData));
 }
 
-MicronetDecoder::~MicronetDecoder()
+MicronetCodec::~MicronetCodec()
 {
 }
 
-uint32_t MicronetDecoder::GetNetworkId(MicronetMessage_t *message)
+uint32_t MicronetCodec::GetNetworkId(MicronetMessage_t *message)
 {
 	unsigned int networkId;
 
@@ -77,12 +77,12 @@ uint32_t MicronetDecoder::GetNetworkId(MicronetMessage_t *message)
 	return networkId;
 }
 
-uint8_t MicronetDecoder::GetDeviceType(MicronetMessage_t *message)
+uint8_t MicronetCodec::GetDeviceType(MicronetMessage_t *message)
 {
 	return message->data[MICRONET_DT_OFFSET];
 }
 
-uint32_t MicronetDecoder::GetDeviceId(MicronetMessage_t *message)
+uint32_t MicronetCodec::GetDeviceId(MicronetMessage_t *message)
 {
 	unsigned int deviceId;
 
@@ -94,27 +94,27 @@ uint32_t MicronetDecoder::GetDeviceId(MicronetMessage_t *message)
 	return deviceId;
 }
 
-uint8_t MicronetDecoder::GetMessageId(MicronetMessage_t *message)
+uint8_t MicronetCodec::GetMessageId(MicronetMessage_t *message)
 {
 	return message->data[MICRONET_MI_OFFSET];
 }
 
-uint8_t MicronetDecoder::GetSource(MicronetMessage_t *message)
+uint8_t MicronetCodec::GetSource(MicronetMessage_t *message)
 {
 	return message->data[MICRONET_SO_OFFSET];
 }
 
-uint8_t MicronetDecoder::GetDestination(MicronetMessage_t *message)
+uint8_t MicronetCodec::GetDestination(MicronetMessage_t *message)
 {
 	return message->data[MICRONET_DE_OFFSET];
 }
 
-uint8_t MicronetDecoder::GetHeaderCrc(MicronetMessage_t *message)
+uint8_t MicronetCodec::GetHeaderCrc(MicronetMessage_t *message)
 {
 	return message->data[MICRONET_CRC_OFFSET];
 }
 
-bool MicronetDecoder::VerifyHeaderCrc(MicronetMessage_t *message)
+bool MicronetCodec::VerifyHeaderCrc(MicronetMessage_t *message)
 {
 	uint8_t crc = 0;
 	for (int i = 0; i < MICRONET_CRC_OFFSET; i++)
@@ -125,7 +125,7 @@ bool MicronetDecoder::VerifyHeaderCrc(MicronetMessage_t *message)
 	return (crc == message->data[MICRONET_CRC_OFFSET]);
 }
 
-void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
+void MicronetCodec::DecodeMessage(MicronetMessage_t *message)
 {
 	switch (message->data[MICRONET_MI_OFFSET])
 	{
@@ -140,7 +140,7 @@ void MicronetDecoder::DecodeMessage(MicronetMessage_t *message)
 	// TODO : make invalid values which have not been updated for too long (3s ?)
 }
 
-void MicronetDecoder::DecodeSendDataMessage(MicronetMessage_t *message)
+void MicronetCodec::DecodeSendDataMessage(MicronetMessage_t *message)
 {
 	int fieldOffset = MICRONET_PAYLOAD_OFFSET;
 	while (fieldOffset < message->len)
@@ -154,7 +154,7 @@ void MicronetDecoder::DecodeSendDataMessage(MicronetMessage_t *message)
 	CalculateTrueWind();
 }
 
-void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
+void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message)
 {
 	switch (message->data[MICRONET_PAYLOAD_OFFSET + 1])
 	{
@@ -214,7 +214,7 @@ void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
 	case MICRONET_CALIBRATION_MAGVAR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			int8_t value = (int8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			int8_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
 			micronetData.magneticVariation_deg = (float) value;
 			micronetData.calibrationUpdated = true;
 		}
@@ -222,7 +222,7 @@ void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
 	case MICRONET_CALIBRATION_WIND_SHIFT_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
-			uint8_t value = (uint8_t)message->data[MICRONET_PAYLOAD_OFFSET + 3];
+			uint8_t value = (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
 			micronetData.windShift = (float) value;
 			micronetData.calibrationUpdated = true;
 		}
@@ -230,7 +230,7 @@ void MicronetDecoder::DecodeSetParameterMessage(MicronetMessage_t *message)
 	}
 }
 
-int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
+int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
 {
 	int8_t value8;
 	int16_t value16;
@@ -238,8 +238,7 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 
 	if (message->data[offset] == MICRONET_FIELD_TYPE_3)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
-				+ message->data[offset + 3];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3];
 		if (crc == message->data[offset + 4])
 		{
 			value8 = message->data[offset + 3];
@@ -248,8 +247,8 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_4)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
-				+ message->data[offset + 3] + message->data[offset + 4];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
+				+ message->data[offset + 4];
 		if (crc == message->data[offset + 5])
 		{
 			value16 = message->data[offset + 3];
@@ -259,8 +258,8 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_5)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
-				+ message->data[offset + 3] + message->data[offset + 4] + message->data[offset + 5];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
+				+ message->data[offset + 4] + message->data[offset + 5];
 		if (crc == message->data[offset + 6])
 		{
 			value16 = message->data[offset + 3];
@@ -270,10 +269,9 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_A)
 	{
-		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2]
-				+ message->data[offset + 3] + message->data[offset + 4] + message->data[offset + 5]
-				+ message->data[offset + 6] + message->data[offset + 7] + message->data[offset + 8]
-				+ message->data[offset + 9] + message->data[offset + 10];
+		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3]
+				+ message->data[offset + 4] + message->data[offset + 5] + message->data[offset + 6] + message->data[offset + 7]
+				+ message->data[offset + 8] + message->data[offset + 9] + message->data[offset + 10];
 		if (crc == message->data[offset + 11])
 		{
 			value_32_1 = message->data[offset + 3];
@@ -291,7 +289,7 @@ int MicronetDecoder::DecodeDataField(MicronetMessage_t *message, int offset)
 	return offset + message->data[offset] + 2;
 }
 
-void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int8_t value)
+void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int8_t value)
 {
 	switch (fieldId)
 	{
@@ -303,7 +301,7 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int8_t value)
 	}
 }
 
-void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
+void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
 {
 	float newValue;
 
@@ -333,8 +331,10 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 		break;
 	case MICRONET_FIELD_ID_AWA:
 		newValue = ((float) value) + micronetData.windDirectionOffset_deg;
-		if (newValue > 180.0f) newValue -= 360.0f;
-		if (newValue < -180.0f) newValue += 360.0f;
+		if (newValue > 180.0f)
+			newValue -= 360.0f;
+		if (newValue < -180.0f)
+			newValue += 360.0f;
 		micronetData.awa.value = newValue;
 		micronetData.awa.valid = true;
 		micronetData.awa.timeStamp = millis();
@@ -347,7 +347,7 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int16_t value)
 	}
 }
 
-void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2)
+void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2)
 {
 	switch (fieldId)
 	{
@@ -363,17 +363,16 @@ void MicronetDecoder::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_
 	}
 }
 
-MicronetData_t* MicronetDecoder::GetCurrentData()
+MicronetData_t* MicronetCodec::GetCurrentData()
 {
 	return &micronetData;
 }
 
-void MicronetDecoder::CalculateTrueWind()
+void MicronetCodec::CalculateTrueWind()
 {
 	if ((micronetData.awa.valid) && (micronetData.aws.valid) && (micronetData.stw.valid))
 	{
-		if ((!micronetData.twa.valid) || (!micronetData.tws.valid)
-				|| (micronetData.awa.timeStamp > micronetData.twa.timeStamp)
+		if ((!micronetData.twa.valid) || (!micronetData.tws.valid) || (micronetData.awa.timeStamp > micronetData.twa.timeStamp)
 				|| (micronetData.aws.timeStamp > micronetData.tws.timeStamp)
 				|| (micronetData.stw.timeStamp > micronetData.twa.timeStamp))
 		{
@@ -390,4 +389,206 @@ void MicronetDecoder::CalculateTrueWind()
 			micronetData.twa.timeStamp = millis();
 		}
 	}
+}
+
+void MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId)
+{
+	int offset = 0;
+
+	// Network ID
+	message->data[offset++] = (networkId >> 24) & 0xff;
+	message->data[offset++] = (networkId >> 16) & 0xff;
+	message->data[offset++] = (networkId >> 8) & 0xff;
+	message->data[offset++] = networkId & 0xff;
+	// Device ID
+	message->data[offset++] = 0x01;
+	message->data[offset++] = 0x02;
+	message->data[offset++] = 0x03;
+	message->data[offset++] = 0x04;
+	// Message info
+	message->data[offset++] = 0x02; // Send data
+	message->data[offset++] = 0x01; // Source
+	message->data[offset++] = 0x09; // Destination
+	// Header CRC
+	message->data[offset++] = 0x00;
+	// Message size
+	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x0c;
+	// Data fields
+	offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (18 << 8) + 4);
+	offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE, (15 << 16) + (03 << 8) + 21);
+	offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, 5.4f, 210.0f);
+	offset += AddPositionField(message->data + offset, -45.5f, 78.3333f);
+
+	message->len = offset;
+
+	WriteHeaderLengthAndCrc(message);
+}
+
+void MicronetCodec::WriteHeaderLengthAndCrc(MicronetMessage_t *message)
+{
+	message->data[MICRONET_LEN_OFFSET_1] = message->len - 2;
+	message->data[MICRONET_LEN_OFFSET_2] = message->len - 2;
+
+	uint8_t crc = 0;
+	for (int i = 0; i < MICRONET_CRC_OFFSET; i++)
+	{
+		crc += message->data[i];
+	}
+
+	message->data[MICRONET_CRC_OFFSET] = crc;
+}
+
+uint8_t MicronetCodec::Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x04;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value >> 8) & 0xff;
+	buffer[offset++] = value & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 5; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
+uint8_t MicronetCodec::Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x05;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value >> 16) & 0xff;
+	buffer[offset++] = (value >> 8) & 0xff;
+	buffer[offset++] = value & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 6; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
+uint8_t MicronetCodec::AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x06;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value1 >> 8) & 0xff;
+	buffer[offset++] = value1 & 0xff;
+	buffer[offset++] = (value2 >> 8) & 0xff;
+	buffer[offset++] = value2 & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 7; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
+uint8_t MicronetCodec::Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x06;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value >> 24) & 0xff;
+	buffer[offset++] = (value >> 16) & 0xff;
+	buffer[offset++] = (value >> 8) & 0xff;
+	buffer[offset++] = value & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 7; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
+uint8_t MicronetCodec::AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x0a;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value1 >> 24) & 0xff;
+	buffer[offset++] = (value1 >> 16) & 0xff;
+	buffer[offset++] = (value1 >> 8) & 0xff;
+	buffer[offset++] = value1 & 0xff;
+	buffer[offset++] = (value2 >> 24) & 0xff;
+	buffer[offset++] = (value2 >> 16) & 0xff;
+	buffer[offset++] = (value2 >> 8) & 0xff;
+	buffer[offset++] = value2 & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 11; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
+uint8_t MicronetCodec::AddPositionField(uint8_t *buffer, float latitude, float longitude)
+{
+	int offset = 0;
+	uint8_t dir = 0x0;
+
+	buffer[offset++] = 0x09;
+	buffer[offset++] = 0x09;
+	buffer[offset++] = 0x05;
+
+	// Direction flags
+	if (latitude > 0.0f)
+		dir |= 0x01;
+	if (longitude > 0.0f)
+		dir |= 0x02;
+	// Latitude
+	latitude = fabsf(latitude);
+	buffer[offset++] = (uint8_t) floorf(latitude);
+	uint16_t latMin = 60000.0f * (latitude - floorf(latitude));
+	buffer[offset++] = (latMin >> 8) & 0xff;
+	buffer[offset++] = latMin & 0xff;
+	// Longitude
+	longitude = fabsf(longitude);
+	buffer[offset++] = (uint8_t) floorf(longitude);
+	uint16_t lonMin = 60000.0f * (longitude - floorf(longitude));
+	buffer[offset++] = (lonMin >> 8) & 0xff;
+	buffer[offset++] = lonMin & 0xff;
+
+	buffer[offset++] = dir;
+	uint8_t crc = 0;
+	for (int i = offset - 10; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
 }

@@ -24,8 +24,8 @@
  ***************************************************************************
  */
 
-#ifndef MICRONETDECODER_H_
-#define MICRONETDECODER_H_
+#ifndef MICRONETCODEC_H_
+#define MICRONETCODEC_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -78,11 +78,11 @@ typedef struct {
 	float windShift;
 } MicronetData_t;
 
-class MicronetDecoder
+class MicronetCodec
 {
 public:
-	MicronetDecoder();
-	virtual ~MicronetDecoder();
+	MicronetCodec();
+	virtual ~MicronetCodec();
 
 	uint32_t GetNetworkId(MicronetMessage_t *message);
 	uint8_t GetDeviceType(MicronetMessage_t *message);
@@ -94,6 +94,7 @@ public:
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
 	void DecodeMessage(MicronetMessage_t *message);
+	void BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId);
 
 	MicronetData_t *GetCurrentData();
 
@@ -107,10 +108,17 @@ private:
 	void UpdateMicronetData(uint8_t fieldId, int16_t value);
 	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
 	void CalculateTrueWind();
+	void WriteHeaderLengthAndCrc(MicronetMessage_t *message);
+	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
+	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
+	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
+	uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
+	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
+	uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 };
 
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
 
-#endif /* MICRONETDECODER_H_ */
+#endif /* MICRONETCODEC_H_ */

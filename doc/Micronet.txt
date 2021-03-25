@@ -203,7 +203,7 @@ FI = Field ID
           |01|02|03|04|05|06|
           |04|12|FP| VAL |FC|
           VAL = Speed * 100 (KT)
-     0x1b VCC*10(V)
+     0x1b VCC
           |01|02|03|04|05|06|
           |04|1b|FP| VAL |FC|
           VAL = Voltage * 10 (V)

@@ -29,7 +29,6 @@
 /***************************************************************************/
 
 #include "BoardConfig.h"
-#include "MicronetDecoder.h"
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
 #include "Configuration.h"
@@ -41,6 +40,7 @@
 #include <wiring.h>
 #include <iostream>
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
+#include "MicronetCodec.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -59,7 +59,7 @@
 
 void RfReceiverIsr();
 void RfFlushAndRestartRx();
-void RfFlushAndRestartTx();
+void RfTxMessage(MicronetMessage_t *message);
 void PrintRawMessage(MicronetMessage_t *message);
 void MenuAbout();
 void MenuScanNetworks();
@@ -69,12 +69,6 @@ void MenuScanAllMicronetTraffic();
 void MenuTransmissionTest();
 void SaveCalibration();
 void LoadCalibration();
-uint8_t BuildWindTransducerMessage(uint8_t *buffer, uint32_t networkId, uint32_t deviceId, float awa, float aws);
-uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
-uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
-uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
-uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
-uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -83,7 +77,7 @@ uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 ELECHOUSE_CC1101 gRfReceiver;     // CC1101 Driver object
 MenuManager gMenuManager;         // Menu manager object
 MicronetMessageFifo gMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-MicronetDecoder gMicronetDecoder; // Micronet message decoder
+MicronetCodec gMicronetDecoder; // Micronet message decoder
 Configuration gConfiguration;
 NmeaEncoder gNmeaEncoder;
 GnssDecoder gGnssDecoder;
@@ -197,8 +191,8 @@ void loop()
 	// We directly jump to NMEA conversion mode.
 	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
 	{
-		MenuConvertToNmea();
-//		MenuTransmissionTest();
+//		MenuConvertToNmea();
+		MenuTransmissionTest();
 		gMenuManager.PrintMenu();
 	}
 
@@ -229,6 +223,8 @@ void RfReceiverIsr()
 	int nbBytes;
 	int dataOffset;
 	bool newLengthFound = false;
+	// Collect the time at which Sync Word has been detected
+	uint32_t timeStamp_us = micros();
 
 	if (gRfReceiver.getMode() != 2)
 	{
@@ -298,6 +294,7 @@ void RfReceiverIsr()
 	// Fill message structure
 	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
 	message.rssi = gRfReceiver.getRssi();
+	message.timeStamp_us = timeStamp_us;
 	// Add message to the store for later processing by the main loop
 	gMessageFifo.Push(message);
 }
@@ -311,13 +308,24 @@ void RfFlushAndRestartRx()
 	gRfReceiver.SetRx();
 }
 
-void RfFlushAndRestartTx()
+void RfTxMessage(MicronetMessage_t *message)
 {
-	gRfReceiver.setSidle();
-	gRfReceiver.SpiStrobe(CC1101_SFRX);
+	gRfReceiver.SpiStrobe(CC1101_SIDLE);
+	gRfReceiver.setSyncMode(0);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
-	gRfReceiver.setPacketLength(DEFAULT_PACKET_LENGTH);
-	gRfReceiver.SetTx();
+	gRfReceiver.setPacketLength(message->len + MICRONET_RF_SYNC_BYTE + 2);
+	for (int i = 0; i < MICRONET_RF_SYNC_BYTE; i++)
+		gRfReceiver.SpiWriteReg(CC1101_TXFIFO, 0x55);
+	gRfReceiver.SpiWriteReg(CC1101_TXFIFO, MICRONET_RF_SYNC_BYTE);
+
+	gRfReceiver.SpiWriteBurstReg(CC1101_TXFIFO, message->data, message->len);      //write data to send
+	gRfReceiver.SpiStrobe(CC1101_SIDLE);
+	gRfReceiver.SpiStrobe(CC1101_STX);                  //start send
+	delay(15);
+	gRfReceiver.SpiStrobe(CC1101_SFTX);                 //flush TXfifo
+	CONSOLE.println(message->len + MICRONET_RF_SYNC_BYTE + 2);
+
+	RfFlushAndRestartRx();
 }
 
 void PrintRawMessage(MicronetMessage_t *message)
@@ -659,8 +667,6 @@ void MenuScanAllMicronetTraffic()
 void MenuTransmissionTest()
 {
 	bool exitSniffLoop = false;
-	uint8_t sendBuffer[256];
-	uint8_t bufferLength;
 
 	CONSOLE.println("Starting Micronet transmit test");
 	CONSOLE.println("Press ESC key at any time to stop transmission and come back to menu.");
@@ -677,25 +683,10 @@ void MenuTransmissionTest()
 			{
 				if (message->data[MICRONET_MI_OFFSET] == 0x01)
 				{
-					bufferLength = BuildWindTransducerMessage(sendBuffer, 0x83037737, 0x02039087, 62.0f, 31.0f);
-					gRfReceiver.setSidle();
-					gRfReceiver.setSyncMode(0);
-					gRfReceiver.SpiStrobe(CC1101_SFTX);
-					gRfReceiver.setPacketLength(bufferLength);
-					delay(1);
-					gRfReceiver.SendData(sendBuffer, bufferLength, 15);
-					RfFlushAndRestartRx();
-					CONSOLE.println("Message Sent : ");
-					for (int j = 0; j < bufferLength; j++)
-					{
-						if (sendBuffer[j] < 16)
-						{
-							CONSOLE.print("0");
-						}
-						CONSOLE.print(sendBuffer[j], HEX);
-						CONSOLE.print(" ");
-					}
-					CONSOLE.println("");
+					MicronetMessage_t message;
+					gMicronetDecoder.BuildGnssMessage(&message, 0x83037737);
+					delay(30);
+					RfTxMessage(&message);
 				}
 			}
 			gMessageFifo.DeleteMessage();
@@ -743,206 +734,4 @@ void LoadCalibration()
 	data->windShift = gConfiguration.windShift;
 
 	gConfiguration.SaveToEeprom();
-}
-
-uint8_t BuildWindTransducerMessage(uint8_t *buffer, uint32_t networkId, uint32_t deviceId, float awa, float aws)
-{
-	int offset = 0;
-	int crcStart;
-	int lengthOffset;
-	uint8_t crc = 0;
-
-	for (int i = 0; i < 13; i++)
-	{
-		buffer[offset++] = 0x55;
-	}
-	buffer[offset++] = 0x99;
-
-	crcStart = offset;
-
-	buffer[offset++] = (networkId >> 24) & 0xff;
-	buffer[offset++] = (networkId >> 16) & 0xff;
-	buffer[offset++] = (networkId >> 8) & 0xff;
-	buffer[offset++] = networkId & 0xff;
-
-	buffer[offset++] = (deviceId >> 24) & 0xff;
-	buffer[offset++] = (deviceId >> 16) & 0xff;
-	buffer[offset++] = (deviceId >> 8) & 0xff;
-	buffer[offset++] = deviceId & 0xff;
-
-	buffer[offset++] = 0x02; // Send data
-	buffer[offset++] = 0x01; // Source
-	buffer[offset++] = 0x09; // Destination
-
-	crc = 0;
-	for (int i = crcStart; i < offset; i++)
-	{
-		crc += buffer[i];
-	}
-	buffer[offset++] = crc;
-
-	lengthOffset = offset;
-	buffer[offset++] = 0x0c;
-	buffer[offset++] = 0x0c;
-
-	offset += Add16bitField(buffer + offset, 0x05, aws * 10); // AWS
-	offset += Add16bitField(buffer + offset, 0x06, awa); // AWA
-
-//	int fieldLength = 3;
-//	buffer[offset++] = fieldLength + 2;
-//	buffer[offset++] = 0x0d;
-//	buffer[offset++] = 0x05;
-//	for (int i = 0; i < fieldLength; i++)
-//		buffer[offset++] = 0;
-//	crc = 0;
-//	for (int i = offset - fieldLength - 3; i < offset; i++)
-//	{
-//		crc += buffer[i];
-//	}
-//	buffer[offset++] = crc;
-
-	offset += Add24bitField(buffer + offset, 0x0d, 0x060620); // Date
-	//offset += Add16bitField(buffer + offset, 0x0c, 0x1002); // Time
-	//offset += Add16bitField(buffer + offset, 0x0b, -123); // XTE
-	//offset += AddDual32bitField(buffer + offset, 0x0a, 0x00500001, 0x00010001); // BTW
-	//offset += AddDual16bitField(buffer + offset, 0x08, 10, 25); // SOG/COG
-	//offset += AddPositionField(buffer + offset, -45.5f, 78.3333f); // Position
-
-	buffer[lengthOffset] = offset - crcStart - 2;
-	buffer[lengthOffset + 1] = offset - crcStart - 2;
-
-	buffer[offset++] = 0x00;
-
-	return offset;
-}
-
-uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value)
-{
-	int offset = 0;
-
-	buffer[offset++] = 0x04;
-	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x05;
-
-	buffer[offset++] = (value >> 8) & 0xff;
-	buffer[offset++] = value & 0xff;
-
-	uint8_t crc = 0;
-	for (int i = offset - 5; i < offset; i++)
-	{
-		crc += buffer[i];
-	}
-	buffer[offset++] = crc;
-
-	return offset;
-}
-
-uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value)
-{
-	int offset = 0;
-
-	buffer[offset++] = 0x05;
-	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x05;
-
-	buffer[offset++] = (value >> 16) & 0xff;
-	buffer[offset++] = (value >> 8) & 0xff;
-	buffer[offset++] = value & 0xff;
-
-	uint8_t crc = 0;
-	for (int i = offset - 6; i < offset; i++)
-	{
-		crc += buffer[i];
-	}
-	buffer[offset++] = crc;
-
-	return offset;
-}
-
-uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2)
-{
-	int offset = 0;
-
-	buffer[offset++] = 0x06;
-	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x05;
-
-	buffer[offset++] = (value1 >> 8) & 0xff;
-	buffer[offset++] = value1 & 0xff;
-	buffer[offset++] = (value2 >> 8) & 0xff;
-	buffer[offset++] = value2 & 0xff;
-
-	uint8_t crc = 0;
-	for (int i = offset - 7; i < offset; i++)
-	{
-		crc += buffer[i];
-	}
-	buffer[offset++] = crc;
-
-	return offset;
-}
-
-uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2)
-{
-	int offset = 0;
-
-	buffer[offset++] = 0x0a;
-	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x05;
-
-	buffer[offset++] = (value1 >> 24) & 0xff;
-	buffer[offset++] = (value1 >> 16) & 0xff;
-	buffer[offset++] = (value1 >> 8) & 0xff;
-	buffer[offset++] = value1 & 0xff;
-	buffer[offset++] = (value2 >> 24) & 0xff;
-	buffer[offset++] = (value2 >> 16) & 0xff;
-	buffer[offset++] = (value2 >> 8) & 0xff;
-	buffer[offset++] = value2 & 0xff;
-
-	uint8_t crc = 0;
-	for (int i = offset - 11; i < offset; i++)
-	{
-		crc += buffer[i];
-	}
-	buffer[offset++] = crc;
-
-	return offset;
-}
-
-uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude)
-{
-	int offset = 0;
-	uint8_t dir = 0x0;
-
-	buffer[offset++] = 0x09;
-	buffer[offset++] = 0x09;
-	buffer[offset++] = 0x05;
-
-	// Direction flags
-	if (latitude > 0.0f)
-		dir |= 0x01;
-	if (longitude > 0.0f)
-		dir |= 0x02;
-	// Latitude
-	latitude = fabsf(latitude);
-	buffer[offset++] = (uint8_t) floorf(latitude);
-	uint16_t latMin = 60000.0f * (latitude - floorf(latitude));
-	buffer[offset++] = (latMin >> 8) & 0xff;
-	buffer[offset++] = latMin & 0xff;
-	// Longitude
-	longitude = fabsf(longitude);
-	buffer[offset++] = (uint8_t) floorf(longitude);
-	uint16_t lonMin = 60000.0f * (longitude - floorf(longitude));
-	buffer[offset++] = (lonMin >> 8) & 0xff;
-	buffer[offset++] = lonMin & 0xff;
-
-	buffer[offset++] = dir;
-	uint8_t crc = 0;
-	for (int i = offset - 10; i < offset; i++)
-	{
-		crc += buffer[i];
-	}
-	buffer[offset++] = crc;
-
-	return offset;
 }
