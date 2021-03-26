@@ -71,16 +71,21 @@ This message is sent by the main display to request other devices to send back t
 with which you powered the system. The initial handshake tells who, of all the displays, is the main one. The main display
 explicitely list all the device he wants data from. It knows this list from the auto network sequence before installation.
 
+This message also gives the previous "PL" value for each device which gives the maximum number of bytes expected in the payload
+of the device "Send Data" message. Also, if a device has to send sevral messages, it will be listed twice in the list. This
+way, we have a complete temporal map of the data exchange, allowing to know where to transmit our own messages, without
+colliding with other devices.
+
 Here is the format (with an example) :
 
 |83 03 77 37|83|03 77 37|01|09|00|72|28 28|83 03 77 37|1C|02 03 90 87|0C|01 0B C0 22|26|81 03 70 82|0E|83 03 77 37|0E|00 00|52|
-|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN |    DID1   |??|    DID2   |??|    DID3   |??|    DID4   |??|    DID5   |??| ??? |CS|
+|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN |    DID1   |PL|    DID2   |PL|    DID3   |PL|    DID4   |PL|    DID5   |PL| ??? |CS|
 |             MESSAGE HEADER              |                                 REQUESTED DEVICES                                 |
 
 DIDn - Device we request data from. Note that the sender is giving its own address, letting me think that the message could be
        better interpreted as a way of telling who is part of the network.
        
-?? - Unidentified byte present next to each DID.
+PL - Maximum payload length of the message expected from the advertised DID
 
 CS - Checksum of the entire payload
 
