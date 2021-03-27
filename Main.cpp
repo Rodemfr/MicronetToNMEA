@@ -33,21 +33,21 @@
 #include "MenuManager.h"
 #include "Configuration.h"
 #include "NmeaEncoder.h"
-#include "GnssDecoder.h"
+#include "Globals.h"
+#include "MicronetCodec.h"
+#include "NmeaDecoder.h"
 
 #include <Arduino.h>
 #include <SPI.h>
 #include <wiring.h>
 #include <iostream>
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
-#include "MicronetCodec.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
 #define MAX_SCANNED_NETWORKS  5
-#define DEFAULT_PACKET_LENGTH 60
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -66,7 +66,6 @@ void MenuScanNetworks();
 void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
-void MenuTransmissionTest();
 void SaveCalibration();
 void LoadCalibration();
 
@@ -74,13 +73,6 @@ void LoadCalibration();
 /*                               Globals                                   */
 /***************************************************************************/
 
-ELECHOUSE_CC1101 gRfReceiver;       // CC1101 Driver object
-MenuManager gMenuManager;           // Menu manager object
-MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
-Configuration gConfiguration;
-NmeaEncoder gNmeaEncoder;
-GnssDecoder gGnssDecoder;
 bool firstLoop;
 
 MenuEntry_t mainMenu[] =
@@ -161,7 +153,7 @@ void setup()
 	gRfReceiver.setWhiteData(0); // Turn data whitening on / off. 0 = Whitening off. 1 = Whitening on.
 	gRfReceiver.setPktFormat(0); // Format of RX and TX data. 0 = Normal mode, use FIFOs for RX and TX. 1 = Synchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins. 2 = Random TX mode; sends random data using PN9 generator. Used for test. Works as normal mode, setting 0 (00), in RX. 3 = Asynchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins.
 	gRfReceiver.setLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
-	gRfReceiver.setPacketLength(DEFAULT_PACKET_LENGTH); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
+	gRfReceiver.setPacketLength(RF_DEFAULT_PACKET_LENGTH); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
 	gRfReceiver.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.
 	gRfReceiver.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
 	gRfReceiver.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
@@ -301,7 +293,7 @@ void RfFlushAndRestartRx()
 	gRfReceiver.setSidle();
 	gRfReceiver.setSyncMode(2);
 	gRfReceiver.SpiStrobe(CC1101_SFRX);
-	gRfReceiver.setPacketLength(DEFAULT_PACKET_LENGTH);
+	gRfReceiver.setPacketLength(RF_DEFAULT_PACKET_LENGTH);
 	gRfReceiver.SetRx();
 }
 
@@ -624,8 +616,6 @@ void MenuConvertToNmea()
 			CONSOLE.println(gGnssDecoder.GetSentence(i));
 		}
 		gGnssDecoder.resetSentences();
-
-		//gMicronetDecoder.EncodeNmeaData(gGnssDecoder.GetCurrentData());
 
 		while (CONSOLE.available() > 0)
 		{

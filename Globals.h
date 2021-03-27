@@ -31,60 +31,33 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <stdint.h>
+#include "MenuManager.h"
+#include "MicronetMessageFifo.h"
+#include "MicronetCodec.h"
+#include "Configuration.h"
+#include "NmeaEncoder.h"
+#include <ELECHOUSE_CC1101_SRC_DRV.h>
+#include "NmeaDecoder.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define NMEA_SENTENCE_MAX_LENGTH   96
-#define NMEA_SENTENCE_HISTORY_SIZE 8
-
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef struct {
-	bool timeUpdated;
-	uint8_t hour;
-	uint8_t minute;
-	bool dateUpdated;
-	uint8_t day;
-	uint8_t month;
-	uint8_t year;
-	bool positionUpdated;
-	float latitude;
-	float longitude;
-	bool sogCogUpdated;
-	float sog;
-	float cog;
-} NmeaData_t;
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
 
-class GnssDecoder
-{
-public:
-	GnssDecoder();
-	virtual ~GnssDecoder();
-
-	void PushChar(char c);
-	int GetNbSentences();
-	const char *GetSentence(int i);
-	void resetSentences();
-	NmeaData_t *GetCurrentData();
-
-private:
-	uint8_t serialBuffer[NMEA_SENTENCE_MAX_LENGTH];
-	int writeIndex;
-	char sentenceBuffer[NMEA_SENTENCE_HISTORY_SIZE][NMEA_SENTENCE_MAX_LENGTH];
-	int sentenceWriteIndex;
-	NmeaData_t nmeaData;
-
-	void DecodeSentence(int sentenceIndex);
-	void DecodeRMCSentence(char *sentence);
-	void DecodeGGASentence(char *sentence);
-	void DecodeVTGSentence(char *sentence);
-	int16_t NibbleValue(char c);
-};
+extern ELECHOUSE_CC1101 gRfReceiver;
+extern MenuManager gMenuManager;
+extern MicronetMessageFifo gRxMessageFifo;
+extern MicronetCodec gMicronetCodec;
+extern Configuration gConfiguration;
+extern NmeaEncoder gNmeaEncoder;
+extern NmeaDecoder gGnssDecoder;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

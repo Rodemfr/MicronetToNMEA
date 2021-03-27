@@ -24,56 +24,40 @@
  ***************************************************************************
  */
 
-#ifndef BOARDCONFIG_H_
-#define BOARDCONFIG_H_
-
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
+
+#include "Globals.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-// CC1101/SPI pins
-#define CS0_PIN              10
-#define MOSI_PIN             11
-#define MISO_PIN             12
-#define SCK_PIN              14
-#define GDO0_PIN             24
-#define GDO2_PIN             25
-
-// ERROR LED pin
-#define LED_PIN              LED_BUILTIN
-
-// Default packet length for RF reception. Must be less than 64.
-#define RF_DEFAULT_PACKET_LENGTH 60
-
-// NMEA/GNSS UART pins
-#define GNSS_SERIAL   Serial1
-#define GNSS_BAUDRATE 38400
-#define GNSS_RX_PIN   0
-#define GNSS_TX_PIN   1
-
-// Wired console params
-#define USB_CONSOLE  Serial
-#define USB_BAUDRATE 115200
-
-// Wireless Bluetooth console params
-#define BLU_CONSOLE  Serial4
-#define BLU_BAUDRATE 115200
-#define BLU_RX_PIN   31
-#define BLU_TX_PIN   32
-
-// The console to use for menu and NMEA output
-#define CONSOLE USB_CONSOLE
-
 /***************************************************************************/
-/*                                Types                                    */
+/*                                Macros                                   */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                             Local types                                 */
 /***************************************************************************/
 
-#endif /* BOARDCONFIG_H_ */
+/***************************************************************************/
+/*                           Local prototypes                              */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
+
+ELECHOUSE_CC1101 gRfReceiver;       // CC1101 Driver object
+MenuManager gMenuManager;           // Menu manager object
+MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
+MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
+Configuration gConfiguration;
+NmeaEncoder gNmeaEncoder;
+NmeaDecoder gGnssDecoder;
+
+/***************************************************************************/
+/*                              Functions                                  */
+/***************************************************************************/

@@ -28,7 +28,7 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "GnssDecoder.h"
+#include "NmeaDecoder.h"
 
 #include <Arduino.h>
 #include <string.h>
@@ -57,7 +57,7 @@
 /*                              Functions                                  */
 /***************************************************************************/
 
-GnssDecoder::GnssDecoder()
+NmeaDecoder::NmeaDecoder()
 {
 	writeIndex = 0;
 	sentenceWriteIndex = 0;
@@ -65,11 +65,11 @@ GnssDecoder::GnssDecoder()
 	memset(&nmeaData, 0, sizeof(nmeaData));
 }
 
-GnssDecoder::~GnssDecoder()
+NmeaDecoder::~NmeaDecoder()
 {
 }
 
-void GnssDecoder::PushChar(char c)
+void NmeaDecoder::PushChar(char c)
 {
 	if ((serialBuffer[0] != '$') || (c == '$'))
 	{
@@ -106,27 +106,27 @@ void GnssDecoder::PushChar(char c)
 	}
 }
 
-int GnssDecoder::GetNbSentences()
+int NmeaDecoder::GetNbSentences()
 {
 	return sentenceWriteIndex;
 }
 
-const char* GnssDecoder::GetSentence(int i)
+const char* NmeaDecoder::GetSentence(int i)
 {
 	return sentenceBuffer[i];
 }
 
-void GnssDecoder::resetSentences()
+void NmeaDecoder::resetSentences()
 {
 	sentenceWriteIndex = 0;
 }
 
-NmeaData_t* GnssDecoder::GetCurrentData()
+NmeaData_t* NmeaDecoder::GetCurrentData()
 {
 	return &nmeaData;
 }
 
-void GnssDecoder::DecodeSentence(int sentenceIndex)
+void NmeaDecoder::DecodeSentence(int sentenceIndex)
 {
 	if (sentenceBuffer[sentenceIndex][0] != '$')
 		return;
@@ -168,7 +168,7 @@ void GnssDecoder::DecodeSentence(int sentenceIndex)
 	return;
 }
 
-void GnssDecoder::DecodeRMCSentence(char *sentence)
+void NmeaDecoder::DecodeRMCSentence(char *sentence)
 {
 	if (sentence[0] != ',')
 	{
@@ -191,7 +191,7 @@ void GnssDecoder::DecodeRMCSentence(char *sentence)
 	}
 }
 
-void GnssDecoder::DecodeGGASentence(char *sentence)
+void NmeaDecoder::DecodeGGASentence(char *sentence)
 {
 	float degs, mins;
 	if ((sentence = strchr(sentence, ',')) == nullptr)
@@ -225,7 +225,7 @@ void GnssDecoder::DecodeGGASentence(char *sentence)
 	}
 }
 
-void GnssDecoder::DecodeVTGSentence(char *sentence)
+void NmeaDecoder::DecodeVTGSentence(char *sentence)
 {
 	float value;
 	for (int i = 0; i < 2; i++)
@@ -252,7 +252,7 @@ void GnssDecoder::DecodeVTGSentence(char *sentence)
 	}
 }
 
-int16_t GnssDecoder::NibbleValue(char c)
+int16_t NmeaDecoder::NibbleValue(char c)
 {
 if ((c >= '0') && (c <= '9'))
 {

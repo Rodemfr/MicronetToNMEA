@@ -92,6 +92,9 @@
 #define MICRONET_CALIBRATION_MAGVAR_ID             0x0d
 #define MICRONET_CALIBRATION_WIND_SHIFT_ID         0x0e
 
+#define TIME_PER_BYTE_US         104
+#define GUARD_TIME_PER_DEVICE_US 6000
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/

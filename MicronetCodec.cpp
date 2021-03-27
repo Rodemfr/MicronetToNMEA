@@ -628,9 +628,12 @@ uint32_t MicronetCodec::GetNextTransmissionSlot(MicronetMessage_t *message)
 {
 	uint32_t messageLength = message->len;
 	uint32_t offset;
+	uint32_t txDelayUs;
+	uint32_t nbDevices;
+	uint32_t payloadBytes;
 
 	uint8_t crc = 0;
-	for (offset = MICRONET_PAYLOAD_OFFSET; offset < (uint32_t)(messageLength - 1); offset++)
+	for (offset = MICRONET_PAYLOAD_OFFSET; offset < (uint32_t) (messageLength - 1); offset++)
 	{
 		crc += message->data[offset];
 	}
@@ -638,5 +641,15 @@ uint32_t MicronetCodec::GetNextTransmissionSlot(MicronetMessage_t *message)
 	if (crc != message->data[messageLength - 1])
 		return 0;
 
-	return ((((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5) - 2) * 10000) + message->timeStamp_us;
+	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
+
+	payloadBytes = 0;
+	for (uint32_t i = 1; i < nbDevices; i++)
+	{
+		payloadBytes += message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4];
+	}
+
+	txDelayUs = ((nbDevices - 1) * GUARD_TIME_PER_DEVICE_US + payloadBytes * TIME_PER_BYTE_US);
+
+	return message->timeStamp_us + txDelayUs;
 }

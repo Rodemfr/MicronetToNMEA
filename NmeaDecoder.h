@@ -24,105 +24,70 @@
  ***************************************************************************
  */
 
-#ifndef MICRONETCODEC_H_
-#define MICRONETCODEC_H_
+#ifndef NMEADECODER_H_
+#define NMEADECODER_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "Micronet.h"
-// TODO : better to handle a global data structure at Main.cpp level, common to all sources/dests of data
 #include <stdint.h>
-#include "NmeaDecoder.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define DEVICE_TYPE_HULL_TRANSMITTER    0x01
-#define DEVICE_TYPE_WIND_TRANSDUCER     0x02
-#define DEVICE_TYPE_DUAL_DISPLAY        0x81
-#define DEVICE_TYPE_ANALOG_WIND_DISPLAY 0x83
+#define NMEA_SENTENCE_MAX_LENGTH   96
+#define NMEA_SENTENCE_HISTORY_SIZE 8
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef struct
-{
-	bool valid;
-	float value;
-	uint32_t timeStamp;
-} MicronetDataValue_t;
+typedef struct {
+	bool timeUpdated;
+	uint8_t hour;
+	uint8_t minute;
+	bool dateUpdated;
+	uint8_t day;
+	uint8_t month;
+	uint8_t year;
+	bool positionUpdated;
+	float latitude;
+	float longitude;
+	bool sogCogUpdated;
+	float sog;
+	float cog;
+} NmeaData_t;
 
-typedef struct
-{
-	// Data from transducers
-	MicronetDataValue_t stw;
-	MicronetDataValue_t awa;
-	MicronetDataValue_t aws;
-	MicronetDataValue_t twa;
-	MicronetDataValue_t tws;
-	MicronetDataValue_t dpt;
-	MicronetDataValue_t vcc;
-	MicronetDataValue_t log;
-	MicronetDataValue_t trip;
-	MicronetDataValue_t stp;
-	// System parameters
-	bool calibrationUpdated;
-	float waterSpeedFactor_per;
-	float waterTemperatureOffset_C;
-	float depthOffset_m;
-	float windSpeedFactor_per;
-	float windDirectionOffset_deg;
-	float headingOffset_deg;
-	float magneticVariation_deg;
-	float windShift;
-} MicronetData_t;
-
-class MicronetCodec
+class NmeaDecoder
 {
 public:
-	MicronetCodec();
-	virtual ~MicronetCodec();
+	NmeaDecoder();
+	virtual ~NmeaDecoder();
 
-	uint32_t GetNetworkId(MicronetMessage_t *message);
-	uint8_t GetDeviceType(MicronetMessage_t *message);
-	uint32_t GetDeviceId(MicronetMessage_t *message);
-	uint8_t GetMessageId(MicronetMessage_t *message);
-	uint8_t GetSource(MicronetMessage_t *message);
-	uint8_t GetDestination(MicronetMessage_t *message);
-	uint8_t GetHeaderCrc(MicronetMessage_t *message);
-	bool VerifyHeaderCrc(MicronetMessage_t *message);
-
-	void DecodeMessage(MicronetMessage_t *message);
-	uint32_t GetNextTransmissionSlot(MicronetMessage_t *message);
-	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, NmeaData_t *nmeaData);
-
-	MicronetData_t* GetCurrentData();
+	void PushChar(char c);
+	int GetNbSentences();
+	const char *GetSentence(int i);
+	void resetSentences();
+	NmeaData_t *GetCurrentData();
 
 private:
-	MicronetData_t micronetData;
+	uint8_t serialBuffer[NMEA_SENTENCE_MAX_LENGTH];
+	int writeIndex;
+	char sentenceBuffer[NMEA_SENTENCE_HISTORY_SIZE][NMEA_SENTENCE_MAX_LENGTH];
+	int sentenceWriteIndex;
+	NmeaData_t nmeaData;
 
-	void DecodeSendDataMessage(MicronetMessage_t *message);
-	void DecodeSetParameterMessage(MicronetMessage_t *message);
-	int DecodeDataField(MicronetMessage_t *message, int offset);
-	void UpdateMicronetData(uint8_t fieldId, int8_t value);
-	void UpdateMicronetData(uint8_t fieldId, int16_t value);
-	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
-	void CalculateTrueWind();
-	void WriteHeaderLengthAndCrc(MicronetMessage_t *message);
-	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
-	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
-	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
-	uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
-	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
-	uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
+	void DecodeSentence(int sentenceIndex);
+	void DecodeRMCSentence(char *sentence);
+	void DecodeGGASentence(char *sentence);
+	void DecodeVTGSentence(char *sentence);
+	int16_t NibbleValue(char c);
 };
 
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
 
-#endif /* MICRONETCODEC_H_ */
+#endif /* NMEADECODER_H_ */
