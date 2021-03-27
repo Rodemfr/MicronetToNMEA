@@ -649,6 +649,7 @@ uint32_t MicronetCodec::GetNextTransmissionSlot(MicronetMessage_t *message)
 		payloadBytes += message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4];
 	}
 
+	// Likely wrong formula since the display with 0 payload size is not taken into account in it...
 	txDelayUs = ((nbDevices - 1) * GUARD_TIME_PER_DEVICE_US + payloadBytes * TIME_PER_BYTE_US);
 
 	return message->timeStamp_us + txDelayUs;
