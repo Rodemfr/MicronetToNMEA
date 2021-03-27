@@ -98,6 +98,7 @@ public:
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
 	void DecodeMessage(MicronetMessage_t *message);
+	uint32_t GetNextTransmissionSlot(MicronetMessage_t *message);
 	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, NmeaData_t *nmeaData);
 
 	MicronetData_t* GetCurrentData();

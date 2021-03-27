@@ -91,7 +91,6 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
-{ "Start transmission test", MenuTransmissionTest },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -192,7 +191,6 @@ void loop()
 	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
 	{
 		MenuConvertToNmea();
-//		MenuTransmissionTest();
 		gMenuManager.PrintMenu();
 	}
 
@@ -223,8 +221,6 @@ void RfReceiverIsr()
 	int nbBytes;
 	int dataOffset;
 	bool newLengthFound = false;
-	// Collect the time at which Sync Word has been detected
-	uint32_t timeStamp_us = micros();
 
 	if (gRfReceiver.getMode() != 2)
 	{
@@ -289,6 +285,7 @@ void RfReceiverIsr()
 		gRfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 	}
+	uint32_t timeStamp_us = micros();
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	RfFlushAndRestartRx();
 	// Fill message structure
@@ -310,21 +307,20 @@ void RfFlushAndRestartRx()
 
 void RfTxMessage(MicronetMessage_t *message)
 {
-	gRfReceiver.SpiStrobe(CC1101_SIDLE);
+	gRfReceiver.setSidle();
 	gRfReceiver.setSyncMode(0);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
-	gRfReceiver.setPacketLength(message->len + MICRONET_RF_PREAMBLE_LENGTH + 2);
+	gRfReceiver.setPacketLength(message->len + MICRONET_RF_PREAMBLE_LENGTH + 1);
 	for (int i = 0; i < MICRONET_RF_PREAMBLE_LENGTH; i++)
 		gRfReceiver.SpiWriteReg(CC1101_TXFIFO, 0x55);
 	gRfReceiver.SpiWriteReg(CC1101_TXFIFO, MICRONET_RF_SYNC_BYTE);
 
 	gRfReceiver.SpiWriteBurstReg(CC1101_TXFIFO, message->data, message->len);      //write data to send
-	gRfReceiver.SpiStrobe(CC1101_SIDLE);
-	gRfReceiver.SpiStrobe(CC1101_STX);                  //start send
+	gRfReceiver.SpiWriteReg(CC1101_TXFIFO, 0x00);
+	gRfReceiver.SetTx();
+	// TODO : don't use hard coded delay
 	delay(15);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);                 //flush TXfifo
-
-	RfFlushAndRestartRx();
 }
 
 void PrintRawMessage(MicronetMessage_t *message)
@@ -561,6 +557,9 @@ void MenuConvertToNmea()
 {
 	bool exitNmeaLoop = false;
 	char nmeaSentence[256];
+	uint32_t txSlot;
+	MicronetMessage_t *rxMessage;
+	MicronetMessage_t txMessage;
 
 	if (gConfiguration.attachedNetworkId == 0)
 	{
@@ -576,16 +575,26 @@ void MenuConvertToNmea()
 
 	gRxMessageFifo.ResetFifo();
 
-	MicronetMessage_t *message;
 	do
 	{
-		if ((message = gRxMessageFifo.Peek()) != nullptr)
+		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetCodec.VerifyHeaderCrc(message))
+			if (gMicronetCodec.GetNetworkId(rxMessage) == gConfiguration.attachedNetworkId)
 			{
-				if (gMicronetCodec.GetNetworkId(message) == gConfiguration.attachedNetworkId)
+				if (gMicronetCodec.VerifyHeaderCrc(rxMessage))
 				{
-					gMicronetCodec.DecodeMessage(message);
+					if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
+					{
+						txSlot = gMicronetCodec.GetNextTransmissionSlot(rxMessage);
+						gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.attachedNetworkId,
+								gGnssDecoder.GetCurrentData());
+						while (micros() < txSlot)
+							;
+						RfTxMessage(&txMessage);
+						RfFlushAndRestartRx();
+					}
+
+					gMicronetCodec.DecodeMessage(rxMessage);
 
 					if (gNmeaEncoder.EncodeMWV_R(gMicronetCodec.GetCurrentData(), nmeaSentence))
 						CONSOLE.print(nmeaSentence);
@@ -648,47 +657,11 @@ void MenuScanAllMicronetTraffic()
 		{
 			if (gMicronetCodec.VerifyHeaderCrc(message))
 			{
-				PrintRawMessage(message);
-			}
-			gRxMessageFifo.DeleteMessage();
-		}
-
-		while (CONSOLE.available() > 0)
-		{
-			if (CONSOLE.read() == 0x1b)
-			{
-				CONSOLE.println("ESC key pressed, stopping scan.");
-				exitSniffLoop = true;
-			}
-		}
-		yield();
-	} while (!exitSniffLoop);
-}
-
-void MenuTransmissionTest()
-{
-	bool exitSniffLoop = false;
-
-	CONSOLE.println("Starting Micronet transmit test");
-	CONSOLE.println("Press ESC key at any time to stop transmission and come back to menu.");
-	CONSOLE.println("");
-
-	gRxMessageFifo.ResetFifo();
-
-	do
-	{
-		MicronetMessage_t *message;
-		if ((message = gRxMessageFifo.Peek()) != nullptr)
-		{
-			if (gMicronetCodec.VerifyHeaderCrc(message))
-			{
-				if (message->data[MICRONET_MI_OFFSET] == 0x01)
+				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_REQUEST_DATA)
 				{
-					MicronetMessage_t message;
-					//gMicronetDecoder.BuildGnssMessage(&message, 0x83037737, );
-					delay(30);
-					RfTxMessage(&message);
+					CONSOLE.println("");
 				}
+				PrintRawMessage(message);
 			}
 			gRxMessageFifo.DeleteMessage();
 		}

@@ -116,6 +116,12 @@ uint8_t MicronetCodec::GetHeaderCrc(MicronetMessage_t *message)
 
 bool MicronetCodec::VerifyHeaderCrc(MicronetMessage_t *message)
 {
+	if (message->len < 14)
+		return false;
+
+	if (message->data[MICRONET_LEN_OFFSET_1] != message->data[MICRONET_LEN_OFFSET_2])
+		return false;
+
 	uint8_t crc = 0;
 	for (int i = 0; i < MICRONET_CRC_OFFSET; i++)
 	{
@@ -407,10 +413,10 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
 	// Device ID
-	message->data[offset++] = 0x01;
-	message->data[offset++] = 0x02;
-	message->data[offset++] = 0x03;
-	message->data[offset++] = 0x04;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
 	// Message info
 	message->data[offset++] = 0x02;
 	message->data[offset++] = 0x01;
@@ -616,4 +622,21 @@ uint8_t MicronetCodec::AddPositionField(uint8_t *buffer, float latitude, float l
 	buffer[offset++] = crc;
 
 	return offset;
+}
+
+uint32_t MicronetCodec::GetNextTransmissionSlot(MicronetMessage_t *message)
+{
+	uint32_t messageLength = message->len;
+	uint32_t offset;
+
+	uint8_t crc = 0;
+	for (offset = MICRONET_PAYLOAD_OFFSET; offset < (uint32_t)(messageLength - 1); offset++)
+	{
+		crc += message->data[offset];
+	}
+
+	if (crc != message->data[messageLength - 1])
+		return 0;
+
+	return ((((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5) - 2) * 10000) + message->timeStamp_us;
 }

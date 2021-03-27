@@ -37,7 +37,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define MICRONET_RF_PREAMBLE_LENGTH 8
+#define MICRONET_RF_PREAMBLE_LENGTH 14
 #define MICRONET_RF_SYNC_BYTE       0x99
 
 #define MICRONET_MAX_MESSAGE_LENGTH 96
