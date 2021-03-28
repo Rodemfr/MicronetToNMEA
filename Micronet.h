@@ -92,8 +92,10 @@
 #define MICRONET_CALIBRATION_MAGVAR_ID             0x0d
 #define MICRONET_CALIBRATION_WIND_SHIFT_ID         0x0e
 
-#define TIME_PER_BYTE_US         104
-#define GUARD_TIME_PER_DEVICE_US 6000
+#define PREAMBLE_LENGTH_IN_BITS 136
+#define HEADER_LENGTH_IN_BITS   112
+#define GUARD_TIME_IN_BITS      155
+#define BIT_LENGTH_IN_NS        13021
 
 /***************************************************************************/
 /*                                Types                                    */

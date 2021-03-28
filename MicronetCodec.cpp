@@ -413,10 +413,10 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
 	// Device ID
-	message->data[offset++] = 0x00;
-	message->data[offset++] = 0x00;
-	message->data[offset++] = 0x00;
-	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x03;
+	message->data[offset++] = 0x02;
+	message->data[offset++] = 0x02;
+	message->data[offset++] = 0x02;
 	// Message info
 	message->data[offset++] = 0x02;
 	message->data[offset++] = 0x01;
@@ -624,13 +624,13 @@ uint8_t MicronetCodec::AddPositionField(uint8_t *buffer, float latitude, float l
 	return offset;
 }
 
-uint32_t MicronetCodec::GetNextTransmissionSlot(MicronetMessage_t *message)
+uint32_t MicronetCodec::GetTransmissionSlot(MicronetMessage_t *message)
 {
 	uint32_t messageLength = message->len;
 	uint32_t offset;
 	uint32_t txDelayUs;
-	uint32_t nbDevices;
-	uint32_t payloadBytes;
+	uint32_t nbDevices, nbSlots;
+	uint32_t payloadBits;
 
 	uint8_t crc = 0;
 	for (offset = MICRONET_PAYLOAD_OFFSET; offset < (uint32_t) (messageLength - 1); offset++)
@@ -643,14 +643,20 @@ uint32_t MicronetCodec::GetNextTransmissionSlot(MicronetMessage_t *message)
 
 	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
 
-	payloadBytes = 0;
+	payloadBits = 0;
+	nbSlots = 0;
 	for (uint32_t i = 1; i < nbDevices; i++)
 	{
-		payloadBytes += message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4];
+		// A payload length of zero indicates that there is not slot reserved for the corresponding device.
+		if (message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] != 0)
+		{
+			nbSlots++;
+			payloadBits += message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] << 3;
+		}
 	}
 
-	// Likely wrong formula since the display with 0 payload size is not taken into account in it...
-	txDelayUs = ((nbDevices - 1) * GUARD_TIME_PER_DEVICE_US + payloadBytes * TIME_PER_BYTE_US);
+	txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS) / 1000;
+	txDelayUs += 10000;
 
 	return message->timeStamp_us + txDelayUs;
 }

@@ -577,7 +577,7 @@ void MenuConvertToNmea()
 				{
 					if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 					{
-						txSlot = gMicronetCodec.GetNextTransmissionSlot(rxMessage);
+						txSlot = gMicronetCodec.GetTransmissionSlot(rxMessage);
 						gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.attachedNetworkId,
 								gGnssDecoder.GetCurrentData());
 						while (micros() < txSlot)
