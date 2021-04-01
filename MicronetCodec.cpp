@@ -29,10 +29,11 @@
 /***************************************************************************/
 
 #include "MicronetCodec.h"
-
+#include "Globals.h"
 #include <Arduino.h>
 #include <string.h>
 #include <cmath>
+#include "NavigationData.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -58,7 +59,6 @@
 
 MicronetCodec::MicronetCodec()
 {
-	memset(&micronetData, 0, sizeof(micronetData));
 }
 
 MicronetCodec::~MicronetCodec()
@@ -131,36 +131,36 @@ bool MicronetCodec::VerifyHeaderCrc(MicronetMessage_t *message)
 	return (crc == message->data[MICRONET_CRC_OFFSET]);
 }
 
-void MicronetCodec::DecodeMessage(MicronetMessage_t *message)
+void MicronetCodec::DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet)
 {
 	switch (message->data[MICRONET_MI_OFFSET])
 	{
 	case MICRONET_MESSAGE_ID_SEND_DATA:
-		DecodeSendDataMessage(message);
+		DecodeSendDataMessage(message, dataSet);
 		break;
 	case MICRONET_MESSAGE_ID_SET_CALIBRATION:
-		DecodeSetParameterMessage(message);
+		DecodeSetParameterMessage(message, dataSet);
 		break;
 	}
 
 	// TODO : make invalid values which have not been updated for too long (3s ?)
 }
 
-void MicronetCodec::DecodeSendDataMessage(MicronetMessage_t *message)
+void MicronetCodec::DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet)
 {
 	int fieldOffset = MICRONET_PAYLOAD_OFFSET;
 	while (fieldOffset < message->len)
 	{
-		fieldOffset = DecodeDataField(message, fieldOffset);
+		fieldOffset = DecodeDataField(message, fieldOffset, dataSet);
 		if (fieldOffset < 0)
 		{
 			break;
 		}
 	}
-	CalculateTrueWind();
+	CalculateTrueWind(dataSet);
 }
 
-void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message)
+void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message, NavigationData *dataSet)
 {
 	switch (message->data[MICRONET_PAYLOAD_OFFSET + 1])
 	{
@@ -169,32 +169,32 @@ void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message)
 		{
 			int32_t value = (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
 			value -= 0x32;
-			micronetData.waterSpeedFactor_per = 1.0f + (((float) value) / 100.0f);
-			micronetData.calibrationUpdated = true;
+			dataSet->waterSpeedFactor_per = 1.0f + (((float) value) / 100.0f);
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	case MICRONET_CALIBRATION_WIND_SPEED_FACTOR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
 			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.windSpeedFactor_per = 1.0f + (((float) value) / 100.0f);
-			micronetData.calibrationUpdated = true;
+			dataSet->windSpeedFactor_per = 1.0f + (((float) value) / 100.0f);
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	case MICRONET_CALIBRATION_WATER_TEMP_OFFSET_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
 			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.waterTemperatureOffset_C = ((float) value) / 2.0f;
-			micronetData.calibrationUpdated = true;
+			dataSet->waterTemperatureOffset_C = ((float) value) / 2.0f;
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	case MICRONET_CALIBRATION_DEPTH_OFFSET_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
 			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.depthOffset_m = ((float) value) * 0.3048f / 10.0f;
-			micronetData.calibrationUpdated = true;
+			dataSet->depthOffset_m = ((float) value) * 0.3048f / 10.0f;
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	case MICRONET_CALIBRATION_WINDIR_OFFSET_ID:
@@ -203,8 +203,8 @@ void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message)
 			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 4];
 			value <<= 8;
 			value |= (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.windDirectionOffset_deg = (float) value;
-			micronetData.calibrationUpdated = true;
+			dataSet->windDirectionOffset_deg = (float) value;
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	case MICRONET_CALIBRATION_HEADING_OFFSET_ID:
@@ -213,30 +213,30 @@ void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message)
 			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 4];
 			value <<= 8;
 			value |= (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.headingOffset_deg = (float) value;
-			micronetData.calibrationUpdated = true;
+			dataSet->headingOffset_deg = (float) value;
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	case MICRONET_CALIBRATION_MAGVAR_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
 			int8_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.magneticVariation_deg = (float) value;
-			micronetData.calibrationUpdated = true;
+			dataSet->magneticVariation_deg = (float) value;
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	case MICRONET_CALIBRATION_WIND_SHIFT_ID:
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
 			uint8_t value = (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			micronetData.windShift = (float) value;
-			micronetData.calibrationUpdated = true;
+			dataSet->windShift = (float) value;
+			dataSet->calibrationUpdated = true;
 		}
 		break;
 	}
 }
 
-int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
+int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset, NavigationData *dataSet)
 {
 	int8_t value8;
 	int16_t value16;
@@ -248,7 +248,7 @@ int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
 		if (crc == message->data[offset + 4])
 		{
 			value8 = message->data[offset + 3];
-			UpdateMicronetData(message->data[offset + 1], value8);
+			UpdateMicronetData(message->data[offset + 1], value8, dataSet);
 		}
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_4)
@@ -259,7 +259,7 @@ int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
 		{
 			value16 = message->data[offset + 3];
 			value16 = (value16 << 8) | message->data[offset + 4];
-			UpdateMicronetData(message->data[offset + 1], value16);
+			UpdateMicronetData(message->data[offset + 1], value16, dataSet);
 		}
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_5)
@@ -270,7 +270,7 @@ int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
 		{
 			value16 = message->data[offset + 3];
 			value16 = (value16 << 8) | message->data[offset + 4];
-			UpdateMicronetData(message->data[offset + 1], value16);
+			UpdateMicronetData(message->data[offset + 1], value16, dataSet);
 		}
 	}
 	else if (message->data[offset] == MICRONET_FIELD_TYPE_A)
@@ -288,111 +288,106 @@ int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
 			value32_2 = (value32_2 << 8) | message->data[offset + 8];
 			value32_2 = (value32_2 << 8) | message->data[offset + 9];
 			value32_2 = (value32_2 << 8) | message->data[offset + 10];
-			UpdateMicronetData(message->data[offset + 1], value_32_1, value32_2);
+			UpdateMicronetData(message->data[offset + 1], value_32_1, value32_2, dataSet);
 		}
 	}
 
 	return offset + message->data[offset] + 2;
 }
 
-void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int8_t value)
+void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int8_t value, NavigationData *dataSet)
 {
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_STP:
-		micronetData.stp.value = (((float) value) / 2.0f) + micronetData.waterTemperatureOffset_C;
-		micronetData.stp.valid = true;
-		micronetData.stp.timeStamp = millis();
+		dataSet->stp.value = (((float) value) / 2.0f) + dataSet->waterTemperatureOffset_C;
+		dataSet->stp.valid = true;
+		dataSet->stp.timeStamp = millis();
 		break;
 	}
 }
 
-void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
+void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value, NavigationData *dataSet)
 {
 	float newValue;
 
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_STW:
-		micronetData.stw.value = (((float) value) / 100.0f) * micronetData.waterSpeedFactor_per;
-		micronetData.stw.valid = true;
-		micronetData.stw.timeStamp = millis();
+		dataSet->stw.value = (((float) value) / 100.0f) * dataSet->waterSpeedFactor_per;
+		dataSet->stw.valid = true;
+		dataSet->stw.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_DPT:
 		if (value < MAXIMUM_VALID_DEPTH_FT * 10)
 		{
-			micronetData.dpt.value = (((float) value) * 0.3048f / 10.0f) + micronetData.depthOffset_m;
-			micronetData.dpt.valid = true;
-			micronetData.dpt.timeStamp = millis();
+			dataSet->dpt.value = (((float) value) * 0.3048f / 10.0f) + dataSet->depthOffset_m;
+			dataSet->dpt.valid = true;
+			dataSet->dpt.timeStamp = millis();
 		}
 		else
 		{
-			micronetData.dpt.valid = false;
+			dataSet->dpt.valid = false;
 		}
 		break;
 	case MICRONET_FIELD_ID_AWS:
-		micronetData.aws.value = (((float) value) / 10.0f) * micronetData.windSpeedFactor_per;
-		micronetData.aws.valid = true;
-		micronetData.aws.timeStamp = millis();
+		dataSet->aws.value = (((float) value) / 10.0f) * dataSet->windSpeedFactor_per;
+		dataSet->aws.valid = true;
+		dataSet->aws.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_AWA:
-		newValue = ((float) value) + micronetData.windDirectionOffset_deg;
+		newValue = ((float) value) + dataSet->windDirectionOffset_deg;
 		if (newValue > 180.0f)
 			newValue -= 360.0f;
 		if (newValue < -180.0f)
 			newValue += 360.0f;
-		micronetData.awa.value = newValue;
-		micronetData.awa.valid = true;
-		micronetData.awa.timeStamp = millis();
+		dataSet->awa.value = newValue;
+		dataSet->awa.valid = true;
+		dataSet->awa.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_VCC:
-		micronetData.vcc.value = ((float) value) / 10.0f;
-		micronetData.vcc.valid = true;
-		micronetData.vcc.timeStamp = millis();
+		dataSet->vcc.value = ((float) value) / 10.0f;
+		dataSet->vcc.valid = true;
+		dataSet->vcc.timeStamp = millis();
 		break;
 	}
 }
 
-void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2)
+void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2, NavigationData *dataSet)
 {
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_LOG:
 		// TODO : Shall speed factor be applied on log ?
-		micronetData.trip.value = ((float) value1) / 100.0f;
-		micronetData.trip.valid = true;
-		micronetData.trip.timeStamp = millis();
-		micronetData.log.value = ((float) value2) / 10.0f;
-		micronetData.log.valid = true;
-		micronetData.log.timeStamp = millis();
+		dataSet->trip.value = ((float) value1) / 100.0f;
+		dataSet->trip.valid = true;
+		dataSet->trip.timeStamp = millis();
+		dataSet->log.value = ((float) value2) / 10.0f;
+		dataSet->log.valid = true;
+		dataSet->log.timeStamp = millis();
 		break;
 	}
 }
 
-MicronetData_t* MicronetCodec::GetCurrentData()
+void MicronetCodec::CalculateTrueWind(NavigationData *dataSet)
 {
-	return &micronetData;
-}
-
-void MicronetCodec::CalculateTrueWind()
-{
-	if ((micronetData.awa.valid) && (micronetData.aws.valid) && (micronetData.stw.valid))
+	if ((dataSet->awa.valid) && (dataSet->aws.valid) && (dataSet->stw.valid))
 	{
-		if ((!micronetData.twa.valid) || (!micronetData.tws.valid) || (micronetData.awa.timeStamp > micronetData.twa.timeStamp)
-				|| (micronetData.aws.timeStamp > micronetData.tws.timeStamp)
-				|| (micronetData.stw.timeStamp > micronetData.twa.timeStamp))
+		if ((!dataSet->twa.valid) || (!dataSet->tws.valid) || (dataSet->awa.timeStamp > dataSet->twa.timeStamp)
+				|| (dataSet->aws.timeStamp > dataSet->tws.timeStamp)
+				|| (dataSet->stw.timeStamp > dataSet->twa.timeStamp))
 		{
 			float twLon, twLat;
-			twLon = (micronetData.aws.value * cosf(micronetData.awa.value * M_PI / 180.0f)) - micronetData.stw.value;
-			twLat = (micronetData.aws.value * sinf(micronetData.awa.value * M_PI / 180.0f));
+			twLon = (dataSet->aws.value * cosf(dataSet->awa.value * M_PI / 180.0f)) - dataSet->stw.value;
+			twLat = (dataSet->aws.value * sinf(dataSet->awa.value * M_PI / 180.0f));
 
-			micronetData.tws.value = sqrtf(twLon * twLon + twLat * twLat);
-			micronetData.tws.valid = true;
-			micronetData.tws.timeStamp = millis();
+			dataSet->tws.value = sqrtf(twLon * twLon + twLat * twLat);
+			dataSet->tws.valid = true;
+			dataSet->tws.timeStamp = millis();
 
-			micronetData.twa.value = atan2f(twLat, twLon) * 180.0f / M_PI;
-			micronetData.twa.valid = true;
-			micronetData.twa.timeStamp = millis();
+			dataSet->twa.value = atan2f(twLat, twLon) * 180.0f / M_PI;
+			dataSet->twa.valid = true;
+			dataSet->twa.timeStamp = millis();
 		}
 	}
 }
@@ -413,10 +408,10 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
 	// Device ID
-	message->data[offset++] = 0x03;
-	message->data[offset++] = 0x02;
-	message->data[offset++] = 0x02;
-	message->data[offset++] = 0x02;
+	message->data[offset++] = (gConfiguration.deviceId >> 24) & 0xff;
+	message->data[offset++] = (gConfiguration.deviceId >> 16) & 0xff;
+	message->data[offset++] = (gConfiguration.deviceId >> 8) & 0xff;
+	message->data[offset++] = gConfiguration.deviceId & 0xff;
 	// Message info
 	message->data[offset++] = 0x02;
 	message->data[offset++] = 0x01;

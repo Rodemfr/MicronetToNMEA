@@ -31,10 +31,11 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "Micronet.h"
-// TODO : better to handle a global data structure at Main.cpp level, common to all sources/dests of data
 #include <stdint.h>
+
+#include "Micronet.h"
 #include "NmeaDecoder.h"
+#include "NavigationData.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -48,38 +49,6 @@
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
-
-typedef struct
-{
-	bool valid;
-	float value;
-	uint32_t timeStamp;
-} MicronetDataValue_t;
-
-typedef struct
-{
-	// Data from transducers
-	MicronetDataValue_t stw;
-	MicronetDataValue_t awa;
-	MicronetDataValue_t aws;
-	MicronetDataValue_t twa;
-	MicronetDataValue_t tws;
-	MicronetDataValue_t dpt;
-	MicronetDataValue_t vcc;
-	MicronetDataValue_t log;
-	MicronetDataValue_t trip;
-	MicronetDataValue_t stp;
-	// System parameters
-	bool calibrationUpdated;
-	float waterSpeedFactor_per;
-	float waterTemperatureOffset_C;
-	float depthOffset_m;
-	float windSpeedFactor_per;
-	float windDirectionOffset_deg;
-	float headingOffset_deg;
-	float magneticVariation_deg;
-	float windShift;
-} MicronetData_t;
 
 class MicronetCodec
 {
@@ -96,22 +65,18 @@ public:
 	uint8_t GetHeaderCrc(MicronetMessage_t *message);
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
-	void DecodeMessage(MicronetMessage_t *message);
+	void DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
 	uint32_t GetTransmissionSlot(MicronetMessage_t *message);
 	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, NmeaData_t *nmeaData);
 
-	MicronetData_t* GetCurrentData();
-
 private:
-	MicronetData_t micronetData;
-
-	void DecodeSendDataMessage(MicronetMessage_t *message);
-	void DecodeSetParameterMessage(MicronetMessage_t *message);
-	int DecodeDataField(MicronetMessage_t *message, int offset);
-	void UpdateMicronetData(uint8_t fieldId, int8_t value);
-	void UpdateMicronetData(uint8_t fieldId, int16_t value);
-	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
-	void CalculateTrueWind();
+	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
+	void DecodeSetParameterMessage(MicronetMessage_t *message, NavigationData *dataSet);
+	int DecodeDataField(MicronetMessage_t *message, int offset, NavigationData *dataSet);
+	void UpdateMicronetData(uint8_t fieldId, int8_t value, NavigationData *dataSet);
+	void UpdateMicronetData(uint8_t fieldId, int16_t value, NavigationData *dataSet);
+	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2, NavigationData *dataSet);
+	void CalculateTrueWind(NavigationData *dataSet);
 	void WriteHeaderLengthAndCrc(MicronetMessage_t *message);
 	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);

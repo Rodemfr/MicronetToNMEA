@@ -63,12 +63,12 @@ public:
 	NmeaEncoder();
 	virtual ~NmeaEncoder();
 
-	bool EncodeMWV_R(MicronetData_t *micronetData, char *sentence);
-	bool EncodeMWV_T(MicronetData_t *micronetData, char *sentence);
-	bool EncodeDPT(MicronetData_t *micronetData, char *sentence);
-	bool EncodeMTW(MicronetData_t *micronetData, char *sentence);
-	bool EncodeVLW(MicronetData_t *micronetData, char *sentence);
-	bool EncodeVHW(MicronetData_t *micronetData, char *sentence);
+	bool EncodeMWV_R(NavigationData *micronetData, char *sentence);
+	bool EncodeMWV_T(NavigationData *micronetData, char *sentence);
+	bool EncodeDPT(NavigationData *micronetData, char *sentence);
+	bool EncodeMTW(NavigationData *micronetData, char *sentence);
+	bool EncodeVLW(NavigationData *micronetData, char *sentence);
+	bool EncodeVHW(NavigationData *micronetData, char *sentence);
 
 private:
 	SentencesTimeStamps_t timeStamps;

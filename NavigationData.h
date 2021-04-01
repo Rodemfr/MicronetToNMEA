@@ -24,45 +24,63 @@
  ***************************************************************************
  */
 
-#ifndef GNSSDECODER_H_
-#define GNSSDECODER_H_
+#ifndef NAVIGATIONDATA_H_
+#define NAVIGATIONDATA_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "MenuManager.h"
-#include "MicronetMessageFifo.h"
-#include "MicronetCodec.h"
-#include "Configuration.h"
-#include "NmeaEncoder.h"
-#include "NmeaDecoder.h"
-#include <ELECHOUSE_CC1101_SRC_DRV.h>
-#include "NavigationData.h"
+#include <stdint.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
+#define VALIDITY_TIME_MS 3000
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-/***************************************************************************/
-/*                               Globals                                   */
-/***************************************************************************/
-
-extern ELECHOUSE_CC1101 gRfReceiver;
-extern MenuManager gMenuManager;
-extern MicronetMessageFifo gRxMessageFifo;
-extern MicronetCodec gMicronetCodec;
-extern Configuration gConfiguration;
-extern NmeaEncoder gNmeaEncoder;
-extern NmeaDecoder gGnssDecoder;
-extern NavigationData gDataManager;
+typedef struct
+{
+	bool valid;
+	float value;
+	uint32_t timeStamp;
+} DataValue_t;
 
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                               Classes                                   */
 /***************************************************************************/
 
-#endif /* GNSSDECODER_H_ */
+class NavigationData
+{
+public:
+	NavigationData();
+	virtual ~NavigationData();
+
+	void UpdateValidity();
+
+	DataValue_t stw;
+	DataValue_t awa;
+	DataValue_t aws;
+	DataValue_t twa;
+	DataValue_t tws;
+	DataValue_t dpt;
+	DataValue_t vcc;
+	DataValue_t log;
+	DataValue_t trip;
+	DataValue_t stp;
+	bool calibrationUpdated;
+	float waterSpeedFactor_per;
+	float waterTemperatureOffset_C;
+	float depthOffset_m;
+	float windSpeedFactor_per;
+	float windDirectionOffset_deg;
+	float headingOffset_deg;
+	float magneticVariation_deg;
+	float windShift;
+};
+
+#endif /* NAVIGATIONDATA_H_ */

@@ -67,7 +67,7 @@ NmeaEncoder::~NmeaEncoder()
 {
 }
 
-bool NmeaEncoder::EncodeMWV_R(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeMWV_R(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
@@ -89,7 +89,7 @@ bool NmeaEncoder::EncodeMWV_R(MicronetData_t *micronetData, char *sentence)
 	return update;
 }
 
-bool NmeaEncoder::EncodeMWV_T(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeMWV_T(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
@@ -111,7 +111,7 @@ bool NmeaEncoder::EncodeMWV_T(MicronetData_t *micronetData, char *sentence)
 	return update;
 }
 
-bool NmeaEncoder::EncodeDPT(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeDPT(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
@@ -130,7 +130,7 @@ bool NmeaEncoder::EncodeDPT(MicronetData_t *micronetData, char *sentence)
 	return update;
 }
 
-bool NmeaEncoder::EncodeMTW(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeMTW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
@@ -148,7 +148,7 @@ bool NmeaEncoder::EncodeMTW(MicronetData_t *micronetData, char *sentence)
 	return update;
 }
 
-bool NmeaEncoder::EncodeVLW(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeVLW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
@@ -167,7 +167,7 @@ bool NmeaEncoder::EncodeVLW(MicronetData_t *micronetData, char *sentence)
 	return update;
 }
 
-bool NmeaEncoder::EncodeVHW(MicronetData_t *micronetData, char *sentence)
+bool NmeaEncoder::EncodeVHW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 

@@ -83,7 +83,7 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
-{ nullptr, nullptr } };
+		{ nullptr, nullptr } };
 
 /***************************************************************************/
 /*                              Functions                                  */
@@ -390,7 +390,6 @@ void MenuScanNetworks()
 			if (gMicronetCodec.VerifyHeaderCrc(message))
 			{
 				uint32_t nid = gMicronetCodec.GetNetworkId(message);
-				CONSOLE.println(nid, HEX);
 				int16_t rssi = message->rssi;
 				// Store the network in the array by order of reception power
 				for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
@@ -552,6 +551,7 @@ void MenuConvertToNmea()
 	uint32_t txSlot;
 	MicronetMessage_t *rxMessage;
 	MicronetMessage_t txMessage;
+	int sendCounter = 0;
 
 	if (gConfiguration.attachedNetworkId == 0)
 	{
@@ -575,7 +575,7 @@ void MenuConvertToNmea()
 			{
 				if (gMicronetCodec.VerifyHeaderCrc(rxMessage))
 				{
-					if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
+					if ((sendCounter == 0) && (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA))
 					{
 						txSlot = gMicronetCodec.GetTransmissionSlot(rxMessage);
 						gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.attachedNetworkId,
@@ -584,25 +584,30 @@ void MenuConvertToNmea()
 							;
 						RfTxMessage(&txMessage);
 						RfFlushAndRestartRx();
+
 					}
 
-					gMicronetCodec.DecodeMessage(rxMessage);
+					sendCounter++;
+					if (sendCounter >= (SEND_DIVIDER - 1))
+						sendCounter = 0;
 
-					if (gNmeaEncoder.EncodeMWV_R(gMicronetCodec.GetCurrentData(), nmeaSentence))
+					gMicronetCodec.DecodeMessage(rxMessage, &gDataManager);
+
+					if (gNmeaEncoder.EncodeMWV_R(&gDataManager, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMWV_T(gMicronetCodec.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeMWV_T(&gDataManager, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeDPT(gMicronetCodec.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeDPT(&gDataManager, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMTW(gMicronetCodec.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeMTW(&gDataManager, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVLW(gMicronetCodec.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeVLW(&gDataManager, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVHW(gMicronetCodec.GetCurrentData(), nmeaSentence))
+					if (gNmeaEncoder.EncodeVHW(&gDataManager, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gMicronetCodec.GetCurrentData()->calibrationUpdated)
+					if (gDataManager.calibrationUpdated)
 					{
-						gMicronetCodec.GetCurrentData()->calibrationUpdated = false;
+						gDataManager.calibrationUpdated = false;
 						SaveCalibration();
 					}
 				}
@@ -670,32 +675,28 @@ void MenuScanAllMicronetTraffic()
 
 void SaveCalibration()
 {
-	MicronetData_t *data = gMicronetCodec.GetCurrentData();
-
-	gConfiguration.waterSpeedFactor_per = data->waterSpeedFactor_per;
-	gConfiguration.waterTemperatureOffset_C = data->waterTemperatureOffset_C;
-	gConfiguration.depthOffset_m = data->depthOffset_m;
-	gConfiguration.windSpeedFactor_per = data->windSpeedFactor_per;
-	gConfiguration.windDirectionOffset_deg = data->windDirectionOffset_deg;
-	gConfiguration.headingOffset_deg = data->headingOffset_deg;
-	gConfiguration.magneticVariation_deg = data->magneticVariation_deg;
-	gConfiguration.windShift = data->windShift;
+	gConfiguration.waterSpeedFactor_per = gDataManager.waterSpeedFactor_per;
+	gConfiguration.waterTemperatureOffset_C = gDataManager.waterTemperatureOffset_C;
+	gConfiguration.depthOffset_m = gDataManager.depthOffset_m;
+	gConfiguration.windSpeedFactor_per = gDataManager.windSpeedFactor_per;
+	gConfiguration.windDirectionOffset_deg = gDataManager.windDirectionOffset_deg;
+	gConfiguration.headingOffset_deg = gDataManager.headingOffset_deg;
+	gConfiguration.magneticVariation_deg = gDataManager.magneticVariation_deg;
+	gConfiguration.windShift = gDataManager.windShift;
 
 	gConfiguration.SaveToEeprom();
 }
 
 void LoadCalibration()
 {
-	MicronetData_t *data = gMicronetCodec.GetCurrentData();
-
-	data->waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
-	data->waterTemperatureOffset_C = gConfiguration.waterTemperatureOffset_C;
-	data->depthOffset_m = gConfiguration.depthOffset_m;
-	data->windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
-	data->windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
-	data->headingOffset_deg = gConfiguration.headingOffset_deg;
-	data->magneticVariation_deg = gConfiguration.magneticVariation_deg;
-	data->windShift = gConfiguration.windShift;
+	gDataManager.waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
+	gDataManager.waterTemperatureOffset_C = gConfiguration.waterTemperatureOffset_C;
+	gDataManager.depthOffset_m = gConfiguration.depthOffset_m;
+	gDataManager.windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
+	gDataManager.windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
+	gDataManager.headingOffset_deg = gConfiguration.headingOffset_deg;
+	gDataManager.magneticVariation_deg = gConfiguration.magneticVariation_deg;
+	gDataManager.windShift = gConfiguration.windShift;
 
 	gConfiguration.SaveToEeprom();
 }

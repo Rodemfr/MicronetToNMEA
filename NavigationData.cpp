@@ -28,39 +28,22 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "Configuration.h"
+#include "NavigationData.h"
 
 #include <Arduino.h>
-#include <avr/eeprom.h>
+#include <string.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define EEPROM_CONFIG_OFFSET 0
-#define CONFIG_MAGIC_NUMBER  0x4D544E4D
+/***************************************************************************/
+/*                                Macros                                   */
+/***************************************************************************/
 
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
-
-#pragma pack(1)
-typedef struct
-{
-	uint32_t magicWord;
-	uint32_t attachedNetworkId;
-	uint32_t deviceId;
-	float waterSpeedFactor_per;
-	float waterTemperatureOffset_C;
-	float depthOffset_m;
-	float windSpeedFactor_per;
-	float windDirectionOffset_deg;
-	float headingOffset_deg;
-	float magneticVariation_deg;
-	float windShift;
-	uint8_t checksum;
-} ConfigBlock_t;
-#pragma pack()
 
 /***************************************************************************/
 /*                           Local prototypes                              */
@@ -74,89 +57,74 @@ typedef struct
 /*                              Functions                                  */
 /***************************************************************************/
 
-Configuration::Configuration()
+NavigationData::NavigationData()
 {
-	// Set default configuration
-	attachedNetworkId = 0;
-	waterSpeedFactor_per = 1.0f;
-	waterTemperatureOffset_C = 0;
-	depthOffset_m = 0;
-	windSpeedFactor_per = 1.0f;
-	windDirectionOffset_deg = 0;
-	headingOffset_deg = 0;
-	magneticVariation_deg = 0;
-	windShift = 10;
-	deviceId = 0x03123456 ;
+	stw.valid = false;
+	awa.valid = false;
+	aws.valid = false;
+	twa.valid = false;
+	tws.valid = false;
+	dpt.valid = false;
+	vcc.valid = false;
+	log.valid = false;
+	trip.valid = false;
+	stp.valid = false;
+	calibrationUpdated = false;
+	waterSpeedFactor_per = 0.0f;
+	waterTemperatureOffset_C = 0.0f;
+	depthOffset_m = 0.0f;
+	windSpeedFactor_per = 0.0f;
+	windDirectionOffset_deg = 0.0f;
+	headingOffset_deg = 0.0f;
+	magneticVariation_deg = 0.0f;
+	windShift = 0.0f;
 }
 
-Configuration::~Configuration()
+NavigationData::~NavigationData()
 {
 }
 
-void Configuration::LoadFromEeprom()
+void NavigationData::UpdateValidity()
 {
-	ConfigBlock_t configBlock;
-	uint8_t *pConfig = (uint8_t*) (&configBlock);
-
-	memset(&configBlock, 0, sizeof(configBlock));
-	eeprom_read_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
-
-	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
+	uint32_t currentTime = millis();
+	if (awa.timeStamp - currentTime > VALIDITY_TIME_MS)
 	{
-		uint8_t checksum = 0;
-		for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 1); i++)
-		{
-			checksum += pConfig[i];
-		}
-
-		if (checksum == configBlock.checksum)
-		{
-			attachedNetworkId = configBlock.attachedNetworkId;
-			deviceId = configBlock.deviceId;
-			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
-			waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
-			depthOffset_m = configBlock.depthOffset_m;
-			windSpeedFactor_per = configBlock.windSpeedFactor_per;
-			windDirectionOffset_deg = configBlock.windDirectionOffset_deg;
-			headingOffset_deg = configBlock.headingOffset_deg;
-			magneticVariation_deg = configBlock.magneticVariation_deg;
-			windShift = configBlock.windShift;
-		}
+		awa.valid = false;
 	}
-}
-
-void Configuration::SaveToEeprom()
-{
-	ConfigBlock_t configBlock, compareBlock;
-	uint8_t *pConfig = (uint8_t*) (&configBlock);
-	uint8_t *pCompare = (uint8_t*) (&compareBlock);
-	uint8_t checksum = 0;
-
-	eeprom_read_block(&compareBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
-
-	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
-	configBlock.attachedNetworkId = attachedNetworkId;
-	configBlock.deviceId = deviceId;
-	configBlock.waterSpeedFactor_per = waterSpeedFactor_per;
-	configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
-	configBlock.depthOffset_m = depthOffset_m;
-	configBlock.windSpeedFactor_per = windSpeedFactor_per;
-	configBlock.windDirectionOffset_deg = windDirectionOffset_deg;
-	configBlock.headingOffset_deg = headingOffset_deg;
-	configBlock.magneticVariation_deg = magneticVariation_deg;
-	configBlock.windShift = windShift;
-
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
+	if (aws.timeStamp - currentTime > VALIDITY_TIME_MS)
 	{
-		checksum += pConfig[i];
+		aws.valid = false;
 	}
-	configBlock.checksum = checksum;
-
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
+	if (dpt.timeStamp - currentTime > VALIDITY_TIME_MS)
 	{
-		if (pConfig[i] != pCompare[i]) {
-			eeprom_write_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
-			break;
-		}
+		dpt.valid = false;
+	}
+	if (log.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		log.valid = false;
+	}
+	if (stp.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		stp.valid = false;
+	}
+	if (stw.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		stw.valid = false;
+	}
+	if (trip.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		trip.valid = false;
+	}
+	if (twa.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		twa.valid = false;
+	}
+	if (tws.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		tws.valid = false;
+	}
+	if (vcc.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		vcc.valid = false;
 	}
 }
