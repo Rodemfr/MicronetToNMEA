@@ -309,10 +309,12 @@ void RfTxMessage(MicronetMessage_t *message)
 
 	gRfReceiver.SpiWriteBurstReg(CC1101_TXFIFO, message->data, message->len);      //write data to send
 	gRfReceiver.SpiWriteReg(CC1101_TXFIFO, 0x00);
+	gRfReceiver.setPA(12);
 	gRfReceiver.SetTx();
 	// TODO : don't use hard coded delay
 	delay(15);
-	gRfReceiver.SpiStrobe(CC1101_SFTX);                 //flush TXfifo
+	gRfReceiver.setSidle();
+	gRfReceiver.SpiStrobe(CC1101_SFTX);
 }
 
 void PrintRawMessage(MicronetMessage_t *message)
@@ -551,7 +553,6 @@ void MenuConvertToNmea()
 	uint32_t txSlot;
 	MicronetMessage_t *rxMessage;
 	MicronetMessage_t txMessage;
-	int sendCounter = 0;
 
 	if (gConfiguration.attachedNetworkId == 0)
 	{
@@ -575,7 +576,7 @@ void MenuConvertToNmea()
 			{
 				if (gMicronetCodec.VerifyHeaderCrc(rxMessage))
 				{
-					if ((sendCounter == 0) && (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA))
+					if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 					{
 						txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
 						if (txSlot != 0) {
@@ -592,10 +593,6 @@ void MenuConvertToNmea()
 						RfTxMessage(&txMessage);
 						RfFlushAndRestartRx();
 					}
-
-					sendCounter++;
-					if (sendCounter >= (SEND_DIVIDER - 1))
-						sendCounter = 0;
 
 					gMicronetCodec.DecodeMessage(rxMessage, &gDataManager);
 
