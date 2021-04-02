@@ -299,20 +299,32 @@ void RfFlushAndRestartRx()
 
 void RfTxMessage(MicronetMessage_t *message)
 {
+	// Change CC1101 configuration for emission
 	gRfReceiver.setSidle();
 	gRfReceiver.setSyncMode(0);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
+	gRfReceiver.setPA(12);
+	// Set packet length taking into account the preamble and sync byte we send manually
 	gRfReceiver.setPacketLength(message->len + MICRONET_RF_PREAMBLE_LENGTH + 1);
+	// Fill FIFO with preamble + sync byte
 	for (int i = 0; i < MICRONET_RF_PREAMBLE_LENGTH; i++)
 		gRfReceiver.SpiWriteReg(CC1101_TXFIFO, 0x55);
 	gRfReceiver.SpiWriteReg(CC1101_TXFIFO, MICRONET_RF_SYNC_BYTE);
-
-	gRfReceiver.SpiWriteBurstReg(CC1101_TXFIFO, message->data, message->len);      //write data to send
-	gRfReceiver.SpiWriteReg(CC1101_TXFIFO, 0x00);
-	gRfReceiver.setPA(12);
+	// Start transmission
 	gRfReceiver.SetTx();
-	// TODO : don't use hard coded delay
-	delay(15);
+	// Fill FIFO with the rest of the message, taking care not to overflow it
+	int i = 0;
+	while (i < message->len)
+	{
+		if ((gRfReceiver.SpiReadReg(CC1101_TXBYTES) & 0x7f) < 62)
+		{
+			gRfReceiver.SpiWriteReg(CC1101_TXFIFO, message->data[i++]);
+		}
+	}
+	// Wait for end of tranmission
+	while (digitalRead(GDO0_PIN))
+		;
+	// Stop Tx mode
 	gRfReceiver.setSidle();
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
 }
@@ -579,14 +591,18 @@ void MenuConvertToNmea()
 					if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 					{
 						txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
-						if (txSlot != 0) {
+						if (txSlot != 0)
+						{
 							gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.attachedNetworkId, gConfiguration.deviceId,
 									gGnssDecoder.GetCurrentData());
 							while (micros() < txSlot)
 								;
-						} else {
+						}
+						else
+						{
 							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.attachedNetworkId, gConfiguration.deviceId);
+							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.attachedNetworkId,
+									gConfiguration.deviceId);
 							while (micros() < txSlot)
 								;
 						}
