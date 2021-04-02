@@ -232,6 +232,22 @@ FP = Field Property ??
 
 FC = Field checksum. Sum of the all the byte of the field.
 
+****************************************
+*** Message 0x03 (Request Data Slot) ***
+****************************************
+
+When a device is not listed in the "Request Data" schedule. It can request a transmission slot to the master device with this
+command.
+
+Here is the format (with an example) :
+
+|01 0A 8B 60|01|0B 8B 60|03|01|09|FA|0F 0F|00 1A|1A|
+|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN | PL  |PC|
+
+PL - Maximum payload length of a message using this slot
+
+PC - Checksum of the entire payload
+
 ************************************
 *** Message 0x06 (Set Parameter) ***
 ************************************

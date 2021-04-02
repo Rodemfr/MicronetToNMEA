@@ -83,7 +83,7 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
-		{ nullptr, nullptr } };
+{ nullptr, nullptr } };
 
 /***************************************************************************/
 /*                              Functions                                  */
@@ -577,14 +577,20 @@ void MenuConvertToNmea()
 				{
 					if ((sendCounter == 0) && (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA))
 					{
-						txSlot = gMicronetCodec.GetTransmissionSlot(rxMessage);
-						gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.attachedNetworkId,
-								gGnssDecoder.GetCurrentData());
-						while (micros() < txSlot)
-							;
+						txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
+						if (txSlot != 0) {
+							gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.attachedNetworkId, gConfiguration.deviceId,
+									gGnssDecoder.GetCurrentData());
+							while (micros() < txSlot)
+								;
+						} else {
+							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
+							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.attachedNetworkId, gConfiguration.deviceId);
+							while (micros() < txSlot)
+								;
+						}
 						RfTxMessage(&txMessage);
 						RfFlushAndRestartRx();
-
 					}
 
 					sendCounter++;

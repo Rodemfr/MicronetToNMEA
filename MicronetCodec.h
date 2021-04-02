@@ -66,8 +66,11 @@ public:
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
 	void DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
-	uint32_t GetTransmissionSlot(MicronetMessage_t *message);
-	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, NmeaData_t *nmeaData);
+	uint32_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
+	uint32_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
+	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NmeaData_t *nmeaData);
+	bool BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
+	bool BuildResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
 
 private:
 	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
