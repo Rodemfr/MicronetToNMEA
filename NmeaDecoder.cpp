@@ -196,8 +196,7 @@ void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 	if (sentence[0] != ',')
 	{
 		degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
-		mins = (sentence[2] - '0') * 10 + (sentence[3] - '0')
-				+ ((sentence[5] - '0') / 10.0f + (sentence[6] - '0') / 100.0f + (sentence[7] - '0') / 1000.0f);
+		sscanf(sentence + 2, "%f,",&mins);
 		navData->latitude.value = degs + mins / 60.0f;
 		if (sentence[8] == 'S')
 			navData->latitude.value = -navData->latitude.value;
@@ -213,8 +212,7 @@ void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 	if (sentence[0] != ',')
 	{
 		degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
-		mins = (sentence[3] - '0') * 10 + (sentence[4] - '0')
-				+ ((sentence[6] - '0') / 10.0f + (sentence[7] - '0') / 100.0f + (sentence[8] - '0') / 1000.0f);
+		sscanf(sentence + 2, "%f,", &mins);
 		navData->longitude.value = degs + mins / 60.0f;
 		if (sentence[9] == 'W')
 			navData->longitude.value = -navData->longitude.value;
@@ -254,18 +252,18 @@ void NmeaDecoder::DecodeVTGSentence(char *sentence, NavigationData *navData)
 
 int16_t NmeaDecoder::NibbleValue(char c)
 {
-if ((c >= '0') && (c <= '9'))
-{
-	return (c - '0');
-}
-else if ((c >= 'A') && (c <= 'F'))
-{
-	return (c - 'A') + 0x0a;
-}
-else if ((c >= 'a') && (c <= 'f'))
-{
-	return (c - 'a') + 0x0a;
-}
+	if ((c >= '0') && (c <= '9'))
+	{
+		return (c - '0');
+	}
+	else if ((c >= 'A') && (c <= 'F'))
+	{
+		return (c - 'A') + 0x0a;
+	}
+	else if ((c >= 'a') && (c <= 'f'))
+	{
+		return (c - 'a') + 0x0a;
+	}
 
-return -1;
+	return -1;
 }
