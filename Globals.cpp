@@ -57,7 +57,7 @@ MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
 Configuration gConfiguration;
 NmeaEncoder gNmeaEncoder;
 NmeaDecoder gGnssDecoder;
-NavigationData gDataManager;
+NavigationData gNavData;
 
 /***************************************************************************/
 /*                              Functions                                  */

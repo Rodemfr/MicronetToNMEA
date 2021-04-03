@@ -77,7 +77,7 @@ typedef struct
 Configuration::Configuration()
 {
 	// Set default configuration
-	attachedNetworkId = 0;
+	networkId = 0;
 	waterSpeedFactor_per = 1.0f;
 	waterTemperatureOffset_C = 0;
 	depthOffset_m = 0;
@@ -86,7 +86,7 @@ Configuration::Configuration()
 	headingOffset_deg = 0;
 	magneticVariation_deg = 0;
 	windShift = 10;
-	deviceId = 0x03123456 ;
+	deviceId = 0x03123456;
 }
 
 Configuration::~Configuration()
@@ -111,7 +111,7 @@ void Configuration::LoadFromEeprom()
 
 		if (checksum == configBlock.checksum)
 		{
-			attachedNetworkId = configBlock.attachedNetworkId;
+			networkId = configBlock.attachedNetworkId;
 			deviceId = configBlock.deviceId;
 			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
 			waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
@@ -135,7 +135,7 @@ void Configuration::SaveToEeprom()
 	eeprom_read_block(&compareBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
-	configBlock.attachedNetworkId = attachedNetworkId;
+	configBlock.attachedNetworkId = networkId;
 	configBlock.deviceId = deviceId;
 	configBlock.waterSpeedFactor_per = waterSpeedFactor_per;
 	configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
@@ -154,7 +154,8 @@ void Configuration::SaveToEeprom()
 
 	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
 	{
-		if (pConfig[i] != pCompare[i]) {
+		if (pConfig[i] != pCompare[i])
+		{
 			eeprom_write_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 			break;
 		}

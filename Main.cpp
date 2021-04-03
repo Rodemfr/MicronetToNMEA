@@ -139,8 +139,8 @@ void setup()
 	gRfReceiver.setGDO(GDO0_PIN, GDO2_PIN); // Practicaly, GDO2 pin isn't used. You don't need to wire it
 	gRfReceiver.setCCMode(1); // set config for internal transmission mode.
 	gRfReceiver.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
-	gRfReceiver.setMHZ(869.785); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
-	gRfReceiver.setDeviation(32); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
+	gRfReceiver.setMHZ(869.778 - 0.034); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
+	gRfReceiver.setDeviation(34); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
 	gRfReceiver.setChannel(0); // Set the Channelnumber from 0 to 255. Default is cahnnel 0.
 	gRfReceiver.setChsp(199.95); // The channel spacing is multiplied by the channel number CHAN and added to the base frequency in kHz. Value from 25.39 to 405.45. Default is 199.95 kHz.
 	gRfReceiver.setRxBW(250); // Set the Receive Bandwidth in kHz. Value from 58.03 to 812.50. Default is 812.50 kHz.
@@ -180,7 +180,7 @@ void loop()
 {
 	// If this is the first loop, we verify if we are already attached to a Micronet network. if yes,
 	// We directly jump to NMEA conversion mode.
-	if ((firstLoop) && (gConfiguration.attachedNetworkId != 0))
+	if ((firstLoop) && (gConfiguration.networkId != 0))
 	{
 		MenuConvertToNmea();
 		gMenuManager.PrintMenu();
@@ -203,7 +203,7 @@ void serialEvent1()
 		// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it
 		// to repeat it later to the console output. This way, there is not risk to interleave GNSS related sentence
 		// and Micronet related sentences.
-		gGnssDecoder.PushChar(GNSS_SERIAL.read());
+		gGnssDecoder.PushChar(GNSS_SERIAL.read(), &gNavData);
 	}
 }
 
@@ -353,12 +353,13 @@ void MenuAbout()
 {
 	CONSOLE.println("MicronetToNMEA, Version 0.3");
 
-	CONSOLE.print("Serial speed : ");
+	CONSOLE.print("Device ID : ");
+	CONSOLE.println(gConfiguration.deviceId, HEX);
 
-	if (gConfiguration.attachedNetworkId != 0)
+	if (gConfiguration.networkId != 0)
 	{
 		CONSOLE.print("Attached to Micronet Network ");
-		CONSOLE.println(gConfiguration.attachedNetworkId, HEX);
+		CONSOLE.println(gConfiguration.networkId, HEX);
 	}
 	else
 	{
@@ -551,7 +552,7 @@ void MenuAttachNetwork()
 	}
 	else
 	{
-		gConfiguration.attachedNetworkId = newNetworkId;
+		gConfiguration.networkId = newNetworkId;
 		CONSOLE.print("Now attached to NetworkID ");
 		CONSOLE.println(newNetworkId, HEX);
 		gConfiguration.SaveToEeprom();
@@ -566,7 +567,7 @@ void MenuConvertToNmea()
 	MicronetMessage_t *rxMessage;
 	MicronetMessage_t txMessage;
 
-	if (gConfiguration.attachedNetworkId == 0)
+	if (gConfiguration.networkId == 0)
 	{
 		CONSOLE.println("No Micronet network has been attached.");
 		CONSOLE.println("Scan and attach a Micronet network first.");
@@ -584,7 +585,7 @@ void MenuConvertToNmea()
 	{
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetCodec.GetNetworkId(rxMessage) == gConfiguration.attachedNetworkId)
+			if (gMicronetCodec.GetNetworkId(rxMessage) == gConfiguration.networkId)
 			{
 				if (gMicronetCodec.VerifyHeaderCrc(rxMessage))
 				{
@@ -593,16 +594,15 @@ void MenuConvertToNmea()
 						txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
 						if (txSlot != 0)
 						{
-							gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.attachedNetworkId, gConfiguration.deviceId,
-									gGnssDecoder.GetCurrentData());
+							gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
+									&gNavData);
 							while (micros() < txSlot)
 								;
 						}
 						else
 						{
 							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.attachedNetworkId,
-									gConfiguration.deviceId);
+							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId);
 							while (micros() < txSlot)
 								;
 						}
@@ -610,23 +610,23 @@ void MenuConvertToNmea()
 						RfFlushAndRestartRx();
 					}
 
-					gMicronetCodec.DecodeMessage(rxMessage, &gDataManager);
+					gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
 
-					if (gNmeaEncoder.EncodeMWV_R(&gDataManager, nmeaSentence))
+					if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMWV_T(&gDataManager, nmeaSentence))
+					if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeDPT(&gDataManager, nmeaSentence))
+					if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMTW(&gDataManager, nmeaSentence))
+					if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVLW(&gDataManager, nmeaSentence))
+					if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVHW(&gDataManager, nmeaSentence))
+					if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
 						CONSOLE.print(nmeaSentence);
-					if (gDataManager.calibrationUpdated)
+					if (gNavData.calibrationUpdated)
 					{
-						gDataManager.calibrationUpdated = false;
+						gNavData.calibrationUpdated = false;
 						SaveCalibration();
 					}
 				}
@@ -694,28 +694,28 @@ void MenuScanAllMicronetTraffic()
 
 void SaveCalibration()
 {
-	gConfiguration.waterSpeedFactor_per = gDataManager.waterSpeedFactor_per;
-	gConfiguration.waterTemperatureOffset_C = gDataManager.waterTemperatureOffset_C;
-	gConfiguration.depthOffset_m = gDataManager.depthOffset_m;
-	gConfiguration.windSpeedFactor_per = gDataManager.windSpeedFactor_per;
-	gConfiguration.windDirectionOffset_deg = gDataManager.windDirectionOffset_deg;
-	gConfiguration.headingOffset_deg = gDataManager.headingOffset_deg;
-	gConfiguration.magneticVariation_deg = gDataManager.magneticVariation_deg;
-	gConfiguration.windShift = gDataManager.windShift;
+	gConfiguration.waterSpeedFactor_per = gNavData.waterSpeedFactor_per;
+	gConfiguration.waterTemperatureOffset_C = gNavData.waterTemperatureOffset_C;
+	gConfiguration.depthOffset_m = gNavData.depthOffset_m;
+	gConfiguration.windSpeedFactor_per = gNavData.windSpeedFactor_per;
+	gConfiguration.windDirectionOffset_deg = gNavData.windDirectionOffset_deg;
+	gConfiguration.headingOffset_deg = gNavData.headingOffset_deg;
+	gConfiguration.magneticVariation_deg = gNavData.magneticVariation_deg;
+	gConfiguration.windShift = gNavData.windShift;
 
 	gConfiguration.SaveToEeprom();
 }
 
 void LoadCalibration()
 {
-	gDataManager.waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
-	gDataManager.waterTemperatureOffset_C = gConfiguration.waterTemperatureOffset_C;
-	gDataManager.depthOffset_m = gConfiguration.depthOffset_m;
-	gDataManager.windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
-	gDataManager.windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
-	gDataManager.headingOffset_deg = gConfiguration.headingOffset_deg;
-	gDataManager.magneticVariation_deg = gConfiguration.magneticVariation_deg;
-	gDataManager.windShift = gConfiguration.windShift;
+	gNavData.waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
+	gNavData.waterTemperatureOffset_C = gConfiguration.waterTemperatureOffset_C;
+	gNavData.depthOffset_m = gConfiguration.depthOffset_m;
+	gNavData.windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
+	gNavData.windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
+	gNavData.headingOffset_deg = gConfiguration.headingOffset_deg;
+	gNavData.magneticVariation_deg = gConfiguration.magneticVariation_deg;
+	gNavData.windShift = gConfiguration.windShift;
 
 	gConfiguration.SaveToEeprom();
 }

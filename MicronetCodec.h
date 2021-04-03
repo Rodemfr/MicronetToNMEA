@@ -68,7 +68,7 @@ public:
 	void DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
 	uint32_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
 	uint32_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
-	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NmeaData_t *nmeaData);
+	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
 	bool BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
 	bool BuildResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
 

@@ -69,6 +69,13 @@ NavigationData::NavigationData()
 	log.valid = false;
 	trip.valid = false;
 	stp.valid = false;
+	time.valid = false;
+	date.valid = false;
+	latitude.valid = false;
+	longitude.valid = false;
+	cog.valid = false;
+	sog.valid = false;
+
 	calibrationUpdated = false;
 	waterSpeedFactor_per = 0.0f;
 	waterTemperatureOffset_C = 0.0f;
@@ -126,5 +133,29 @@ void NavigationData::UpdateValidity()
 	if (vcc.timeStamp - currentTime > VALIDITY_TIME_MS)
 	{
 		vcc.valid = false;
+	}
+	if (time.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		time.valid = false;
+	}
+	if (date.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		date.valid = false;
+	}
+	if (latitude.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		latitude.valid = false;
+	}
+	if (longitude.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		longitude.valid = false;
+	}
+	if (cog.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		cog.valid = false;
+	}
+	if (sog.timeStamp - currentTime > VALIDITY_TIME_MS)
+	{
+		sog.valid = false;
 	}
 }

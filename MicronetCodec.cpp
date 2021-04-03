@@ -28,11 +28,11 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "MicronetCodec.h"
-#include "Globals.h"
 #include <Arduino.h>
 #include <string.h>
 #include <cmath>
+#include "MicronetCodec.h"
+#include "Globals.h"
 #include "NavigationData.h"
 
 /***************************************************************************/
@@ -391,15 +391,9 @@ void MicronetCodec::CalculateTrueWind(NavigationData *dataSet)
 	}
 }
 
-bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NmeaData_t *nmeaData)
+bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData)
 {
 	int offset = 0;
-
-	if ((!nmeaData->timeUpdated) && (!nmeaData->dateUpdated) && (!nmeaData->sogCogUpdated) && (!nmeaData->positionUpdated))
-	{
-		message->len = 0;
-		return false;
-	}
 
 	// Network ID
 	message->data[offset++] = (networkId >> 24) & 0xff;
@@ -421,26 +415,22 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	message->data[offset++] = 0x0c;
 	message->data[offset++] = 0x0c;
 	// Data fields
-	if (nmeaData->timeUpdated)
+	if (navData->time.valid)
 	{
-		nmeaData->timeUpdated = false;
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (nmeaData->hour << 8) + nmeaData->minute);
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (navData->time.hour << 8) + navData->time.minute);
 	}
-	if (nmeaData->dateUpdated)
+	if (navData->date.valid)
 	{
-		nmeaData->dateUpdated = false;
 		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE,
-				(nmeaData->day << 16) + (nmeaData->month << 8) + nmeaData->year);
+				(navData->date.day << 16) + (navData->date.month << 8) + navData->date.year);
 	}
-	if (nmeaData->sogCogUpdated)
+	if ((navData->sog.valid) || (navData->cog.valid))
 	{
-		nmeaData->sogCogUpdated = false;
-		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, nmeaData->sog, nmeaData->cog);
+		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog.value, navData->cog.value);
 	}
-	if (nmeaData->positionUpdated)
+	if ((navData->latitude.valid) || (navData->longitude.valid))
 	{
-		nmeaData->positionUpdated = false;
-		offset += AddPositionField(message->data + offset, nmeaData->latitude, nmeaData->longitude);
+		offset += AddPositionField(message->data + offset, navData->latitude.value, navData->longitude.value);
 	}
 
 	message->len = offset;
@@ -677,16 +667,21 @@ uint8_t MicronetCodec::AddPositionField(uint8_t *buffer, float latitude, float l
 	// Direction flags
 	if (latitude > 0.0f)
 		dir |= 0x01;
+	else
+		latitude = -latitude;
+
 	if (longitude > 0.0f)
 		dir |= 0x02;
+	else
+		longitude = -longitude;
+
 	// Latitude
-	latitude = fabsf(latitude);
 	buffer[offset++] = (uint8_t) floorf(latitude);
 	uint16_t latMin = 60000.0f * (latitude - floorf(latitude));
 	buffer[offset++] = (latMin >> 8) & 0xff;
 	buffer[offset++] = latMin & 0xff;
+
 	// Longitude
-	longitude = fabsf(longitude);
 	buffer[offset++] = (uint8_t) floorf(longitude);
 	uint16_t lonMin = 60000.0f * (longitude - floorf(longitude));
 	buffer[offset++] = (lonMin >> 8) & 0xff;
@@ -736,7 +731,8 @@ uint32_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uint
 			currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 3];
 			if (currentDeviceId == deviceId)
 			{
-				txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS) / 1000;
+				txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits)
+						* BIT_LENGTH_IN_NS) / 1000;
 				return message->timeStamp_us + txDelayUs;
 			}
 			nbSlots++;

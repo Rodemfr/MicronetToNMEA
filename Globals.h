@@ -59,7 +59,7 @@ extern MicronetCodec gMicronetCodec;
 extern Configuration gConfiguration;
 extern NmeaEncoder gNmeaEncoder;
 extern NmeaDecoder gGnssDecoder;
-extern NavigationData gDataManager;
+extern NavigationData gNavData;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

@@ -48,7 +48,24 @@ typedef struct
 	bool valid;
 	float value;
 	uint32_t timeStamp;
-} DataValue_t;
+} FloatValue_t;
+
+typedef struct
+{
+	bool valid;
+	uint8_t hour;
+	uint8_t minute;
+	uint32_t timeStamp;
+} TimeValue_t;
+
+typedef struct
+{
+	bool valid;
+	uint8_t day;
+	uint8_t month;
+	uint8_t year;
+	uint32_t timeStamp;
+} DateValue_t;
 
 /***************************************************************************/
 /*                               Classes                                   */
@@ -62,16 +79,24 @@ public:
 
 	void UpdateValidity();
 
-	DataValue_t stw;
-	DataValue_t awa;
-	DataValue_t aws;
-	DataValue_t twa;
-	DataValue_t tws;
-	DataValue_t dpt;
-	DataValue_t vcc;
-	DataValue_t log;
-	DataValue_t trip;
-	DataValue_t stp;
+	FloatValue_t stw;
+	FloatValue_t awa;
+	FloatValue_t aws;
+	FloatValue_t twa;
+	FloatValue_t tws;
+	FloatValue_t dpt;
+	FloatValue_t vcc;
+	FloatValue_t log;
+	FloatValue_t trip;
+	FloatValue_t stp;
+
+	TimeValue_t time;
+	DateValue_t date;
+	FloatValue_t latitude;
+	FloatValue_t longitude;
+	FloatValue_t cog;
+	FloatValue_t sog;
+
 	bool calibrationUpdated;
 	float waterSpeedFactor_per;
 	float waterTemperatureOffset_C;
