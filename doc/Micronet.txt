@@ -11,10 +11,10 @@ nearest Raymarine/TackTick reseller.
 *** Radio specification ***
 ***************************
 
-Carrier frequency : 869.784MHz in Europe. Measured on my own TackTick network. I don't know is this frequency might change
+Carrier frequency : 869.778MHz in Europe. Measured on my own TackTick network. I don't know is this frequency might change
                     in some circumstance.
 Modulation : 2-FSK
-Deviation : 32kHz
+Deviation : +-34kHz
 Sync word after preamble : 0x5599
 
 All data after the sync word is the Micronet message discribed below.
