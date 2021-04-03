@@ -190,13 +190,15 @@ void NmeaDecoder::DecodeRMCSentence(char *sentence, NavigationData *navData)
 void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 {
 	float degs, mins;
+
 	if ((sentence = strchr(sentence, ',')) == nullptr)
 		return;
 	sentence++;
+
 	if (sentence[0] != ',')
 	{
 		degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
-		sscanf(sentence + 2, "%f,",&mins);
+		sscanf(sentence + 2, "%f,", &mins);
 		navData->latitude.value = degs + mins / 60.0f;
 		if (sentence[8] == 'S')
 			navData->latitude.value = -navData->latitude.value;
