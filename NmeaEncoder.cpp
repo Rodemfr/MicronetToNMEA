@@ -120,7 +120,6 @@ bool NmeaEncoder::EncodeDPT(NavigationData *micronetData, char *sentence)
 
 	if (update)
 	{
-		// TODO : Add distance to keel when it will be available from decoder data
 		sprintf(sentence, "$INDPT,%.1f,0.0", micronetData->dpt_m.value);
 		AddNmeaChecksum(sentence);
 

@@ -356,7 +356,6 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t 
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_LOG:
-		// TODO : Shall speed factor be applied on log ?
 		dataSet->trip_nm.value = ((float) value1) / 100.0f;
 		dataSet->trip_nm.valid = true;
 		dataSet->trip_nm.timeStamp = millis();
