@@ -73,11 +73,11 @@ public:
 	void DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
 	SlotDef_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
 	SlotDef_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
-	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
-	bool BuildNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
-	bool BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
-	bool BuildSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
-	bool BuildResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
+	uint8_t EncodeGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
+	uint8_t EncodeNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
+	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
+	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
+	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
 
 private:
 	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);

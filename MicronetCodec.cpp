@@ -138,7 +138,7 @@ void MicronetCodec::DecodeMessage(MicronetMessage_t *message, NavigationData *da
 	case MICRONET_MESSAGE_ID_SEND_DATA:
 		DecodeSendDataMessage(message, dataSet);
 		break;
-	case MICRONET_MESSAGE_ID_SET_CALIBRATION:
+	case MICRONET_MESSAGE_ID_SET_PARAMETER:
 		DecodeSetParameterMessage(message, dataSet);
 		break;
 	}
@@ -389,7 +389,7 @@ void MicronetCodec::CalculateTrueWind(NavigationData *dataSet)
 	}
 }
 
-bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData)
+uint8_t MicronetCodec::EncodeGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData)
 {
 	int offset = 0;
 
@@ -410,8 +410,8 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
-	message->data[offset++] = 0x0c;
-	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
 	// Data fields
 	if (navData->time.valid)
 	{
@@ -435,10 +435,10 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 
 	WriteHeaderLengthAndCrc(message);
 
-	return true;
+	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
-bool MicronetCodec::BuildNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData)
+uint8_t MicronetCodec::EncodeNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData)
 {
 	int offset = 0;
 
@@ -459,8 +459,8 @@ bool MicronetCodec::BuildNavMessage(MicronetMessage_t *message, uint32_t network
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
-	message->data[offset++] = 0x0c;
-	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
 	// Data fields
 	if (navData->time.valid)
 	{
@@ -487,10 +487,10 @@ bool MicronetCodec::BuildNavMessage(MicronetMessage_t *message, uint32_t network
 
 	WriteHeaderLengthAndCrc(message);
 
-	return true;
+	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
-bool MicronetCodec::BuildSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength)
+uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength)
 {
 	int offset = 0;
 
@@ -511,8 +511,8 @@ bool MicronetCodec::BuildSlotUpdateMessage(MicronetMessage_t *message, uint32_t 
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
-	message->data[offset++] = 0x0c;
-	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
 	// Data fields
 	message->data[offset++] = payloadLength;
 
@@ -527,10 +527,10 @@ bool MicronetCodec::BuildSlotUpdateMessage(MicronetMessage_t *message, uint32_t 
 
 	WriteHeaderLengthAndCrc(message);
 
-	return true;
+	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
-bool MicronetCodec::BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength)
+uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength)
 {
 	int offset = 0;
 
@@ -551,8 +551,8 @@ bool MicronetCodec::BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
-	message->data[offset++] = 0x0c;
-	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
 	// Data fields
 	message->data[offset++] = 0x00;
 	message->data[offset++] = payloadLength;
@@ -568,10 +568,10 @@ bool MicronetCodec::BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t
 
 	WriteHeaderLengthAndCrc(message);
 
-	return true;
+	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
-bool MicronetCodec::BuildResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId)
+uint8_t MicronetCodec::EncodeResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId)
 {
 	int offset = 0;
 
@@ -586,14 +586,14 @@ bool MicronetCodec::BuildResetMessage(MicronetMessage_t *message, uint32_t netwo
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
 	// Message info
-	message->data[offset++] = 0x06;
+	message->data[offset++] = MICRONET_MESSAGE_ID_SET_PARAMETER;
 	message->data[offset++] = 0x09;
 	message->data[offset++] = 0x09;
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
-	message->data[offset++] = 0x0c;
-	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
 	// Data fields
 	message->data[offset++] = 0xfa;
 	message->data[offset++] = 0x4f;
@@ -612,7 +612,7 @@ bool MicronetCodec::BuildResetMessage(MicronetMessage_t *message, uint32_t netwo
 
 	WriteHeaderLengthAndCrc(message);
 
-	return true;
+	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
 void MicronetCodec::WriteHeaderLengthAndCrc(MicronetMessage_t *message)

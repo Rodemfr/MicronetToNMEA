@@ -567,6 +567,7 @@ void MenuConvertToNmea()
 	MicronetMessage_t txMessage;
 	static int count = 0;
 	SlotDef_t txSlot;
+	uint8_t payloadLength;
 
 	if (gConfiguration.networkId == 0)
 	{
@@ -595,23 +596,25 @@ void MenuConvertToNmea()
 						txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
 						if (txSlot.time_ms != 0)
 						{
-							if (txSlot.size < 52)
+							if ((count & 0x01) == 0)
+								payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
+							else
+								payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
+							count++;
+
+							if (txSlot.size < payloadLength)
 							{
 								txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-								gMicronetCodec.BuildSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
+								gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
 							}
-							else if ((count & 0x01) == 0)
-								gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
-							else
-								gMicronetCodec.BuildNavMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
-							count++;
+
 							while (micros() < txSlot.time_ms)
 								;
 						}
 						else
 						{
 							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
+							gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
 							while (micros() < txSlot.time_ms)
 								;
 						}
