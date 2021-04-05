@@ -71,16 +71,16 @@ bool NmeaEncoder::EncodeMWV_R(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->awa.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update |= (micronetData->aws.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= (micronetData->awa.valid && micronetData->aws.valid);
+	update |= (micronetData->awa_deg.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update |= (micronetData->aws_kt.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= (micronetData->awa_deg.valid && micronetData->aws_kt.valid);
 
 	if (update)
 	{
-		float absAwa = micronetData->awa.value;
+		float absAwa = micronetData->awa_deg.value;
 		if (absAwa < 0.0f)
 			absAwa += 360.0f;
-		sprintf(sentence, "$INMWV,%.1f,R,%.1f,N,A", absAwa, micronetData->aws.value);
+		sprintf(sentence, "$INMWV,%.1f,R,%.1f,N,A", absAwa, micronetData->aws_kt.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vwr = millis();
@@ -93,16 +93,16 @@ bool NmeaEncoder::EncodeMWV_T(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->twa.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update |= (micronetData->tws.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= (micronetData->twa.valid && micronetData->tws.valid);
+	update |= (micronetData->twa_deg.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update |= (micronetData->tws_kt.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= (micronetData->twa_deg.valid && micronetData->tws_kt.valid);
 
 	if (update)
 	{
-		float absTwa = micronetData->twa.value;
+		float absTwa = micronetData->twa_deg.value;
 		if (absTwa < 0.0f)
 			absTwa += 360.0f;
-		sprintf(sentence, "$INMWV,%.1f,T,%.1f,N,A", absTwa, micronetData->tws.value);
+		sprintf(sentence, "$INMWV,%.1f,T,%.1f,N,A", absTwa, micronetData->tws_kt.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vwt = millis();
@@ -115,13 +115,13 @@ bool NmeaEncoder::EncodeDPT(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->dpt.timeStamp > timeStamps.dpt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= micronetData->dpt.valid;
+	update |= (micronetData->dpt_m.timeStamp > timeStamps.dpt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= micronetData->dpt_m.valid;
 
 	if (update)
 	{
 		// TODO : Add distance to keel when it will be available from decoder data
-		sprintf(sentence, "$INDPT,%.1f,0.0", micronetData->dpt.value);
+		sprintf(sentence, "$INDPT,%.1f,0.0", micronetData->dpt_m.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.dpt = millis();
@@ -134,12 +134,12 @@ bool NmeaEncoder::EncodeMTW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->stp.timeStamp > timeStamps.mtw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= micronetData->stp.valid;
+	update |= (micronetData->stp_degc.timeStamp > timeStamps.mtw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= micronetData->stp_degc.valid;
 
 	if (update)
 	{
-		sprintf(sentence, "$INMTW,%.1f,C", micronetData->stp.value);
+		sprintf(sentence, "$INMTW,%.1f,C", micronetData->stp_degc.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.mtw = millis();
@@ -152,13 +152,13 @@ bool NmeaEncoder::EncodeVLW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->log.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update |= (micronetData->trip.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= (micronetData->log.valid && micronetData->trip.valid);
+	update |= (micronetData->log_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update |= (micronetData->trip_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= (micronetData->log_nm.valid && micronetData->trip_nm.valid);
 
 	if (update)
 	{
-		sprintf(sentence, "$INVLW,%.1f,N,%.1f,N", micronetData->log.value, micronetData->trip.value);
+		sprintf(sentence, "$INVLW,%.1f,N,%.1f,N", micronetData->log_nm.value, micronetData->trip_nm.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vlw = millis();
@@ -171,12 +171,12 @@ bool NmeaEncoder::EncodeVHW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->stw.timeStamp > timeStamps.vhw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= micronetData->stw.valid;
+	update |= (micronetData->stw_kt.timeStamp > timeStamps.vhw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= micronetData->stw_kt.valid;
 
 	if (update)
 	{
-		sprintf(sentence, "$INVHW,,T,,M,%.1f,N,,K", micronetData->stw.value);
+		sprintf(sentence, "$INVHW,,T,,M,%.1f,N,,K", micronetData->stw_kt.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vhw = millis();

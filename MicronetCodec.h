@@ -50,6 +50,11 @@
 /*                                Types                                    */
 /***************************************************************************/
 
+typedef struct {
+	uint32_t time_ms;
+	uint8_t size;
+} SlotDef_t;
+
 class MicronetCodec
 {
 public:
@@ -66,10 +71,12 @@ public:
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
 	void DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
-	uint32_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
-	uint32_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
+	SlotDef_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
+	SlotDef_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
 	bool BuildGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
-	bool BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
+	bool BuildNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
+	bool BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
+	bool BuildSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
 	bool BuildResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
 
 private:
@@ -84,6 +91,7 @@ private:
 	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
 	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
+	uint8_t AddQuad16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2, int16_t value3, int16_t value4);
 	uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
 	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 	uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);

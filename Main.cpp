@@ -195,7 +195,7 @@ void loop()
 	firstLoop = false;
 }
 
-void serialEvent1()
+void GNSS_CALLBACK()
 {
 	// This callback is call each time we received data from the NMEA GNSS
 	while (GNSS_SERIAL.available() > 0)
@@ -341,9 +341,9 @@ void PrintRawMessage(MicronetMessage_t *message)
 		CONSOLE.print(" ");
 	}
 	CONSOLE.print(" (");
-	CONSOLE.print((int) message->len);
-	CONSOLE.print(",");
 	CONSOLE.print((int) message->rssi);
+	CONSOLE.print(",");
+	CONSOLE.print((int) message->timeStamp_us);
 	CONSOLE.print(")");
 
 	CONSOLE.println();
@@ -563,9 +563,10 @@ void MenuConvertToNmea()
 {
 	bool exitNmeaLoop = false;
 	char nmeaSentence[256];
-	uint32_t txSlot;
 	MicronetMessage_t *rxMessage;
 	MicronetMessage_t txMessage;
+	static int count = 0;
+	SlotDef_t txSlot;
 
 	if (gConfiguration.networkId == 0)
 	{
@@ -592,38 +593,51 @@ void MenuConvertToNmea()
 					if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 					{
 						txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
-						if (txSlot != 0)
+						if (txSlot.time_ms != 0)
 						{
-							gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
-									&gNavData);
-							while (micros() < txSlot)
+							if (txSlot.size < 52)
+							{
+								txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
+								gMicronetCodec.BuildSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
+							}
+							else if ((count & 0x01) == 0)
+								gMicronetCodec.BuildGnssMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
+							else
+								gMicronetCodec.BuildNavMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
+							count++;
+							while (micros() < txSlot.time_ms)
 								;
 						}
 						else
 						{
 							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId);
-							while (micros() < txSlot)
+							gMicronetCodec.BuildSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
+							while (micros() < txSlot.time_ms)
 								;
 						}
 						RfTxMessage(&txMessage);
 						RfFlushAndRestartRx();
+//						PrintRawMessage(rxMessage);
+//						PrintRawMessage(&txMessage);
 					}
 
 					gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
 
+					gNavData.dpt_m.value = 12.5;
+					gNavData.dpt_m.valid = true;
+					gNavData.dpt_m.timeStamp = millis();
 					if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
-						CONSOLE.print(nmeaSentence);
+						NMEA_OUT.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
-						CONSOLE.print(nmeaSentence);
+						NMEA_OUT.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
-						CONSOLE.print(nmeaSentence);
+						NMEA_OUT.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
-						CONSOLE.print(nmeaSentence);
+						NMEA_OUT.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
-						CONSOLE.print(nmeaSentence);
+						NMEA_OUT.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
-						CONSOLE.print(nmeaSentence);
+						NMEA_OUT.print(nmeaSentence);
 					if (gNavData.calibrationUpdated)
 					{
 						gNavData.calibrationUpdated = false;
@@ -637,9 +651,15 @@ void MenuConvertToNmea()
 		int nbGnssSentences = gGnssDecoder.GetNbSentences();
 		for (int i = 0; i < nbGnssSentences; i++)
 		{
-			CONSOLE.println(gGnssDecoder.GetSentence(i));
+			NMEA_OUT.println(gGnssDecoder.GetSentence(i));
 		}
 		gGnssDecoder.resetSentences();
+
+		while (NMEA_IN.available() > 0)
+		{
+			gNavDecoder.PushChar(NMEA_IN.read(), &gNavData);
+		}
+		gNavDecoder.resetSentences();
 
 		while (CONSOLE.available() > 0)
 		{
@@ -649,6 +669,8 @@ void MenuConvertToNmea()
 				exitNmeaLoop = true;
 			}
 		}
+
+		gNavData.UpdateValidity();
 
 		yield();
 	} while (!exitNmeaLoop);
@@ -695,13 +717,13 @@ void MenuScanAllMicronetTraffic()
 void SaveCalibration()
 {
 	gConfiguration.waterSpeedFactor_per = gNavData.waterSpeedFactor_per;
-	gConfiguration.waterTemperatureOffset_C = gNavData.waterTemperatureOffset_C;
+	gConfiguration.waterTemperatureOffset_C = gNavData.waterTemperatureOffset_degc;
 	gConfiguration.depthOffset_m = gNavData.depthOffset_m;
 	gConfiguration.windSpeedFactor_per = gNavData.windSpeedFactor_per;
 	gConfiguration.windDirectionOffset_deg = gNavData.windDirectionOffset_deg;
 	gConfiguration.headingOffset_deg = gNavData.headingOffset_deg;
 	gConfiguration.magneticVariation_deg = gNavData.magneticVariation_deg;
-	gConfiguration.windShift = gNavData.windShift;
+	gConfiguration.windShift = gNavData.windShift_min;
 
 	gConfiguration.SaveToEeprom();
 }
@@ -709,13 +731,13 @@ void SaveCalibration()
 void LoadCalibration()
 {
 	gNavData.waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
-	gNavData.waterTemperatureOffset_C = gConfiguration.waterTemperatureOffset_C;
+	gNavData.waterTemperatureOffset_degc = gConfiguration.waterTemperatureOffset_C;
 	gNavData.depthOffset_m = gConfiguration.depthOffset_m;
 	gNavData.windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
 	gNavData.windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
 	gNavData.headingOffset_deg = gConfiguration.headingOffset_deg;
 	gNavData.magneticVariation_deg = gConfiguration.magneticVariation_deg;
-	gNavData.windShift = gConfiguration.windShift;
+	gNavData.windShift_min = gConfiguration.windShift;
 
 	gConfiguration.SaveToEeprom();
 }

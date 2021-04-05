@@ -79,9 +79,11 @@ void NmeaDecoder::PushChar(char c, NavigationData *navData)
 
 	if (c == 13)
 	{
-		if ((writeIndex >= 10) && (sentenceWriteIndex < NMEA_SENTENCE_HISTORY_SIZE))
+		if ((writeIndex >= 10)
+				&& (sentenceWriteIndex < NMEA_SENTENCE_HISTORY_SIZE))
 		{
-			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer, writeIndex);
+			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer,
+					writeIndex);
 			sentenceBuffer[sentenceWriteIndex][writeIndex] = 0;
 			DecodeSentence(sentenceWriteIndex, navData);
 			sentenceWriteIndex++;
@@ -148,6 +150,9 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 	char *pField = sentenceBuffer[sentenceIndex] + 7;
 	switch (sId)
 	{
+	case 'RMB':
+		DecodeRMBSentence(pField, navData);
+		break;
 	case 'RMC':
 		DecodeRMCSentence(pField, navData);
 		break;
@@ -160,6 +165,60 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 	}
 
 	return;
+}
+
+void NmeaDecoder::DecodeRMBSentence(char *sentence, NavigationData *navData)
+{
+	float value;
+
+	if (sentence[0] != 'A')
+	{
+		return;
+	}
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		navData->xte_nm.value = value;
+		navData->xte_nm.valid = true;
+		navData->xte_nm.timeStamp = millis();
+	}
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sentence[0] == 'R')
+		navData->xte_nm.value = -navData->xte_nm.value;
+	for (int i = 0; i < 7; i++)
+	{
+		if ((sentence = strchr(sentence, ',')) == nullptr)
+			return;
+		sentence++;
+	}
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		navData->dtw_nm.value = value;
+		navData->dtw_nm.valid = true;
+		navData->dtw_nm.timeStamp = millis();
+	}
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		navData->btw_deg.value = value;
+		navData->btw_deg.valid = true;
+		navData->btw_deg.timeStamp = millis();
+	}
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		navData->vmc_kt.value = value;
+		navData->vmc_kt.valid = true;
+		navData->vmc_kt.timeStamp = millis();
+	}
 }
 
 void NmeaDecoder::DecodeRMCSentence(char *sentence, NavigationData *navData)
@@ -199,11 +258,11 @@ void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 	{
 		degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
 		sscanf(sentence + 2, "%f,", &mins);
-		navData->latitude.value = degs + mins / 60.0f;
+		navData->latitude_deg.value = degs + mins / 60.0f;
 		if (sentence[8] == 'S')
-			navData->latitude.value = -navData->latitude.value;
-		navData->latitude.valid = true;
-		navData->latitude.timeStamp = millis();
+			navData->latitude_deg.value = -navData->latitude_deg.value;
+		navData->latitude_deg.valid = true;
+		navData->latitude_deg.timeStamp = millis();
 	}
 	for (int i = 0; i < 2; i++)
 	{
@@ -213,13 +272,14 @@ void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 	}
 	if (sentence[0] != ',')
 	{
-		degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
+		degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10
+				+ (sentence[2] - '0');
 		sscanf(sentence + 2, "%f,", &mins);
-		navData->longitude.value = degs + mins / 60.0f;
+		navData->longitude_deg.value = degs + mins / 60.0f;
 		if (sentence[9] == 'W')
-			navData->longitude.value = -navData->longitude.value;
-		navData->longitude.valid = true;
-		navData->longitude.timeStamp = millis();
+			navData->longitude_deg.value = -navData->longitude_deg.value;
+		navData->longitude_deg.valid = true;
+		navData->longitude_deg.timeStamp = millis();
 	}
 }
 
@@ -232,11 +292,11 @@ void NmeaDecoder::DecodeVTGSentence(char *sentence, NavigationData *navData)
 			return;
 		sentence++;
 	}
-	if ((value = sscanf(sentence, "%f", &value)) == 1)
+	if (sscanf(sentence, "%f", &value) == 1)
 	{
-		navData->cog.value = value;
-		navData->cog.valid = true;
-		navData->cog.timeStamp = millis();
+		navData->cog_deg.value = value;
+		navData->cog_deg.valid = true;
+		navData->cog_deg.timeStamp = millis();
 	}
 	for (int i = 0; i < 2; i++)
 	{
@@ -244,11 +304,11 @@ void NmeaDecoder::DecodeVTGSentence(char *sentence, NavigationData *navData)
 			return;
 		sentence++;
 	}
-	if ((value = sscanf(sentence, "%f", &value)) == 1)
+	if (sscanf(sentence, "%f", &value) == 1)
 	{
-		navData->sog.value = value;
-		navData->sog.valid = true;
-		navData->sog.timeStamp = millis();
+		navData->sog_kt.value = value;
+		navData->sog_kt.valid = true;
+		navData->sog_kt.timeStamp = millis();
 	}
 }
 

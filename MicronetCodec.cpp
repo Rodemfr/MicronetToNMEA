@@ -142,8 +142,6 @@ void MicronetCodec::DecodeMessage(MicronetMessage_t *message, NavigationData *da
 		DecodeSetParameterMessage(message, dataSet);
 		break;
 	}
-
-	// TODO : make invalid values which have not been updated for too long (3s ?)
 }
 
 void MicronetCodec::DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet)
@@ -185,7 +183,7 @@ void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message, Naviga
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
 			int32_t value = (int8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			dataSet->waterTemperatureOffset_C = ((float) value) / 2.0f;
+			dataSet->waterTemperatureOffset_degc = ((float) value) / 2.0f;
 			dataSet->calibrationUpdated = true;
 		}
 		break;
@@ -229,7 +227,7 @@ void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message, Naviga
 		if (message->data[MICRONET_PAYLOAD_OFFSET + 2] == 1)
 		{
 			uint8_t value = (uint8_t) message->data[MICRONET_PAYLOAD_OFFSET + 3];
-			dataSet->windShift = (float) value;
+			dataSet->windShift_min = (float) value;
 			dataSet->calibrationUpdated = true;
 		}
 		break;
@@ -300,9 +298,9 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int8_t value, Navigation
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_STP:
-		dataSet->stp.value = (((float) value) / 2.0f) + dataSet->waterTemperatureOffset_C;
-		dataSet->stp.valid = true;
-		dataSet->stp.timeStamp = millis();
+		dataSet->stp_degc.value = (((float) value) / 2.0f) + dataSet->waterTemperatureOffset_degc;
+		dataSet->stp_degc.valid = true;
+		dataSet->stp_degc.timeStamp = millis();
 		break;
 	}
 }
@@ -314,26 +312,26 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value, Navigatio
 	switch (fieldId)
 	{
 	case MICRONET_FIELD_ID_STW:
-		dataSet->stw.value = (((float) value) / 100.0f) * dataSet->waterSpeedFactor_per;
-		dataSet->stw.valid = true;
-		dataSet->stw.timeStamp = millis();
+		dataSet->stw_kt.value = (((float) value) / 100.0f) * dataSet->waterSpeedFactor_per;
+		dataSet->stw_kt.valid = true;
+		dataSet->stw_kt.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_DPT:
 		if (value < MAXIMUM_VALID_DEPTH_FT * 10)
 		{
-			dataSet->dpt.value = (((float) value) * 0.3048f / 10.0f) + dataSet->depthOffset_m;
-			dataSet->dpt.valid = true;
-			dataSet->dpt.timeStamp = millis();
+			dataSet->dpt_m.value = (((float) value) * 0.3048f / 10.0f) + dataSet->depthOffset_m;
+			dataSet->dpt_m.valid = true;
+			dataSet->dpt_m.timeStamp = millis();
 		}
 		else
 		{
-			dataSet->dpt.valid = false;
+			dataSet->dpt_m.valid = false;
 		}
 		break;
 	case MICRONET_FIELD_ID_AWS:
-		dataSet->aws.value = (((float) value) / 10.0f) * dataSet->windSpeedFactor_per;
-		dataSet->aws.valid = true;
-		dataSet->aws.timeStamp = millis();
+		dataSet->aws_kt.value = (((float) value) / 10.0f) * dataSet->windSpeedFactor_per;
+		dataSet->aws_kt.valid = true;
+		dataSet->aws_kt.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_AWA:
 		newValue = ((float) value) + dataSet->windDirectionOffset_deg;
@@ -341,14 +339,14 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value, Navigatio
 			newValue -= 360.0f;
 		if (newValue < -180.0f)
 			newValue += 360.0f;
-		dataSet->awa.value = newValue;
-		dataSet->awa.valid = true;
-		dataSet->awa.timeStamp = millis();
+		dataSet->awa_deg.value = newValue;
+		dataSet->awa_deg.valid = true;
+		dataSet->awa_deg.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_VCC:
-		dataSet->vcc.value = ((float) value) / 10.0f;
-		dataSet->vcc.valid = true;
-		dataSet->vcc.timeStamp = millis();
+		dataSet->vcc_v.value = ((float) value) / 10.0f;
+		dataSet->vcc_v.valid = true;
+		dataSet->vcc_v.timeStamp = millis();
 		break;
 	}
 }
@@ -359,34 +357,34 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t 
 	{
 	case MICRONET_FIELD_ID_LOG:
 		// TODO : Shall speed factor be applied on log ?
-		dataSet->trip.value = ((float) value1) / 100.0f;
-		dataSet->trip.valid = true;
-		dataSet->trip.timeStamp = millis();
-		dataSet->log.value = ((float) value2) / 10.0f;
-		dataSet->log.valid = true;
-		dataSet->log.timeStamp = millis();
+		dataSet->trip_nm.value = ((float) value1) / 100.0f;
+		dataSet->trip_nm.valid = true;
+		dataSet->trip_nm.timeStamp = millis();
+		dataSet->log_nm.value = ((float) value2) / 10.0f;
+		dataSet->log_nm.valid = true;
+		dataSet->log_nm.timeStamp = millis();
 		break;
 	}
 }
 
 void MicronetCodec::CalculateTrueWind(NavigationData *dataSet)
 {
-	if ((dataSet->awa.valid) && (dataSet->aws.valid) && (dataSet->stw.valid))
+	if ((dataSet->awa_deg.valid) && (dataSet->aws_kt.valid) && (dataSet->stw_kt.valid))
 	{
-		if ((!dataSet->twa.valid) || (!dataSet->tws.valid) || (dataSet->awa.timeStamp > dataSet->twa.timeStamp)
-				|| (dataSet->aws.timeStamp > dataSet->tws.timeStamp) || (dataSet->stw.timeStamp > dataSet->twa.timeStamp))
+		if ((!dataSet->twa_deg.valid) || (!dataSet->tws_kt.valid) || (dataSet->awa_deg.timeStamp > dataSet->twa_deg.timeStamp)
+				|| (dataSet->aws_kt.timeStamp > dataSet->tws_kt.timeStamp) || (dataSet->stw_kt.timeStamp > dataSet->twa_deg.timeStamp))
 		{
 			float twLon, twLat;
-			twLon = (dataSet->aws.value * cosf(dataSet->awa.value * M_PI / 180.0f)) - dataSet->stw.value;
-			twLat = (dataSet->aws.value * sinf(dataSet->awa.value * M_PI / 180.0f));
+			twLon = (dataSet->aws_kt.value * cosf(dataSet->awa_deg.value * M_PI / 180.0f)) - dataSet->stw_kt.value;
+			twLat = (dataSet->aws_kt.value * sinf(dataSet->awa_deg.value * M_PI / 180.0f));
 
-			dataSet->tws.value = sqrtf(twLon * twLon + twLat * twLat);
-			dataSet->tws.valid = true;
-			dataSet->tws.timeStamp = millis();
+			dataSet->tws_kt.value = sqrtf(twLon * twLon + twLat * twLat);
+			dataSet->tws_kt.valid = true;
+			dataSet->tws_kt.timeStamp = millis();
 
-			dataSet->twa.value = atan2f(twLat, twLon) * 180.0f / M_PI;
-			dataSet->twa.valid = true;
-			dataSet->twa.timeStamp = millis();
+			dataSet->twa_deg.value = atan2f(twLat, twLon) * 180.0f / M_PI;
+			dataSet->twa_deg.valid = true;
+			dataSet->twa_deg.timeStamp = millis();
 		}
 	}
 }
@@ -406,7 +404,7 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
 	// Message info
-	message->data[offset++] = 0x02;
+	message->data[offset++] = MICRONET_MESSAGE_ID_SEND_DATA;
 	message->data[offset++] = 0x01;
 	message->data[offset++] = 0x09;
 	// Header CRC
@@ -424,13 +422,13 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE,
 				(navData->date.day << 16) + (navData->date.month << 8) + navData->date.year);
 	}
-	if ((navData->sog.valid) || (navData->cog.valid))
+	if ((navData->sog_kt.valid) || (navData->cog_deg.valid))
 	{
-		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog.value, navData->cog.value);
+		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog_kt.value, navData->cog_deg.value);
 	}
-	if ((navData->latitude.valid) || (navData->longitude.valid))
+	if ((navData->latitude_deg.valid) || (navData->longitude_deg.valid))
 	{
-		offset += AddPositionField(message->data + offset, navData->latitude.value, navData->longitude.value);
+		offset += AddPositionField(message->data + offset, navData->latitude_deg.value, navData->longitude_deg.value);
 	}
 
 	message->len = offset;
@@ -440,7 +438,7 @@ bool MicronetCodec::BuildGnssMessage(MicronetMessage_t *message, uint32_t networ
 	return true;
 }
 
-bool MicronetCodec::BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId)
+bool MicronetCodec::BuildNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData)
 {
 	int offset = 0;
 
@@ -455,7 +453,99 @@ bool MicronetCodec::BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
 	// Message info
-	message->data[offset++] = 0x03;
+	message->data[offset++] = MICRONET_MESSAGE_ID_SEND_DATA;
+	message->data[offset++] = 0x01;
+	message->data[offset++] = 0x09;
+	// Header CRC
+	message->data[offset++] = 0x00;
+	// Message size
+	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x0c;
+	// Data fields
+	if (navData->time.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (navData->time.hour << 8) + navData->time.minute);
+	}
+	if (navData->xte_nm.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_XTE, (short) (navData->xte_nm.value * 100));
+	}
+	if (navData->dtw_nm.valid)
+	{
+		offset += Add32bitField(message->data + offset, MICRONET_FIELD_ID_DTW, (short) (navData->dtw_nm.value * 100));
+	}
+	if (navData->btw_deg.valid)
+	{
+		offset += AddQuad16bitField(message->data + offset, MICRONET_FIELD_ID_BTW, (short) navData->btw_deg.value, 0, 0, 0);
+	}
+	if (navData->vmc_kt.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_VMGWP, (short) (navData->vmc_kt.value * 100));
+	}
+
+	message->len = offset;
+
+	WriteHeaderLengthAndCrc(message);
+
+	return true;
+}
+
+bool MicronetCodec::BuildSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength)
+{
+	int offset = 0;
+
+	// Network ID
+	message->data[offset++] = (networkId >> 24) & 0xff;
+	message->data[offset++] = (networkId >> 16) & 0xff;
+	message->data[offset++] = (networkId >> 8) & 0xff;
+	message->data[offset++] = networkId & 0xff;
+	// Device ID
+	message->data[offset++] = (deviceId >> 24) & 0xff;
+	message->data[offset++] = (deviceId >> 16) & 0xff;
+	message->data[offset++] = (deviceId >> 8) & 0xff;
+	message->data[offset++] = deviceId & 0xff;
+	// Message info
+	message->data[offset++] = MICRONET_MESSAGE_ID_UPDATE_SLOT;
+	message->data[offset++] = 0x09;
+	message->data[offset++] = 0x01;
+	// Header CRC
+	message->data[offset++] = 0x00;
+	// Message size
+	message->data[offset++] = 0x0c;
+	message->data[offset++] = 0x0c;
+	// Data fields
+	message->data[offset++] = payloadLength;
+
+	uint8_t crc = 0;
+	for (int i = MICRONET_PAYLOAD_OFFSET; i < offset; i++)
+	{
+		crc += message->data[i];
+	}
+	message->data[offset++] = crc;
+
+	message->len = offset;
+
+	WriteHeaderLengthAndCrc(message);
+
+	return true;
+}
+
+bool MicronetCodec::BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength)
+{
+	int offset = 0;
+
+	// Network ID
+	message->data[offset++] = (networkId >> 24) & 0xff;
+	message->data[offset++] = (networkId >> 16) & 0xff;
+	message->data[offset++] = (networkId >> 8) & 0xff;
+	message->data[offset++] = networkId & 0xff;
+	// Device ID
+	message->data[offset++] = (deviceId >> 24) & 0xff;
+	message->data[offset++] = (deviceId >> 16) & 0xff;
+	message->data[offset++] = (deviceId >> 8) & 0xff;
+	message->data[offset++] = deviceId & 0xff;
+	// Message info
+	message->data[offset++] = MICRONET_MESSAGE_ID_REQUEST_SLOT;
 	message->data[offset++] = 0x09;
 	message->data[offset++] = 0x01;
 	// Header CRC
@@ -465,7 +555,7 @@ bool MicronetCodec::BuildSlotRequestMessage(MicronetMessage_t *message, uint32_t
 	message->data[offset++] = 0x0c;
 	// Data fields
 	message->data[offset++] = 0x00;
-	message->data[offset++] = 0x20;
+	message->data[offset++] = payloadLength;
 
 	uint8_t crc = 0;
 	for (int i = MICRONET_PAYLOAD_OFFSET; i < offset; i++)
@@ -605,6 +695,33 @@ uint8_t MicronetCodec::AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int
 	return offset;
 }
 
+uint8_t MicronetCodec::AddQuad16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2, int16_t value3, int16_t value4)
+{
+	int offset = 0;
+
+	buffer[offset++] = 0x0a;
+	buffer[offset++] = fieldCode;
+	buffer[offset++] = 0x05;
+
+	buffer[offset++] = (value1 >> 8) & 0xff;
+	buffer[offset++] = value1 & 0xff;
+	buffer[offset++] = (value2 >> 8) & 0xff;
+	buffer[offset++] = value2 & 0xff;
+	buffer[offset++] = (value3 >> 8) & 0xff;
+	buffer[offset++] = value3 & 0xff;
+	buffer[offset++] = (value4 >> 8) & 0xff;
+	buffer[offset++] = value4 & 0xff;
+
+	uint8_t crc = 0;
+	for (int i = offset - 11; i < offset; i++)
+	{
+		crc += buffer[i];
+	}
+	buffer[offset++] = crc;
+
+	return offset;
+}
+
 uint8_t MicronetCodec::Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value)
 {
 	int offset = 0;
@@ -698,13 +815,14 @@ uint8_t MicronetCodec::AddPositionField(uint8_t *buffer, float latitude, float l
 	return offset;
 }
 
-uint32_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId)
+SlotDef_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId)
 {
 	uint32_t messageLength = message->len;
 	uint32_t offset;
 	uint32_t txDelayUs;
 	uint32_t nbDevices, nbSlots;
 	uint32_t payloadBits;
+	uint8_t payloadBytes;
 	uint32_t currentDeviceId;
 
 	uint8_t crc = 0;
@@ -714,7 +832,10 @@ uint32_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uint
 	}
 
 	if (crc != message->data[messageLength - 1])
-		return 0;
+	{
+		return
+		{	0,0};
+	}
 
 	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
 
@@ -723,27 +844,31 @@ uint32_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uint
 	for (uint32_t i = 1; i < nbDevices; i++)
 	{
 		// A payload length of zero indicates that there is not slot reserved for the corresponding device.
+		currentDeviceId = message->data[MICRONET_PAYLOAD_OFFSET + i * 5] << 24;
+		currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 1] << 16;
+		currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 2] << 8;
+		currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 3];
+		payloadBytes = message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4];
+
+		if (currentDeviceId == deviceId)
+		{
+			txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS)
+					/ 1000;
+			return
+			{	message->timeStamp_us + txDelayUs, payloadBytes};
+		}
 		if (message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] != 0)
 		{
-			currentDeviceId = message->data[MICRONET_PAYLOAD_OFFSET + i * 5] << 24;
-			currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 1] << 16;
-			currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 2] << 8;
-			currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 3];
-			if (currentDeviceId == deviceId)
-			{
-				txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits)
-						* BIT_LENGTH_IN_NS) / 1000;
-				return message->timeStamp_us + txDelayUs;
-			}
 			nbSlots++;
-			payloadBits += message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] << 3;
+			payloadBits += payloadBytes << 3;
 		}
 	}
 
-	return 0;
+	return
+	{	0,0};
 }
 
-uint32_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
+SlotDef_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 {
 	uint32_t messageLength = message->len;
 	uint32_t offset;
@@ -758,7 +883,8 @@ uint32_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 	}
 
 	if (crc != message->data[messageLength - 1])
-		return 0;
+		return
+		{	0,0};
 
 	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
 
@@ -774,9 +900,9 @@ uint32_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 		}
 	}
 
-	txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS)
-			/ 1000;
+	txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS) / 1000;
 	txDelayUs += 10000;
 
-	return message->timeStamp_us + txDelayUs;
+	return
+	{	message->timeStamp_us + txDelayUs, 40};
 }

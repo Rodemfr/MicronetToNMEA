@@ -59,32 +59,32 @@
 
 NavigationData::NavigationData()
 {
-	stw.valid = false;
-	awa.valid = false;
-	aws.valid = false;
-	twa.valid = false;
-	tws.valid = false;
-	dpt.valid = false;
-	vcc.valid = false;
-	log.valid = false;
-	trip.valid = false;
-	stp.valid = false;
+	stw_kt.valid = false;
+	awa_deg.valid = false;
+	aws_kt.valid = false;
+	twa_deg.valid = false;
+	tws_kt.valid = false;
+	dpt_m.valid = false;
+	vcc_v.valid = false;
+	log_nm.valid = false;
+	trip_nm.valid = false;
+	stp_degc.valid = false;
 	time.valid = false;
 	date.valid = false;
-	latitude.valid = false;
-	longitude.valid = false;
-	cog.valid = false;
-	sog.valid = false;
+	latitude_deg.valid = false;
+	longitude_deg.valid = false;
+	cog_deg.valid = false;
+	sog_kt.valid = false;
 
 	calibrationUpdated = false;
 	waterSpeedFactor_per = 0.0f;
-	waterTemperatureOffset_C = 0.0f;
+	waterTemperatureOffset_degc = 0.0f;
 	depthOffset_m = 0.0f;
 	windSpeedFactor_per = 0.0f;
 	windDirectionOffset_deg = 0.0f;
 	headingOffset_deg = 0.0f;
 	magneticVariation_deg = 0.0f;
-	windShift = 0.0f;
+	windShift_min = 0.0f;
 }
 
 NavigationData::~NavigationData()
@@ -94,68 +94,45 @@ NavigationData::~NavigationData()
 void NavigationData::UpdateValidity()
 {
 	uint32_t currentTime = millis();
-	if (awa.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		awa.valid = false;
-	}
-	if (aws.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		aws.valid = false;
-	}
-	if (dpt.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		dpt.valid = false;
-	}
-	if (log.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		log.valid = false;
-	}
-	if (stp.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		stp.valid = false;
-	}
-	if (stw.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		stw.valid = false;
-	}
-	if (trip.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		trip.valid = false;
-	}
-	if (twa.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		twa.valid = false;
-	}
-	if (tws.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		tws.valid = false;
-	}
-	if (vcc.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		vcc.valid = false;
-	}
-	if (time.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
+
+	if (currentTime - awa_deg.timeStamp > VALIDITY_TIME_MS)
+		awa_deg.valid = false;
+	if (currentTime - aws_kt.timeStamp > VALIDITY_TIME_MS)
+		aws_kt.valid = false;
+	if (currentTime - dpt_m.timeStamp > VALIDITY_TIME_MS)
+		dpt_m.valid = false;
+	if (currentTime - log_nm.timeStamp > VALIDITY_TIME_MS)
+		log_nm.valid = false;
+	if (currentTime - stp_degc.timeStamp > VALIDITY_TIME_MS)
+		stp_degc.valid = false;
+	if (currentTime - stw_kt.timeStamp > VALIDITY_TIME_MS)
+		stw_kt.valid = false;
+	if (currentTime - trip_nm.timeStamp > VALIDITY_TIME_MS)
+		trip_nm.valid = false;
+	if (currentTime - twa_deg.timeStamp > VALIDITY_TIME_MS)
+		twa_deg.valid = false;
+	if (currentTime - tws_kt.timeStamp > VALIDITY_TIME_MS)
+		tws_kt.valid = false;
+	if (currentTime - vcc_v.timeStamp > VALIDITY_TIME_MS)
+		vcc_v.valid = false;
+	if (currentTime - time.timeStamp > VALIDITY_TIME_MS)
 		time.valid = false;
-	}
-	if (date.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
+	if (currentTime - date.timeStamp > VALIDITY_TIME_MS)
 		date.valid = false;
-	}
-	if (latitude.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		latitude.valid = false;
-	}
-	if (longitude.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		longitude.valid = false;
-	}
-	if (cog.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		cog.valid = false;
-	}
-	if (sog.timeStamp - currentTime > VALIDITY_TIME_MS)
-	{
-		sog.valid = false;
-	}
+	if (currentTime - latitude_deg.timeStamp > VALIDITY_TIME_MS)
+		latitude_deg.valid = false;
+	if (currentTime - longitude_deg.timeStamp > VALIDITY_TIME_MS)
+		longitude_deg.valid = false;
+	if (currentTime - cog_deg.timeStamp > VALIDITY_TIME_MS)
+		cog_deg.valid = false;
+	if (currentTime - sog_kt.timeStamp > VALIDITY_TIME_MS)
+		sog_kt.valid = false;
+	if (currentTime - xte_nm.timeStamp > VALIDITY_TIME_MS)
+		xte_nm.valid = false;
+	if (currentTime - dtw_nm.timeStamp > VALIDITY_TIME_MS)
+		dtw_nm.valid = false;
+	if (currentTime - btw_deg.timeStamp > VALIDITY_TIME_MS)
+		btw_deg.valid = false;
+	if (currentTime - vmc_kt.timeStamp > VALIDITY_TIME_MS)
+		vmc_kt.valid = false;
 }

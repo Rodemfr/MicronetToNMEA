@@ -79,33 +79,37 @@ public:
 
 	void UpdateValidity();
 
-	FloatValue_t stw;
-	FloatValue_t awa;
-	FloatValue_t aws;
-	FloatValue_t twa;
-	FloatValue_t tws;
-	FloatValue_t dpt;
-	FloatValue_t vcc;
-	FloatValue_t log;
-	FloatValue_t trip;
-	FloatValue_t stp;
+	FloatValue_t stw_kt;
+	FloatValue_t awa_deg;
+	FloatValue_t aws_kt;
+	FloatValue_t twa_deg;
+	FloatValue_t tws_kt;
+	FloatValue_t dpt_m;
+	FloatValue_t vcc_v;
+	FloatValue_t log_nm;
+	FloatValue_t trip_nm;
+	FloatValue_t stp_degc;
 
 	TimeValue_t time;
 	DateValue_t date;
-	FloatValue_t latitude;
-	FloatValue_t longitude;
-	FloatValue_t cog;
-	FloatValue_t sog;
+	FloatValue_t latitude_deg;
+	FloatValue_t longitude_deg;
+	FloatValue_t cog_deg;
+	FloatValue_t sog_kt;
+	FloatValue_t xte_nm;
+	FloatValue_t dtw_nm;
+	FloatValue_t btw_deg;
+	FloatValue_t vmc_kt;
 
 	bool calibrationUpdated;
 	float waterSpeedFactor_per;
-	float waterTemperatureOffset_C;
+	float waterTemperatureOffset_degc;
 	float depthOffset_m;
 	float windSpeedFactor_per;
 	float windDirectionOffset_deg;
 	float headingOffset_deg;
 	float magneticVariation_deg;
-	float windShift;
+	float windShift_min;
 };
 
 #endif /* NAVIGATIONDATA_H_ */

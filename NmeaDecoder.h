@@ -39,7 +39,7 @@
 /***************************************************************************/
 
 #define NMEA_SENTENCE_MAX_LENGTH   96
-#define NMEA_SENTENCE_HISTORY_SIZE 8
+#define NMEA_SENTENCE_HISTORY_SIZE 16
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -63,6 +63,7 @@ private:
 	int sentenceWriteIndex;
 
 	void DecodeSentence(int sentenceIndex, NavigationData *navData);
+	void DecodeRMBSentence(char *sentence, NavigationData *navData);
 	void DecodeRMCSentence(char *sentence, NavigationData *navData);
 	void DecodeGGASentence(char *sentence, NavigationData *navData);
 	void DecodeVTGSentence(char *sentence, NavigationData *navData);

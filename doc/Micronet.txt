@@ -236,15 +236,27 @@ FC = Field checksum. Sum of the all the byte of the field.
 *** Message 0x03 (Request Data Slot) ***
 ****************************************
 
-When a device is not listed in the "Request Data" schedule. It can request a transmission slot to the master device with this
+When a device is not listed in the synchronous data schedule. It can request a transmission slot to the master device with this
 command.
-
-Here is the format (with an example) :
 
 |01 0A 8B 60|01|0B 8B 60|03|01|09|FA|0F 0F|00 1A|1A|
 |    NUID   |DT|  DID   |MI|SO|DE|CS| LEN | PL  |PC|
 
 PL - Maximum payload length of a message using this slot
+
+PC - Checksum of the entire payload
+
+***************************************
+*** Message 0x05 (Resize Data Slot) ***
+***************************************
+
+When a device wants to change the size of its maximum payload in the synchronous data schedule, it can use this command. The payload size will
+be updated at next cycle. 
+
+|83 03 77 37|01 0B C0 22|05|01|09|31|0E 0E|3D|3D|
+|    NUID   |DT|  DID   |MI|SO|DE|CS| LEN |NL|PC|
+
+NL - New payload length
 
 PC - Checksum of the entire payload
 
