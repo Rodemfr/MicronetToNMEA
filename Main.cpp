@@ -623,8 +623,6 @@ void MenuConvertToNmea()
 						}
 						RfTxMessage(&txMessage);
 						RfFlushAndRestartRx();
-						PrintRawMessage(rxMessage);
-						PrintRawMessage(&txMessage);
 					}
 
 					gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
