@@ -49,6 +49,8 @@
 
 #define MAX_SCANNED_NETWORKS  5
 
+#define WAIT_TIME_US(t) {while (micros() < t);}
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
@@ -597,38 +599,36 @@ void MenuConvertToNmea()
 						if (txSlot.time_ms != 0)
 						{
 							if ((count & 0x01) == 0)
-								payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
+								payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId,
+										gConfiguration.deviceId, &gNavData);
 							else
-								payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, &gNavData);
+								payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId,
+										gConfiguration.deviceId, &gNavData);
 							count++;
 
 							if (txSlot.size < payloadLength)
 							{
 								txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-								gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
+								gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
+										payloadLength);
 							}
 
-							while (micros() < txSlot.time_ms)
-								;
+							WAIT_TIME_US(txSlot.time_ms);
 						}
 						else
 						{
 							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
 							gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
-							while (micros() < txSlot.time_ms)
-								;
+							WAIT_TIME_US(txSlot.time_ms);
 						}
 						RfTxMessage(&txMessage);
 						RfFlushAndRestartRx();
-//						PrintRawMessage(rxMessage);
-//						PrintRawMessage(&txMessage);
+						PrintRawMessage(rxMessage);
+						PrintRawMessage(&txMessage);
 					}
 
 					gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
 
-					gNavData.dpt_m.value = 12.5;
-					gNavData.dpt_m.valid = true;
-					gNavData.dpt_m.timeStamp = millis();
 					if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
 						NMEA_OUT.print(nmeaSentence);
 					if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
