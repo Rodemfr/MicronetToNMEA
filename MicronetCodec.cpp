@@ -423,7 +423,7 @@ uint8_t MicronetCodec::EncodeGnssMessage(MicronetMessage_t *message, uint32_t ne
 	}
 	if ((navData->sog_kt.valid) || (navData->cog_deg.valid))
 	{
-		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog_kt.value, navData->cog_deg.value);
+		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog_kt.value * 10.0f, navData->cog_deg.value);
 	}
 	if ((navData->latitude_deg.valid) || (navData->longitude_deg.valid))
 	{

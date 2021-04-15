@@ -286,19 +286,15 @@ void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 void NmeaDecoder::DecodeVTGSentence(char *sentence, NavigationData *navData)
 {
 	float value;
-	for (int i = 0; i < 2; i++)
-	{
-		if ((sentence = strchr(sentence, ',')) == nullptr)
-			return;
-		sentence++;
-	}
+
+	// FIXME : We use true bearing for COG. Check coherency with what Micronet display are waiting
 	if (sscanf(sentence, "%f", &value) == 1)
 	{
 		navData->cog_deg.value = value;
 		navData->cog_deg.valid = true;
 		navData->cog_deg.timeStamp = millis();
 	}
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		if ((sentence = strchr(sentence, ',')) == nullptr)
 			return;
