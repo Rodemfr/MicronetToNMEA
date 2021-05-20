@@ -95,44 +95,44 @@ void NavigationData::UpdateValidity()
 {
 	uint32_t currentTime = millis();
 
-	if (currentTime - awa_deg.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - awa_deg.timeStamp > VALIDITY_TIME_FAST_MS)
 		awa_deg.valid = false;
-	if (currentTime - aws_kt.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - aws_kt.timeStamp > VALIDITY_TIME_FAST_MS)
 		aws_kt.valid = false;
-	if (currentTime - dpt_m.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - dpt_m.timeStamp > VALIDITY_TIME_FAST_MS)
 		dpt_m.valid = false;
-	if (currentTime - log_nm.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - log_nm.timeStamp > VALIDITY_TIME_FAST_MS)
 		log_nm.valid = false;
-	if (currentTime - stp_degc.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - stp_degc.timeStamp > VALIDITY_TIME_FAST_MS)
 		stp_degc.valid = false;
-	if (currentTime - stw_kt.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - stw_kt.timeStamp > VALIDITY_TIME_FAST_MS)
 		stw_kt.valid = false;
-	if (currentTime - trip_nm.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - trip_nm.timeStamp > VALIDITY_TIME_FAST_MS)
 		trip_nm.valid = false;
-	if (currentTime - twa_deg.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - twa_deg.timeStamp > VALIDITY_TIME_FAST_MS)
 		twa_deg.valid = false;
-	if (currentTime - tws_kt.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - tws_kt.timeStamp > VALIDITY_TIME_FAST_MS)
 		tws_kt.valid = false;
-	if (currentTime - vcc_v.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - vcc_v.timeStamp > VALIDITY_TIME_FAST_MS)
 		vcc_v.valid = false;
-	if (currentTime - time.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - time.timeStamp > VALIDITY_TIME_SLOW_MS)
 		time.valid = false;
-	if (currentTime - date.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - date.timeStamp > VALIDITY_TIME_SLOW_MS)
 		date.valid = false;
-	if (currentTime - latitude_deg.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - latitude_deg.timeStamp > VALIDITY_TIME_SLOW_MS)
 		latitude_deg.valid = false;
-	if (currentTime - longitude_deg.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - longitude_deg.timeStamp > VALIDITY_TIME_SLOW_MS)
 		longitude_deg.valid = false;
-	if (currentTime - cog_deg.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - cog_deg.timeStamp > VALIDITY_TIME_SLOW_MS)
 		cog_deg.valid = false;
-	if (currentTime - sog_kt.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - sog_kt.timeStamp > VALIDITY_TIME_SLOW_MS)
 		sog_kt.valid = false;
-	if (currentTime - xte_nm.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - xte_nm.timeStamp > VALIDITY_TIME_SLOW_MS)
 		xte_nm.valid = false;
-	if (currentTime - dtw_nm.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - dtw_nm.timeStamp > VALIDITY_TIME_SLOW_MS)
 		dtw_nm.valid = false;
-	if (currentTime - btw_deg.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - btw_deg.timeStamp > VALIDITY_TIME_SLOW_MS)
 		btw_deg.valid = false;
-	if (currentTime - vmc_kt.timeStamp > VALIDITY_TIME_MS)
+	if (currentTime - vmc_kt.timeStamp > VALIDITY_TIME_SLOW_MS)
 		vmc_kt.valid = false;
 }

@@ -609,8 +609,8 @@ void MenuConvertToNmea()
 							if (txSlot.size < payloadLength)
 							{
 								txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-								gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
-										payloadLength);
+								gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId,
+										gConfiguration.deviceId, payloadLength);
 							}
 
 							WAIT_TIME_US(txSlot.time_ms);
@@ -618,7 +618,8 @@ void MenuConvertToNmea()
 						else
 						{
 							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-							gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
+							gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
+									52);
 							WAIT_TIME_US(txSlot.time_ms);
 						}
 						RfTxMessage(&txMessage);
@@ -656,18 +657,28 @@ void MenuConvertToNmea()
 		}
 		gGnssDecoder.resetSentences();
 
+		char c;
 		while (NMEA_IN.available() > 0)
 		{
-			gNavDecoder.PushChar(NMEA_IN.read(), &gNavData);
-		}
-		gNavDecoder.resetSentences();
-
-		while (CONSOLE.available() > 0)
-		{
-			if (CONSOLE.read() == 0x1b)
+			c = NMEA_IN.read();
+			if ((CONSOLE == NMEA_IN) && (c == 0x1b))
 			{
 				CONSOLE.println("ESC key pressed, stopping conversion.");
 				exitNmeaLoop = true;
+			}
+			gNavDecoder.PushChar(c, &gNavData);
+		}
+		gNavDecoder.resetSentences();
+
+		if (CONSOLE != NMEA_IN)
+		{
+			while (CONSOLE.available() > 0)
+			{
+				if (CONSOLE.read() == 0x1b)
+				{
+					CONSOLE.println("ESC key pressed, stopping conversion.");
+					exitNmeaLoop = true;
+				}
 			}
 		}
 
