@@ -31,7 +31,7 @@
 #include "Configuration.h"
 
 #include <Arduino.h>
-#include <avr/eeprom.h>
+#include <EEPROM.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -99,7 +99,10 @@ void Configuration::LoadFromEeprom()
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
 
 	memset(&configBlock, 0, sizeof(configBlock));
-	eeprom_read_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
+	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
+	{
+		((char*) (&configBlock))[i] = EEPROM.read(i);
+	}
 
 	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
 	{
@@ -127,12 +130,9 @@ void Configuration::LoadFromEeprom()
 
 void Configuration::SaveToEeprom()
 {
-	ConfigBlock_t configBlock, compareBlock;
+	ConfigBlock_t configBlock;
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
-	uint8_t *pCompare = (uint8_t*) (&compareBlock);
 	uint8_t checksum = 0;
-
-	eeprom_read_block(&compareBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
 	configBlock.attachedNetworkId = networkId;
@@ -154,10 +154,6 @@ void Configuration::SaveToEeprom()
 
 	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
 	{
-		if (pConfig[i] != pCompare[i])
-		{
-			eeprom_write_block(&configBlock, EEPROM_CONFIG_OFFSET, sizeof(ConfigBlock_t));
-			break;
-		}
+		EEPROM.update(i, pConfig[i]);
 	}
 }

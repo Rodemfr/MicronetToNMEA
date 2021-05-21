@@ -37,6 +37,11 @@
 			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/cores/teensy3</location>
 		</link>
 		<link>
+			<name>libraries/EEPROM</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/EEPROM</location>
+		</link>
+		<link>
 			<name>libraries/SPI</name>
 			<type>2</type>
 			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/SPI</location>
