@@ -71,6 +71,9 @@
 #define NMEA_OUT USB_CONSOLE
 #define NMEA_IN USB_CONSOLE
 
+// NMEA decoder configuration
+#define DISABLE_NMEA_CHECKSUM 0
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/

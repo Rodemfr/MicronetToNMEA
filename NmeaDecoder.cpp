@@ -28,6 +28,7 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "BoardConfig.h"
 #include "NmeaDecoder.h"
 
 #include <Arduino.h>
@@ -127,6 +128,7 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 	if (sentenceBuffer[sentenceIndex][0] != '$')
 		return;
 
+#if DISABLE_NMEA_CHECKSUM == 0
 	char *pCs = strrchr(sentenceBuffer[sentenceIndex], '*') + 1;
 	if (pCs == nullptr)
 		return;
@@ -142,6 +144,7 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 
 	if (crc != Cs)
 		return;
+#endif
 
 	uint32_t sId = ((uint8_t) sentenceBuffer[sentenceIndex][3]) << 16;
 	sId |= ((uint8_t) sentenceBuffer[sentenceIndex][4]) << 8;
