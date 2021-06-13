@@ -99,10 +99,7 @@ void Configuration::LoadFromEeprom()
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
 
 	memset(&configBlock, 0, sizeof(configBlock));
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
-	{
-		((char*) (&configBlock))[i] = EEPROM.read(i);
-	}
+	EEPROM.get(0, configBlock);
 
 	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
 	{
@@ -152,8 +149,5 @@ void Configuration::SaveToEeprom()
 	}
 	configBlock.checksum = checksum;
 
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
-	{
-		EEPROM.update(i, pConfig[i]);
-	}
+	EEPROM.put(0, pConfig);
 }
