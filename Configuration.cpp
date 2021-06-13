@@ -108,7 +108,7 @@ void Configuration::LoadFromEeprom()
 		{
 			checksum += pConfig[i];
 		}
-
+		Serial.println("Config ok");
 		if (checksum == configBlock.checksum)
 		{
 			networkId = configBlock.attachedNetworkId;
@@ -149,5 +149,5 @@ void Configuration::SaveToEeprom()
 	}
 	configBlock.checksum = checksum;
 
-	EEPROM.put(0, pConfig);
+	EEPROM.put(0, configBlock);
 }
