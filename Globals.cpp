@@ -59,6 +59,7 @@ NmeaEncoder gNmeaEncoder;
 NmeaDecoder gGnssDecoder;
 NmeaDecoder gNavDecoder;
 NavigationData gNavData;
+NavCompass gNavCompass;
 
 /***************************************************************************/
 /*                              Functions                                  */

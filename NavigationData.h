@@ -102,6 +102,8 @@ public:
 	FloatValue_t btw_deg;
 	FloatValue_t vmc_kt;
 
+	FloatValue_t hdg_deg;
+
 	bool calibrationUpdated;
 	float waterSpeedFactor_per;
 	float waterTemperatureOffset_degc;

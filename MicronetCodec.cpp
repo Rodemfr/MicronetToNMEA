@@ -429,6 +429,10 @@ uint8_t MicronetCodec::EncodeGnssMessage(MicronetMessage_t *message, uint32_t ne
 	{
 		offset += AddPositionField(message->data + offset, navData->latitude_deg.value, navData->longitude_deg.value);
 	}
+	if (navData->hdg_deg.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
+	}
 
 	message->len = offset;
 
@@ -851,6 +855,7 @@ SlotDef_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uin
 
 		if (currentDeviceId == deviceId)
 		{
+			// FIXME : payloadBits does not include header length. It is implicitely included in guard_time
 			txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS)
 					/ 1000;
 			return
@@ -900,6 +905,7 @@ SlotDef_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 	}
 
 	txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS) / 1000;
+	// TODO : tuguy system needs about 6500 here -> verify how behaves this value on my system
 	txDelayUs += 10000;
 
 	return

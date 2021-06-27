@@ -135,4 +135,6 @@ void NavigationData::UpdateValidity()
 		btw_deg.valid = false;
 	if (currentTime - vmc_kt.timeStamp > VALIDITY_TIME_SLOW_MS)
 		vmc_kt.valid = false;
+	if (currentTime - hdg_deg.timeStamp > VALIDITY_TIME_FAST_MS)
+		hdg_deg.valid = false;
 }

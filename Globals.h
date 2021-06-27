@@ -37,8 +37,9 @@
 #include "Configuration.h"
 #include "NmeaEncoder.h"
 #include "NmeaDecoder.h"
-#include <ELECHOUSE_CC1101_SRC_DRV.h>
 #include "NavigationData.h"
+#include <ELECHOUSE_CC1101_SRC_DRV.h>
+#include "NavCompass.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -61,6 +62,7 @@ extern NmeaEncoder gNmeaEncoder;
 extern NmeaDecoder gGnssDecoder;
 extern NmeaDecoder gNavDecoder;
 extern NavigationData gNavData;
+extern NavCompass gNavCompass;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

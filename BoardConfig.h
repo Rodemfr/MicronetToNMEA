@@ -35,6 +35,10 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+// Use LSM303DLH configuration
+#define USE_LSM303DLH        0
+#define LSM303DLH_I2C        Wire1
+
 // CC1101/SPI pins
 #define CS0_PIN              10
 #define MOSI_PIN             11
@@ -58,18 +62,18 @@
 
 // Wired UART params
 #define USB_CONSOLE  Serial
-#define USB_BAUDRATE 38400
+#define USB_BAUDRATE 115200
 
 // Wireless Bluetooth UART params
-#define BLU_CONSOLE  Serial4
-#define BLU_BAUDRATE 38400
-#define BLU_RX_PIN   31
-#define BLU_TX_PIN   32
+#define BLU_CONSOLE  Serial5
+#define BLU_BAUDRATE 115200
+#define BLU_RX_PIN   34
+#define BLU_TX_PIN   33
 
 // The console to use for menu and NMEA output
-#define CONSOLE USB_CONSOLE
-#define NMEA_OUT USB_CONSOLE
-#define NMEA_IN USB_CONSOLE
+#define CONSOLE BLU_CONSOLE
+#define NMEA_OUT BLU_CONSOLE
+#define NMEA_IN BLU_CONSOLE
 
 // NMEA decoder configuration
 #define DISABLE_NMEA_CHECKSUM 0

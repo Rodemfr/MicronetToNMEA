@@ -23,6 +23,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/SmartRC-CC1101-Driver-Lib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/EEPROM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/Wire/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/Wire}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.cpp.sketch.input.936437036" name="CPP source files" superClass="io.sloeber.compiler.cpp.sketch.input"/>
 							</tool>
@@ -32,6 +34,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/SmartRC-CC1101-Driver-Lib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/EEPROM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/Wire/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/Wire}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.c.sketch.input.1962245613" name="C Source Files" superClass="io.sloeber.compiler.c.sketch.input"/>
 							</tool>
@@ -41,6 +45,8 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/SPI}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/SmartRC-CC1101-Driver-Lib}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/EEPROM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/Wire/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/MicronetToNMEA/libraries/Wire}&quot;"/>
 								</option>
 								<inputType id="io.sloeber.compiler.S.sketch.input.1474661524" name="Assembly source files" superClass="io.sloeber.compiler.S.sketch.input"/>
 							</tool>

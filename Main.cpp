@@ -36,6 +36,7 @@
 #include "Globals.h"
 #include "MicronetCodec.h"
 #include "NmeaDecoder.h"
+#include "NavCompass.h"
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -68,6 +69,7 @@ void MenuScanNetworks();
 void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
+void MenuCalibrateMagnetoMeter();
 void SaveCalibration();
 void LoadCalibration();
 
@@ -85,6 +87,7 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
+{ "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -97,18 +100,18 @@ void setup()
 	gConfiguration.LoadFromEeprom();
 	LoadCalibration();
 
-	// Init serial link with HC-06
-	BLU_CONSOLE.begin(BLU_BAUDRATE);
-	BLU_CONSOLE.setRX(BLU_RX_PIN);
-	BLU_CONSOLE.setTX(BLU_TX_PIN);
-
 	// Init USB serial link
 	USB_CONSOLE.begin(USB_BAUDRATE);
 
 	// Init NMEA GNSS serial link
-	GNSS_SERIAL.begin(GNSS_BAUDRATE);
 	GNSS_SERIAL.setRX(GNSS_RX_PIN);
 	GNSS_SERIAL.setTX(GNSS_TX_PIN);
+	GNSS_SERIAL.begin(GNSS_BAUDRATE);
+
+	// Init serial link with HC-06
+	BLU_CONSOLE.setRX(BLU_RX_PIN);
+	BLU_CONSOLE.setTX(BLU_TX_PIN);
+	BLU_CONSOLE.begin(BLU_BAUDRATE);
 
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
@@ -120,6 +123,7 @@ void setup()
 	SPI.setCS(CS0_PIN);
 	SPI.begin();
 
+	CONSOLE.print("Initializing CC1101 ... ");
 	// Check connection to CC1101
 	if (!gRfReceiver.getCC1101())
 	{
@@ -135,6 +139,27 @@ void setup()
 			delay(500);
 		}
 	}
+	CONSOLE.println("OK");
+
+#if USE_LSM303DLH
+	CONSOLE.print("Initializing LSM303DLH ... ");
+	if (!gNavCompass.Init())
+	{
+		/* There was a problem detecting the LSM303 ... check your connections */
+		CONSOLE.println("Failed");
+		CONSOLE.println("Aborting execution : Verify connection to LSM303 board");
+		CONSOLE.println("Halted");
+
+		while (1)
+		{
+			digitalWrite(LED_PIN, HIGH);
+			delay(500);
+			digitalWrite(LED_PIN, LOW);
+			delay(500);
+		}
+	}
+	CONSOLE.println("OK");
+#endif
 
 	// Configure CC1101 for listening Micronet devices
 	gRfReceiver.Init();
@@ -353,7 +378,7 @@ void PrintRawMessage(MicronetMessage_t *message)
 
 void MenuAbout()
 {
-	CONSOLE.println("MicronetToNMEA, Version 0.3");
+	CONSOLE.println("MicronetToNMEA, Version 0.4");
 
 	CONSOLE.print("Device ID : ");
 	CONSOLE.println(gConfiguration.deviceId, HEX);
@@ -376,7 +401,9 @@ void MenuAbout()
 	CONSOLE.println(gConfiguration.waterSpeedFactor_per);
 	CONSOLE.print("Water temperature offset = ");
 	CONSOLE.println((int) (gConfiguration.waterTemperatureOffset_C));
-
+#if USE_LSM303DLH
+	CONSOLE.println("Using LSM303DLH for magnetic heading");
+#endif
 	CONSOLE.println("Provides the following NMEA sentences :");
 	CONSOLE.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
 	CONSOLE.println(" - INMWV (Apparent wind. T120 required)");
@@ -570,6 +597,10 @@ void MenuConvertToNmea()
 	static int count = 0;
 	SlotDef_t txSlot;
 	uint8_t payloadLength;
+#if USE_LSM303DLH
+	uint32_t lastHeadingTime = millis();
+	float filteredHeading = 0, heading;
+#endif
 
 	if (gConfiguration.networkId == 0)
 	{
@@ -670,6 +701,26 @@ void MenuConvertToNmea()
 		}
 		gNavDecoder.resetSentences();
 
+#if USE_LSM303DLH
+		static int count;
+		// Handle magnetic compass
+		// Only request new reading if previous is at least 100ms old
+		if ((millis() - lastHeadingTime) > 100)
+		{
+			lastHeadingTime = millis();
+			heading = gNavCompass.GetHeading();
+			filteredHeading = 0.7f * filteredHeading + 0.3f * heading;
+//			count++;
+//			if (count % 10 == 0)
+//			{
+//				CONSOLE.println(heading);
+//			}
+			gNavData.hdg_deg.value = filteredHeading;
+			gNavData.hdg_deg.valid = true;
+			gNavData.hdg_deg.timeStamp = lastHeadingTime;
+		}
+#endif
+
 		if (CONSOLE != NMEA_IN)
 		{
 			while (CONSOLE.available() > 0)
@@ -724,6 +775,84 @@ void MenuScanAllMicronetTraffic()
 		}
 		yield();
 	} while (!exitSniffLoop);
+}
+
+void MenuCalibrateMagnetoMeter()
+{
+	bool exitLoop = false;
+	uint32_t pDisplayTime = 0;
+	uint32_t currentTime;
+	float mx, my, mz;
+	float ax, ay, az;
+	float xMin = 1000;
+	float xMax = -1000;
+	float yMin = 1000;
+	float yMax = -1000;
+	float zMin = 1000;
+	float zMax = -1000;
+
+	CONSOLE.println("Calibrating magnetometer ... ");
+
+	do
+	{
+		if (gNavCompass.IsMagReady())
+		{
+			currentTime = millis();
+			gNavCompass.GetMagneticField(&mx, &my, &mz);
+			gNavCompass.GetAcceleration(&ax, &ay, &az);
+			if ((currentTime - pDisplayTime) > 1000)
+			{
+				if (mx < xMin)
+					xMin = mx;
+				if (mx > xMax)
+					xMax = mx;
+
+				if (my < yMin)
+					yMin = my;
+				if (my > yMax)
+					yMax = my;
+
+				if (mz < zMin)
+					zMin = mz;
+				if (mz > zMax)
+					zMax = mz;
+
+				pDisplayTime = currentTime;
+				CONSOLE.print("[");
+				CONSOLE.print((xMin + xMax) / 2);
+				CONSOLE.print(" ");
+				CONSOLE.print(xMax - xMin);
+				CONSOLE.print("] ");
+				CONSOLE.print("[");
+				CONSOLE.print((yMin + yMax) / 2);
+				CONSOLE.print(" ");
+				CONSOLE.print(yMax - yMin);
+				CONSOLE.print("] ");
+				CONSOLE.print("[");
+				CONSOLE.print((zMin + zMax) / 2);
+				CONSOLE.print(" ");
+				CONSOLE.print(zMax - zMin);
+				CONSOLE.println("]");
+
+//				CONSOLE.print(ax);
+//				CONSOLE.print(" ");
+//				CONSOLE.print(ay);
+//				CONSOLE.print(" ");
+//				CONSOLE.println(az);
+			}
+		}
+
+		while (CONSOLE.available() > 0)
+		{
+			if (CONSOLE.read() == 0x1b)
+			{
+				CONSOLE.println("ESC key pressed, stopping scan.");
+				exitLoop = true;
+			}
+		}
+		yield();
+	} while (!exitLoop);
+
 }
 
 void SaveCalibration()

@@ -51,5 +51,10 @@
 			<type>2</type>
 			<location>C:/Users/Ronan/Documents/Arduino/libraries/SmartRC-CC1101-Driver-Lib</location>
 		</link>
+		<link>
+			<name>libraries/Wire</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/Wire</location>
+		</link>
 	</linkedResources>
 </projectDescription>
