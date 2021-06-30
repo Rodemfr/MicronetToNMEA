@@ -290,7 +290,6 @@ void NmeaDecoder::DecodeVTGSentence(char *sentence, NavigationData *navData)
 {
 	float value;
 
-	// FIXME : We use true bearing for COG. Check coherency with what Micronet display are waiting
 	if (sscanf(sentence, "%f", &value) == 1)
 	{
 		navData->cog_deg.value = value;

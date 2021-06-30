@@ -58,6 +58,9 @@ typedef struct
 	float headingOffset_deg;
 	float magneticVariation_deg;
 	float windShift;
+	float xMagOffset;
+	float yMagOffset;
+	float zMagOffset;
 	uint8_t checksum;
 } ConfigBlock_t;
 #pragma pack()
@@ -87,6 +90,10 @@ Configuration::Configuration()
 	magneticVariation_deg = 0;
 	windShift = 10;
 	deviceId = 0x03123456;
+	xMagOffset = 0;
+	yMagOffset = 0;
+	zMagOffset = 0;
+
 }
 
 Configuration::~Configuration()
@@ -121,15 +128,22 @@ void Configuration::LoadFromEeprom()
 			headingOffset_deg = configBlock.headingOffset_deg;
 			magneticVariation_deg = configBlock.magneticVariation_deg;
 			windShift = configBlock.windShift;
+			xMagOffset = configBlock.xMagOffset;
+			yMagOffset = configBlock.yMagOffset;
+			zMagOffset = configBlock.zMagOffset;
 		}
 	}
 }
 
 void Configuration::SaveToEeprom()
 {
-	ConfigBlock_t configBlock;
+	ConfigBlock_t eepromBlock, configBlock;
+	uint8_t *pEepromBlock = (uint8_t*) (&eepromBlock);
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
 	uint8_t checksum = 0;
+
+	memset(&eepromBlock, 0, sizeof(eepromBlock));
+	EEPROM.get(0, eepromBlock);
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
 	configBlock.attachedNetworkId = networkId;
@@ -142,6 +156,9 @@ void Configuration::SaveToEeprom()
 	configBlock.headingOffset_deg = headingOffset_deg;
 	configBlock.magneticVariation_deg = magneticVariation_deg;
 	configBlock.windShift = windShift;
+	configBlock.xMagOffset = xMagOffset;
+	configBlock.yMagOffset = yMagOffset;
+	configBlock.zMagOffset = zMagOffset;
 
 	for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
 	{
@@ -149,5 +166,12 @@ void Configuration::SaveToEeprom()
 	}
 	configBlock.checksum = checksum;
 
-	EEPROM.put(0, configBlock);
+	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
+	{
+		if (pEepromBlock[i] != pConfig[i])
+		{
+			EEPROM.put(0, configBlock);
+			break;
+		}
+	}
 }

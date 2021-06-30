@@ -14,7 +14,6 @@ class NavCompass
 {
 private:
 	float heading;
-	float xOffset, yOffset, zOffset;
 	float magX, magY, magZ;
 	float accX, accY, accZ;
 
@@ -23,8 +22,6 @@ public:
 	virtual ~NavCompass();
 
 	bool Init();
-	bool IsMagReady();
-	void SetMagneticOffset(float xOffset, float yOffset, float zOffset);
 	void GetMagneticField(float *magX, float* magY, float *magZ);
 	void GetAcceleration(float *accX, float* accY, float *accZ);
 	float GetHeading();

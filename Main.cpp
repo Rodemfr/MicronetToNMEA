@@ -87,8 +87,10 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
-{ "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
-{ nullptr, nullptr } };
+#if USE_LSM303DLH
+		{ "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
+#endif
+		{ nullptr, nullptr } };
 
 /***************************************************************************/
 /*                              Functions                                  */
@@ -403,6 +405,12 @@ void MenuAbout()
 	CONSOLE.println((int) (gConfiguration.waterTemperatureOffset_C));
 #if USE_LSM303DLH
 	CONSOLE.println("Using LSM303DLH for magnetic heading");
+	CONSOLE.print("Magnetometer calibration : ");
+	CONSOLE.print(gConfiguration.xMagOffset);
+	CONSOLE.print(" ");
+	CONSOLE.print(gConfiguration.yMagOffset);
+	CONSOLE.print(" ");
+	CONSOLE.println(gConfiguration.zMagOffset);
 #endif
 	CONSOLE.println("Provides the following NMEA sentences :");
 	CONSOLE.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
@@ -777,29 +785,30 @@ void MenuScanAllMicronetTraffic()
 	} while (!exitSniffLoop);
 }
 
+#if USE_LSM303DLH
 void MenuCalibrateMagnetoMeter()
 {
 	bool exitLoop = false;
 	uint32_t pDisplayTime = 0;
+	uint32_t pSampleTime = 0;
 	uint32_t currentTime;
 	float mx, my, mz;
-	float ax, ay, az;
 	float xMin = 1000;
 	float xMax = -1000;
 	float yMin = 1000;
 	float yMax = -1000;
 	float zMin = 1000;
 	float zMax = -1000;
+	char c;
 
 	CONSOLE.println("Calibrating magnetometer ... ");
 
 	do
 	{
-		if (gNavCompass.IsMagReady())
+		currentTime = millis();
+		if ((currentTime - pSampleTime) > 100)
 		{
-			currentTime = millis();
 			gNavCompass.GetMagneticField(&mx, &my, &mz);
-			gNavCompass.GetAcceleration(&ax, &ay, &az);
 			if ((currentTime - pDisplayTime) > 1000)
 			{
 				if (mx < xMin)
@@ -833,12 +842,6 @@ void MenuCalibrateMagnetoMeter()
 				CONSOLE.print(" ");
 				CONSOLE.print(zMax - zMin);
 				CONSOLE.println("]");
-
-//				CONSOLE.print(ax);
-//				CONSOLE.print(" ");
-//				CONSOLE.print(ay);
-//				CONSOLE.print(" ");
-//				CONSOLE.println(az);
 			}
 		}
 
@@ -852,8 +855,20 @@ void MenuCalibrateMagnetoMeter()
 		}
 		yield();
 	} while (!exitLoop);
-
+	CONSOLE.println("Do you want to save the new calibration values (y/n) ?");
+	while (CONSOLE.available() == 0)
+		;
+	c = CONSOLE.read();
+	if ((c == 'y') || (c == 'Y'))
+	{
+		gConfiguration.xMagOffset = (xMin + xMax) / 2;
+		gConfiguration.yMagOffset = (yMin + yMax) / 2;
+		gConfiguration.zMagOffset = (zMin + zMax) / 2;
+		gConfiguration.SaveToEeprom();
+		CONSOLE.println("Configuration saved");
+	}
 }
+#endif
 
 void SaveCalibration()
 {
@@ -879,6 +894,4 @@ void LoadCalibration()
 	gNavData.headingOffset_deg = gConfiguration.headingOffset_deg;
 	gNavData.magneticVariation_deg = gConfiguration.magneticVariation_deg;
 	gNavData.windShift_min = gConfiguration.windShift;
-
-	gConfiguration.SaveToEeprom();
 }

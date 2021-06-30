@@ -64,6 +64,9 @@ public:
 	float headingOffset_deg;
 	float magneticVariation_deg;
 	float windShift;
+	float xMagOffset;
+	float yMagOffset;
+	float zMagOffset;
 };
 
 /***************************************************************************/

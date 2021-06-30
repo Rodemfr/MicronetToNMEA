@@ -905,7 +905,9 @@ SlotDef_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 	}
 
 	txDelayUs = ((GUARD_TIME_IN_BITS + nbSlots * (GUARD_TIME_IN_BITS + PREAMBLE_LENGTH_IN_BITS) + payloadBits) * BIT_LENGTH_IN_NS) / 1000;
-	// TODO : tuguy system needs about 6500 here -> verify how behaves this value on my system
+	// TODO : tuguy's system needs about 6500 here -> verify how behaves this value on my system
+	// NOTE : It seems that sync window calculation above is wrong : header size is not included. Sync window probably works by chance. This explains why
+	// I need 10000 here for my 4 devices while tuguy's system only needs 6500 with 1 device.
 	txDelayUs += 10000;
 
 	return

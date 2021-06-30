@@ -7,6 +7,7 @@
 
 #include "NavCompass.h"
 #include "BoardConfig.h"
+#include "Globals.h"
 
 #include <Wire.h>
 
@@ -50,7 +51,7 @@
 #define IRC_REG_M         0x0c
 
 NavCompass::NavCompass() :
-		heading(0), xOffset(0), yOffset(0), zOffset(0), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
+		heading(0), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
 {
 }
 
@@ -72,25 +73,11 @@ bool NavCompass::Init()
 	}
 
 	I2CWrite(LSM303DLH_ACC_ADDR, 0x27, CTRL_REG1_A);  // 0x47 = ODR 50hz all axes on
-//	I2CWrite(LSM303DLH_ACC_ADDR, 0x00, CTRL_REG2_A);  // set full-scale
-//	I2CWrite(LSM303DLH_ACC_ADDR, 0x00, CTRL_REG3_A);  // no interrupt
-//	I2CWrite(LSM303DLH_ACC_ADDR, 0x00, CTRL_REG4_A);  // 2g scale
-//	I2CWrite(LSM303DLH_ACC_ADDR, 0x00, CTRL_REG5_A);  // No sleep-to-wake
-
+	I2CWrite(LSM303DLH_MAG_ADDR, CRA_REG_M, 0x10);    // 15Hz
+	I2CWrite(LSM303DLH_MAG_ADDR, CRB_REG_M, 0x03);    // Gauss range
 	I2CWrite(LSM303DLH_MAG_ADDR, 0x00, MR_REG_M);     // Continuous mode
 
-	I2CWrite(LSM303DLH_MAG_ADDR, CRA_REG_M, 0x10); // 15Hz
-	I2CWrite(LSM303DLH_MAG_ADDR, CRB_REG_M, 0x03); // 1.3 Gauss range
-	I2CWrite(LSM303DLH_MAG_ADDR, 0x00, MR_REG_M);  // Continuous mode
-
 	return true;
-}
-
-bool NavCompass::IsMagReady()
-{
-	uint8_t sr = I2CRead(LSM303DLH_MAG_ADDR, SR_REG_M);
-
-	return (!(sr & 0x01));
 }
 
 void NavCompass::GetMagneticField(float *magX, float *magY, float *magZ)
@@ -133,10 +120,15 @@ float NavCompass::GetHeading()
 	float ey, ez;
 	float normE;
 
+	// Get Acceleration and Magnetic data from LSM303
 	GetAcceleration(&ax, &ay, &az);
 	GetMagneticField(&mx, &my, &mz);
 
-	//TODO : Substract calibration offset
+	// Substract calibration offsets from magnetic readings
+	mx -= gConfiguration.xMagOffset;
+	my -= gConfiguration.yMagOffset;
+	mz -= gConfiguration.zMagOffset;
+
 	//TODO : filter data
 
 	// Build starboard axis from boat's bow & gravity vector
