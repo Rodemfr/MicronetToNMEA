@@ -69,7 +69,9 @@ void MenuScanNetworks();
 void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
+#if USE_LSM303DLH
 void MenuCalibrateMagnetoMeter();
+#endif
 void SaveCalibration();
 void LoadCalibration();
 
