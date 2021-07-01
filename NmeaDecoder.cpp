@@ -277,7 +277,7 @@ void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 	{
 		degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10
 				+ (sentence[2] - '0');
-		sscanf(sentence + 2, "%f,", &mins);
+		sscanf(sentence + 3, "%f,", &mins);
 		navData->longitude_deg.value = degs + mins / 60.0f;
 		if (sentence[9] == 'W')
 			navData->longitude_deg.value = -navData->longitude_deg.value;
