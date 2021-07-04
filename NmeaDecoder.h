@@ -39,7 +39,7 @@
 /***************************************************************************/
 
 #define NMEA_SENTENCE_MAX_LENGTH   96
-#define NMEA_SENTENCE_HISTORY_SIZE 16
+#define NMEA_SENTENCE_HISTORY_SIZE 24
 
 /***************************************************************************/
 /*                                Types                                    */

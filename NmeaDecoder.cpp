@@ -80,11 +80,9 @@ void NmeaDecoder::PushChar(char c, NavigationData *navData)
 
 	if (c == 13)
 	{
-		if ((writeIndex >= 10)
-				&& (sentenceWriteIndex < NMEA_SENTENCE_HISTORY_SIZE))
+		if ((writeIndex >= 10) && (sentenceWriteIndex < NMEA_SENTENCE_HISTORY_SIZE))
 		{
-			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer,
-					writeIndex);
+			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer, writeIndex);
 			sentenceBuffer[sentenceWriteIndex][writeIndex] = 0;
 			DecodeSentence(sentenceWriteIndex, navData);
 			sentenceWriteIndex++;
@@ -262,24 +260,26 @@ void NmeaDecoder::DecodeGGASentence(char *sentence, NavigationData *navData)
 		degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
 		sscanf(sentence + 2, "%f,", &mins);
 		navData->latitude_deg.value = degs + mins / 60.0f;
-		if (sentence[8] == 'S')
+		if ((sentence = strchr(sentence, ',')) == nullptr)
+			return;
+		sentence++;
+		if (sentence[0] == 'S')
 			navData->latitude_deg.value = -navData->latitude_deg.value;
 		navData->latitude_deg.valid = true;
 		navData->latitude_deg.timeStamp = millis();
 	}
-	for (int i = 0; i < 2; i++)
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sentence[0] != ',')
 	{
+		degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
+		sscanf(sentence + 3, "%f,", &mins);
+		navData->longitude_deg.value = degs + mins / 60.0f;
 		if ((sentence = strchr(sentence, ',')) == nullptr)
 			return;
 		sentence++;
-	}
-	if (sentence[0] != ',')
-	{
-		degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10
-				+ (sentence[2] - '0');
-		sscanf(sentence + 3, "%f,", &mins);
-		navData->longitude_deg.value = degs + mins / 60.0f;
-		if (sentence[9] == 'W')
+		if (sentence[0] == 'W')
 			navData->longitude_deg.value = -navData->longitude_deg.value;
 		navData->longitude_deg.valid = true;
 		navData->longitude_deg.timeStamp = millis();
