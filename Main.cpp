@@ -712,7 +712,7 @@ void MenuConvertToNmea()
 		gNavDecoder.resetSentences();
 
 #if USE_LSM303DLH
-		static int count;
+//		static int count;
 		// Handle magnetic compass
 		// Only request new reading if previous is at least 100ms old
 		if ((millis() - lastHeadingTime) > 100)

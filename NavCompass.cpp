@@ -73,8 +73,8 @@ bool NavCompass::Init()
 	}
 
 	I2CWrite(LSM303DLH_ACC_ADDR, 0x27, CTRL_REG1_A);  // 0x47 = ODR 50hz all axes on
-	I2CWrite(LSM303DLH_MAG_ADDR, CRA_REG_M, 0x10);    // 15Hz
-	I2CWrite(LSM303DLH_MAG_ADDR, CRB_REG_M, 0x03);    // Gauss range
+	I2CWrite(LSM303DLH_MAG_ADDR, 0x10, CRA_REG_M);    // 15Hz
+	I2CWrite(LSM303DLH_MAG_ADDR, 0x03, CRB_REG_M);    // Gauss range
 	I2CWrite(LSM303DLH_MAG_ADDR, 0x00, MR_REG_M);     // Continuous mode
 
 	return true;
