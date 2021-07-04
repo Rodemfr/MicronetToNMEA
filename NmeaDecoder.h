@@ -53,14 +53,16 @@ public:
 
 	void PushChar(char c, NavigationData *navData);
 	int GetNbSentences();
-	const char *GetSentence(int i);
+	const char *GetSentence();
 	void resetSentences();
 
 private:
 	uint8_t serialBuffer[NMEA_SENTENCE_MAX_LENGTH];
-	int writeIndex;
+	int serialWriteIndex;
 	char sentenceBuffer[NMEA_SENTENCE_HISTORY_SIZE][NMEA_SENTENCE_MAX_LENGTH];
+	int sentenceReadIndex;
 	int sentenceWriteIndex;
+	int nbSentences;
 
 	void DecodeSentence(int sentenceIndex, NavigationData *navData);
 	void DecodeRMBSentence(char *sentence, NavigationData *navData);

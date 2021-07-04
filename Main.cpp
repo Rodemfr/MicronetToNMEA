@@ -49,7 +49,6 @@
 /***************************************************************************/
 
 #define MAX_SCANNED_NETWORKS  5
-
 #define WAIT_TIME_US(t) {while (micros() < t);}
 
 /***************************************************************************/
@@ -80,6 +79,7 @@ void LoadCalibration();
 /***************************************************************************/
 
 bool firstLoop;
+bool micronetDetected;
 
 MenuEntry_t mainMenu[] =
 {
@@ -205,6 +205,9 @@ void setup()
 
 	// For the main loop to know when it is executing for the first time
 	firstLoop = true;
+
+	// No Micronet traffic detected so far
+	micronetDetected = false;
 }
 
 void loop()
@@ -691,15 +694,17 @@ void MenuConvertToNmea()
 			gRxMessageFifo.DeleteMessage();
 		}
 
-		int nbGnssSentences = gGnssDecoder.GetNbSentences();
-		for (int i = 0; i < nbGnssSentences; i++)
+		// TODO : This is not a clean way to avoid disturbances between UART and RF cmmunications.
+		// Interrupts should be used in some way to handle both RF and UART communications
+		micronetDetected = false;
+
+		while ((gGnssDecoder.GetNbSentences() > 0) && (!micronetDetected))
 		{
-			NMEA_OUT.println(gGnssDecoder.GetSentence(i));
+			NMEA_OUT.println(gGnssDecoder.GetSentence());
 		}
-		gGnssDecoder.resetSentences();
 
 		char c;
-		while (NMEA_IN.available() > 0)
+		while ((NMEA_IN.available() > 0) && (!micronetDetected))
 		{
 			c = NMEA_IN.read();
 			if ((CONSOLE == NMEA_IN) && (c == 0x1b))
@@ -715,7 +720,7 @@ void MenuConvertToNmea()
 //		static int count;
 		// Handle magnetic compass
 		// Only request new reading if previous is at least 100ms old
-		if ((millis() - lastHeadingTime) > 100)
+		if (((millis() - lastHeadingTime) > 100) && (!micronetDetected))
 		{
 			lastHeadingTime = millis();
 			heading = gNavCompass.GetHeading();
@@ -733,7 +738,7 @@ void MenuConvertToNmea()
 
 		if (CONSOLE != NMEA_IN)
 		{
-			while (CONSOLE.available() > 0)
+			while ((CONSOLE.available() > 0) && (!micronetDetected))
 			{
 				if (CONSOLE.read() == 0x1b)
 				{
@@ -743,9 +748,12 @@ void MenuConvertToNmea()
 			}
 		}
 
-		gNavData.UpdateValidity();
+		if (!micronetDetected)
+		{
+			gNavData.UpdateValidity();
+			yield();
+		}
 
-		yield();
 	} while (!exitNmeaLoop);
 }
 

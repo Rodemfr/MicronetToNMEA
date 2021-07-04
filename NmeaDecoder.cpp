@@ -60,8 +60,10 @@
 
 NmeaDecoder::NmeaDecoder()
 {
-	writeIndex = 0;
+	serialWriteIndex = 0;
+	sentenceReadIndex = 0;
 	sentenceWriteIndex = 0;
+	nbSentences = 0;
 	serialBuffer[0] = 0;
 }
 
@@ -71,53 +73,70 @@ NmeaDecoder::~NmeaDecoder()
 
 void NmeaDecoder::PushChar(char c, NavigationData *navData)
 {
+	// '$' can only be the start of a new sentence. If find one, then all previously
+	// received characters are useless and can be discarded.
 	if ((serialBuffer[0] != '$') || (c == '$'))
 	{
 		serialBuffer[0] = c;
-		writeIndex = 1;
+		serialWriteIndex = 1;
 		return;
 	}
 
+	// Carriage return character marks the end of the current sentence
 	if (c == 13)
 	{
-		if ((writeIndex >= 10) && (sentenceWriteIndex < NMEA_SENTENCE_HISTORY_SIZE))
+		// Store the sentence if it has a valid length
+		if ((serialWriteIndex >= 10) && (nbSentences < NMEA_SENTENCE_HISTORY_SIZE))
 		{
-			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer, writeIndex);
-			sentenceBuffer[sentenceWriteIndex][writeIndex] = 0;
+			memcpy(sentenceBuffer[sentenceWriteIndex], serialBuffer, serialWriteIndex);
+			sentenceBuffer[sentenceWriteIndex][serialWriteIndex] = 0;
 			DecodeSentence(sentenceWriteIndex, navData);
+			nbSentences++;
 			sentenceWriteIndex++;
-
+			if (sentenceWriteIndex > NMEA_SENTENCE_HISTORY_SIZE)
+				sentenceWriteIndex = 0;
 		}
-		else
+		serialBuffer[0] = 0;
+		serialWriteIndex = 0;
+		return;
+	}
+	else
+	{
+		serialBuffer[serialWriteIndex++] = c;
+
+		if (serialWriteIndex >= NMEA_SENTENCE_MAX_LENGTH)
 		{
 			serialBuffer[0] = 0;
-			writeIndex = 0;
-			return;
+			serialWriteIndex = 0;
 		}
-	}
-
-	serialBuffer[writeIndex++] = c;
-
-	if (writeIndex >= NMEA_SENTENCE_MAX_LENGTH)
-	{
-		serialBuffer[0] = 0;
-		writeIndex = 0;
-		return;
 	}
 }
 
 int NmeaDecoder::GetNbSentences()
 {
-	return sentenceWriteIndex;
+	return nbSentences;
 }
 
-const char* NmeaDecoder::GetSentence(int i)
+const char* NmeaDecoder::GetSentence()
 {
-	return sentenceBuffer[i];
+	int readIndex = sentenceReadIndex;
+
+	if (nbSentences == 0)
+	{
+		return nullptr;
+	}
+	sentenceReadIndex++;
+	if (sentenceReadIndex >= NMEA_SENTENCE_HISTORY_SIZE)
+		sentenceReadIndex = 0;
+	nbSentences--;
+
+	return sentenceBuffer[readIndex];
 }
 
 void NmeaDecoder::resetSentences()
 {
+	nbSentences = 0;
+	sentenceReadIndex = 0;
 	sentenceWriteIndex = 0;
 }
 
