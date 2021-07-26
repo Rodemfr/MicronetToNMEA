@@ -719,6 +719,7 @@ void MenuConvertToNmea()
 		{
 			lastHeadingTime = millis();
 			heading = gNavCompass.GetHeading();
+			// TODO : replace this filter by separate filters for magnetic field and acceleration
 			filteredHeading = 0.7f * filteredHeading + 0.3f * heading;
 //			count++;
 //			if (count % 10 == 0)

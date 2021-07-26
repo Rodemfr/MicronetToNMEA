@@ -114,32 +114,33 @@ void NavCompass::GetAcceleration(float *accX, float *accY, float *accZ)
 
 float NavCompass::GetHeading()
 {
-	float mx, my, mz;
-	float ax, ay, az;
+	float magX, magY, magZ;
+	float accelX, accelY, accelZ;
 	float pBow, pStarboard;
-	float ey, ez;
-	float normE;
+	float starboardY, starboardZ;
+	float starboardNorm;
 
 	// Get Acceleration and Magnetic data from LSM303
-	GetAcceleration(&ax, &ay, &az);
-	GetMagneticField(&mx, &my, &mz);
+	// Note that we don't care about units of both acceleration and magnetic field since we
+	// are only calculating angles.
+	GetAcceleration(&accelX, &accelY, &accelZ);
+	GetMagneticField(&magX, &magY, &magZ);
 
 	// Substract calibration offsets from magnetic readings
-	mx -= gConfiguration.xMagOffset;
-	my -= gConfiguration.yMagOffset;
-	mz -= gConfiguration.zMagOffset;
+	magX -= gConfiguration.xMagOffset;
+	magY -= gConfiguration.yMagOffset;
+	magZ -= gConfiguration.zMagOffset;
 
-	//TODO : filter data
+	// TODO : filter data
 
 	// Build starboard axis from boat's bow & gravity vector
-	ey = az;
-	ez = -ay;
-	normE = sqrtf(ey * ey + ez * ez);
+	starboardY = accelZ;
+	starboardZ = -accelY;
+	starboardNorm = sqrtf(starboardY * starboardY + starboardZ * starboardZ);
 
 	// Project magnetic field on bow & starboard axis
-	// TODO : optimize
-	pBow = mx;
-	pStarboard = (my * ey + mz * ez) / normE;
+	pBow = magX;
+	pStarboard = (magY * starboardY + magZ * starboardZ) / starboardNorm;
 
 	float angle = atan2(-pStarboard, pBow) * 180 / M_PI;
 	if (angle < 0)

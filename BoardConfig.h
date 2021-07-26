@@ -36,7 +36,7 @@
 /***************************************************************************/
 
 // Use LSM303DLH configuration
-#define USE_LSM303DLH        0
+#define USE_LSM303DLH        1
 #define LSM303DLH_I2C        Wire1
 
 // CC1101/SPI pins
