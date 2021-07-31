@@ -71,6 +71,7 @@ void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 #if USE_LSM303DLH
 void MenuCalibrateMagnetoMeter();
+void MenuTestHeading();
 #endif
 void SaveCalibration();
 void LoadCalibration();
@@ -91,6 +92,7 @@ MenuEntry_t mainMenu[] =
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 #if USE_LSM303DLH
 		{ "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
+		{ "Test heading", MenuTestHeading },
 #endif
 		{ nullptr, nullptr } };
 
@@ -609,7 +611,7 @@ void MenuConvertToNmea()
 	uint8_t payloadLength;
 #if USE_LSM303DLH
 	uint32_t lastHeadingTime = millis();
-	float filteredHeading = 0, heading;
+	float heading;
 #endif
 
 	if (gConfiguration.networkId == 0)
@@ -712,21 +714,13 @@ void MenuConvertToNmea()
 		gNavDecoder.resetSentences();
 
 #if USE_LSM303DLH
-//		static int count;
 		// Handle magnetic compass
 		// Only request new reading if previous is at least 100ms old
 		if ((millis() - lastHeadingTime) > 100)
 		{
 			lastHeadingTime = millis();
 			heading = gNavCompass.GetHeading();
-			// TODO : replace this filter by separate filters for magnetic field and acceleration
-			filteredHeading = 0.7f * filteredHeading + 0.3f * heading;
-//			count++;
-//			if (count % 10 == 0)
-//			{
-//				CONSOLE.println(heading);
-//			}
-			gNavData.hdg_deg.value = filteredHeading;
+			gNavData.hdg_deg.value = heading;
 			gNavData.hdg_deg.valid = true;
 			gNavData.hdg_deg.timeStamp = lastHeadingTime;
 		}
@@ -812,8 +806,9 @@ void MenuCalibrateMagnetoMeter()
 		if ((currentTime - pSampleTime) > 100)
 		{
 			gNavCompass.GetMagneticField(&mx, &my, &mz);
-			if ((currentTime - pDisplayTime) > 1000)
+			if ((currentTime - pDisplayTime) > 250)
 			{
+				pDisplayTime = currentTime;
 				if (mx < xMin)
 					xMin = mx;
 				if (mx > xMax)
@@ -829,7 +824,14 @@ void MenuCalibrateMagnetoMeter()
 				if (mz > zMax)
 					zMax = mz;
 
-				pDisplayTime = currentTime;
+				CONSOLE.print("(");
+				CONSOLE.print(mx);
+				CONSOLE.print(" ");
+				CONSOLE.print(my);
+				CONSOLE.print(" ");
+				CONSOLE.print(mz);
+				CONSOLE.println(")");
+
 				CONSOLE.print("[");
 				CONSOLE.print((xMin + xMax) / 2);
 				CONSOLE.print(" ");
@@ -870,6 +872,42 @@ void MenuCalibrateMagnetoMeter()
 		gConfiguration.SaveToEeprom();
 		CONSOLE.println("Configuration saved");
 	}
+}
+
+void MenuTestHeading()
+{
+	bool exitLoop = false;
+	uint32_t lastHeadingTime = millis();
+	float heading;
+
+	CONSOLE.println("Testing heading ... ");
+
+	do
+	{
+		static int count;
+		// Handle magnetic compass
+		// Only request new reading if previous is at least 100ms old
+		if ((millis() - lastHeadingTime) > 100)
+		{
+			lastHeadingTime = millis();
+			heading = gNavCompass.GetHeading();
+			count++;
+			if (count % 3 == 0)
+			{
+				CONSOLE.println(heading);
+			}
+		}
+
+		while (CONSOLE.available() > 0)
+		{
+			if (CONSOLE.read() == 0x1b)
+			{
+				CONSOLE.println("ESC key pressed, stopping scan.");
+				exitLoop = true;
+			}
+		}
+		yield();
+	} while (!exitLoop);
 }
 #endif
 
