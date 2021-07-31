@@ -720,9 +720,9 @@ void MenuConvertToNmea()
 		{
 			lastHeadingTime = millis();
 			heading = gNavCompass.GetHeading();
-			gNavData.hdg_deg.value = heading;
-			gNavData.hdg_deg.valid = true;
-			gNavData.hdg_deg.timeStamp = lastHeadingTime;
+//			gNavData.hdg_deg.value = heading;
+//			gNavData.hdg_deg.valid = true;
+//			gNavData.hdg_deg.timeStamp = lastHeadingTime;
 		}
 #endif
 
