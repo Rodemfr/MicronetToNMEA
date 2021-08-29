@@ -175,7 +175,7 @@ bool NmeaEncoder::EncodeVHW(NavigationData *micronetData, char *sentence)
 
 	if (update)
 	{
-		sprintf(sentence, "$INVHW,,T,,M,%.1f,N,,K", micronetData->stw_kt.value);
+		sprintf(sentence, "$INVHW,,T,,M,%.2f,N,,K", micronetData->stw_kt.value);
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vhw = millis();
