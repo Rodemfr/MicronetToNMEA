@@ -51,9 +51,14 @@
 /***************************************************************************/
 
 typedef struct {
+	uint32_t deviceId;
 	uint32_t time_ms;
 	uint8_t size;
 } SlotDef_t;
+
+typedef struct {
+	uint32_t nbslots;
+} SlotList;
 
 class MicronetCodec
 {
