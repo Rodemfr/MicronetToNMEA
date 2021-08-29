@@ -94,11 +94,12 @@
 #define MICRONET_CALIBRATION_MAGVAR_ID             0x0d
 #define MICRONET_CALIBRATION_WIND_SHIFT_ID         0x0e
 
-#define BIT_LENGTH_IN_NS        13021
+#define BYTE_LENGTH_IN_US       104
 
 #define PREAMBLE_LENGTH_IN_US   1771
 #define HEADER_LENGTH_IN_US     1458
 #define GUARD_TIME_IN_US        2000
+#define ASYNC_WINDOW_OFFSET     5400
 
 /***************************************************************************/
 /*                                Types                                    */

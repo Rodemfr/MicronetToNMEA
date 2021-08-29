@@ -822,9 +822,8 @@ SlotDef_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uin
 {
 	uint32_t messageLength = message->len;
 	uint32_t offset;
-	uint32_t txDelayUs;
 	uint32_t nbDevices, nbSlots;
-	uint32_t payloadBits;
+	uint32_t slotDelay_us;
 	uint8_t payloadBytes;
 	uint32_t currentDeviceId;
 
@@ -842,7 +841,7 @@ SlotDef_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uin
 
 	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
 
-	payloadBits = 0;
+	slotDelay_us = 0;
 	nbSlots = 0;
 	for (uint32_t i = 1; i < nbDevices; i++)
 	{
@@ -855,14 +854,13 @@ SlotDef_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uin
 
 		if (currentDeviceId == deviceId)
 		{
-			txDelayUs = GUARD_TIME_IN_US + nbSlots * (GUARD_TIME_IN_US + PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US) + (payloadBits * BIT_LENGTH_IN_NS) / 1000;
 			return
-			{	message->timeStamp_us + txDelayUs, payloadBytes};
+			{	message->timeStamp_us + slotDelay_us + GUARD_TIME_IN_US, payloadBytes};
 		}
 		if (message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] != 0)
 		{
 			nbSlots++;
-			payloadBits += payloadBytes << 3;
+			slotDelay_us += (GUARD_TIME_IN_US + PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US) + payloadBytes * BYTE_LENGTH_IN_US;
 		}
 	}
 
@@ -874,9 +872,8 @@ SlotDef_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 {
 	uint32_t messageLength = message->len;
 	uint32_t offset;
-	uint32_t txDelayUs;
+	uint32_t slotDelay_us;
 	uint32_t nbDevices, nbSlots;
-	uint32_t payloadBits;
 
 	uint8_t crc = 0;
 	for (offset = MICRONET_PAYLOAD_OFFSET; offset < (uint32_t) (messageLength - 1); offset++)
@@ -890,7 +887,7 @@ SlotDef_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 
 	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
 
-	payloadBits = 0;
+	slotDelay_us = 0;
 	nbSlots = 0;
 	for (uint32_t i = 1; i < nbDevices; i++)
 	{
@@ -898,13 +895,10 @@ SlotDef_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 		if (message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] != 0)
 		{
 			nbSlots++;
-			payloadBits += message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] << 3;
+			slotDelay_us += (GUARD_TIME_IN_US + PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US) + message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] * BYTE_LENGTH_IN_US;
 		}
 	}
 
-	txDelayUs = GUARD_TIME_IN_US + nbSlots * (GUARD_TIME_IN_US + PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US) + ((payloadBits * BIT_LENGTH_IN_NS) / 1000);
-	txDelayUs += 5400;
-
 	return
-	{	message->timeStamp_us + txDelayUs, 40};
+	{	message->timeStamp_us + slotDelay_us + GUARD_TIME_IN_US + ASYNC_WINDOW_OFFSET, 40};
 }
