@@ -362,9 +362,38 @@ void RfTxMessage(MicronetMessage_t *message)
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
 }
 
-void PrintRawMessage(MicronetMessage_t *message)
+void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us)
 {
-	for (int j = 0; j < message->len; j++)
+	if (message->len < MICRONET_PAYLOAD_OFFSET)
+	{
+		CONSOLE.print("Invalid message (");
+		CONSOLE.print((int) message->rssi);
+		CONSOLE.print(", ");
+		CONSOLE.print((int) message->timeStamp_us - lastMasterRequest_us);
+		CONSOLE.println(")");
+	}
+
+	for (int j = 0; j < 4; j++)
+	{
+		if (message->data[j] < 16)
+		{
+			CONSOLE.print("0");
+		}
+		CONSOLE.print(message->data[j], HEX);
+	}
+	CONSOLE.print(" ");
+
+	for (int j = 4; j < 8; j++)
+	{
+		if (message->data[j] < 16)
+		{
+			CONSOLE.print("0");
+		}
+		CONSOLE.print(message->data[j], HEX);
+	}
+	CONSOLE.print(" ");
+
+	for (int j = 8; j < 14; j++)
 	{
 		if (message->data[j] < 16)
 		{
@@ -373,10 +402,23 @@ void PrintRawMessage(MicronetMessage_t *message)
 		CONSOLE.print(message->data[j], HEX);
 		CONSOLE.print(" ");
 	}
+
+	CONSOLE.print(" -- ");
+
+	for (int j = 14; j < message->len; j++)
+	{
+		if (message->data[j] < 16)
+		{
+			CONSOLE.print("0");
+		}
+		CONSOLE.print(message->data[j], HEX);
+		CONSOLE.print(" ");
+	}
+
 	CONSOLE.print(" (");
 	CONSOLE.print((int) message->rssi);
-	CONSOLE.print(",");
-	CONSOLE.print((int) message->timeStamp_us);
+	CONSOLE.print(", ");
+	CONSOLE.print((int) message->timeStamp_us - lastMasterRequest_us);
 	CONSOLE.print(")");
 
 	CONSOLE.println();
@@ -607,7 +649,7 @@ void MenuConvertToNmea()
 	MicronetMessage_t *rxMessage;
 	MicronetMessage_t txMessage;
 	static int count = 0;
-	SlotDef_t txSlot;
+	TxSlotDesc_t txSlot;
 	uint8_t payloadLength;
 #if USE_LSM303DLH
 	uint32_t lastHeadingTime = millis();
@@ -720,9 +762,9 @@ void MenuConvertToNmea()
 		{
 			lastHeadingTime = millis();
 			heading = gNavCompass.GetHeading();
-//			gNavData.hdg_deg.value = heading;
+			gNavData.hdg_deg.value = heading;
 //			gNavData.hdg_deg.valid = true;
-//			gNavData.hdg_deg.timeStamp = lastHeadingTime;
+			gNavData.hdg_deg.timeStamp = lastHeadingTime;
 		}
 #endif
 
@@ -747,6 +789,7 @@ void MenuConvertToNmea()
 void MenuScanAllMicronetTraffic()
 {
 	bool exitSniffLoop = false;
+	uint32_t lastMasterRequest_us = 0;
 
 	CONSOLE.println("Starting Micronet traffic scanning.");
 	CONSOLE.println("Press ESC key at any time to stop scanning and come back to menu.");
@@ -764,8 +807,9 @@ void MenuScanAllMicronetTraffic()
 				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_REQUEST_DATA)
 				{
 					CONSOLE.println("");
+					lastMasterRequest_us = message->timeStamp_us;
 				}
-				PrintRawMessage(message);
+				PrintRawMessage(message, lastMasterRequest_us);
 			}
 			gRxMessageFifo.DeleteMessage();
 		}
