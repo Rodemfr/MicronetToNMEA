@@ -109,7 +109,8 @@ typedef struct
 {
 	uint8_t len;
 	int16_t rssi;
-	uint32_t timeStamp_us;
+	uint32_t startTime_us;
+	uint32_t endTime_us;
 	uint8_t data[MICRONET_MAX_MESSAGE_LENGTH];
 } MicronetMessage_t;
 

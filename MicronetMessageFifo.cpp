@@ -72,7 +72,8 @@ bool MicronetMessageFifo::Push(MicronetMessage_t &message)
 		// Yes : copy message to the store and update store's status
 		store[writeIndex].len = message.len;
 		store[writeIndex].rssi = message.rssi;
-		store[writeIndex].timeStamp_us = message.timeStamp_us;
+		store[writeIndex].startTime_us = message.startTime_us;
+		store[writeIndex].endTime_us = message.endTime_us;
 		memcpy(store[writeIndex].data, message.data, message.len);
 		writeIndex++;
 		nbMessages++;

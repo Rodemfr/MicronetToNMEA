@@ -63,7 +63,10 @@
 void RfReceiverIsr();
 void RfFlushAndRestartRx();
 void RfTxMessage(MicronetMessage_t *message);
-void PrintRawMessage(MicronetMessage_t *message);
+void PrintByte(uint8_t data);
+void PrintInt(uint32_t data);
+void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us);
+void PrintNetworkMap(NetworkMap_t *networkMap);
 void MenuAbout();
 void MenuScanNetworks();
 void MenuAttachNetwork();
@@ -246,6 +249,7 @@ void RfReceiverIsr()
 	int nbBytes;
 	int dataOffset;
 	bool newLengthFound = false;
+	uint32_t startTime_us = micros() - PREAMBLE_LENGTH_IN_US;
 
 	if (gRfReceiver.getMode() != 2)
 	{
@@ -310,13 +314,14 @@ void RfReceiverIsr()
 		gRfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 	}
-	uint32_t timeStamp_us = micros();
+	uint32_t endTime_us = micros();
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	RfFlushAndRestartRx();
 	// Fill message structure
 	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
 	message.rssi = gRfReceiver.getRssi();
-	message.timeStamp_us = timeStamp_us;
+	message.startTime_us = startTime_us;
+	message.endTime_us = endTime_us;
 	// Add message to the store for later processing by the main loop
 	gRxMessageFifo.Push(message);
 }
@@ -362,6 +367,23 @@ void RfTxMessage(MicronetMessage_t *message)
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
 }
 
+void PrintByte(uint8_t data)
+{
+	if (data < 16)
+	{
+		CONSOLE.print("0");
+	}
+	CONSOLE.print(data, HEX);
+}
+
+void PrintInt(uint32_t data)
+{
+	PrintByte((data >> 24) & 0x0ff);
+	PrintByte((data >> 16) & 0x0ff);
+	PrintByte((data >> 8) & 0x0ff);
+	PrintByte(data & 0x0ff);
+}
+
 void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us)
 {
 	if (message->len < MICRONET_PAYLOAD_OFFSET)
@@ -369,37 +391,25 @@ void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us)
 		CONSOLE.print("Invalid message (");
 		CONSOLE.print((int) message->rssi);
 		CONSOLE.print(", ");
-		CONSOLE.print((int) message->timeStamp_us - lastMasterRequest_us);
+		CONSOLE.print((int) (message->startTime_us - lastMasterRequest_us));
 		CONSOLE.println(")");
 	}
 
 	for (int j = 0; j < 4; j++)
 	{
-		if (message->data[j] < 16)
-		{
-			CONSOLE.print("0");
-		}
-		CONSOLE.print(message->data[j], HEX);
+		PrintByte(message->data[j]);
 	}
 	CONSOLE.print(" ");
 
 	for (int j = 4; j < 8; j++)
 	{
-		if (message->data[j] < 16)
-		{
-			CONSOLE.print("0");
-		}
-		CONSOLE.print(message->data[j], HEX);
+		PrintByte(message->data[j]);
 	}
 	CONSOLE.print(" ");
 
 	for (int j = 8; j < 14; j++)
 	{
-		if (message->data[j] < 16)
-		{
-			CONSOLE.print("0");
-		}
-		CONSOLE.print(message->data[j], HEX);
+		PrintByte(message->data[j]);
 		CONSOLE.print(" ");
 	}
 
@@ -407,21 +417,40 @@ void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us)
 
 	for (int j = 14; j < message->len; j++)
 	{
-		if (message->data[j] < 16)
-		{
-			CONSOLE.print("0");
-		}
-		CONSOLE.print(message->data[j], HEX);
+		PrintByte(message->data[j]);
 		CONSOLE.print(" ");
 	}
 
 	CONSOLE.print(" (");
 	CONSOLE.print((int) message->rssi);
 	CONSOLE.print(", ");
-	CONSOLE.print((int) message->timeStamp_us - lastMasterRequest_us);
+	CONSOLE.print((int) (message->startTime_us - lastMasterRequest_us));
 	CONSOLE.print(")");
 
 	CONSOLE.println();
+}
+
+void PrintNetworkMap(NetworkMap_t *networkMap)
+{
+	CONSOLE.print("Network ID : 0x");
+	PrintInt(networkMap->networkId);
+	CONSOLE.println("");
+
+	CONSOLE.print("Nb Devices : ");
+	CONSOLE.println(networkMap->nbDevices);
+
+	for (uint32_t i = 0; i < networkMap->nbSlots; i++)
+	{
+		CONSOLE.print(i);
+		CONSOLE.print(" : 0x");
+		PrintInt(networkMap->syncSlot[i].deviceId);
+		CONSOLE.print(" ");
+		CONSOLE.print(networkMap->syncSlot[i].payloadBytes);
+		CONSOLE.print(" ");
+		CONSOLE.print(networkMap->syncSlot[i].start_us);
+		CONSOLE.print(" ");
+		CONSOLE.println(networkMap->syncSlot[i].length_us);
+	}
 }
 
 void MenuAbout()
@@ -674,62 +703,57 @@ void MenuConvertToNmea()
 	{
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetCodec.GetNetworkId(rxMessage) == gConfiguration.networkId)
+			if ((gMicronetCodec.GetNetworkId(rxMessage) == gConfiguration.networkId)
+					&& (gMicronetCodec.VerifyHeaderCrc(rxMessage))
+					&& (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA))
 			{
-				if (gMicronetCodec.VerifyHeaderCrc(rxMessage))
+				txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
+				if (txSlot.start_us != 0)
 				{
-					if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
+					if ((count & 0x01) == 0)
+						payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId,
+								gConfiguration.deviceId, &gNavData);
+					else
+						payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId,
+								gConfiguration.deviceId, &gNavData);
+					count++;
+
+					if (txSlot.payloadBytes < payloadLength)
 					{
-						txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
-						if (txSlot.time_ms != 0)
-						{
-							if ((count & 0x01) == 0)
-								payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId,
-										gConfiguration.deviceId, &gNavData);
-							else
-								payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId,
-										gConfiguration.deviceId, &gNavData);
-							count++;
-
-							if (txSlot.size < payloadLength)
-							{
-								txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-								gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId,
-										gConfiguration.deviceId, payloadLength);
-							}
-
-							WAIT_TIME_US(txSlot.time_ms);
-						}
-						else
-						{
-							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-							gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
-									52);
-							WAIT_TIME_US(txSlot.time_ms);
-						}
-						RfTxMessage(&txMessage);
-						RfFlushAndRestartRx();
+						txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
+						gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
+								payloadLength);
 					}
 
-					gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
+					WAIT_TIME_US(txSlot.start_us);
+				}
+				else
+				{
+					txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
+					gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
+					WAIT_TIME_US(txSlot.start_us);
+				}
+				RfTxMessage(&txMessage);
+				RfFlushAndRestartRx();
 
-					if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNavData.calibrationUpdated)
-					{
-						gNavData.calibrationUpdated = false;
-						SaveCalibration();
-					}
+				gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
+
+				if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
+					NMEA_OUT.print(nmeaSentence);
+				if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
+					NMEA_OUT.print(nmeaSentence);
+				if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
+					NMEA_OUT.print(nmeaSentence);
+				if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
+					NMEA_OUT.print(nmeaSentence);
+				if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
+					NMEA_OUT.print(nmeaSentence);
+				if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
+					NMEA_OUT.print(nmeaSentence);
+				if (gNavData.calibrationUpdated)
+				{
+					gNavData.calibrationUpdated = false;
+					SaveCalibration();
 				}
 			}
 			gRxMessageFifo.DeleteMessage();
@@ -807,7 +831,7 @@ void MenuScanAllMicronetTraffic()
 				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_REQUEST_DATA)
 				{
 					CONSOLE.println("");
-					lastMasterRequest_us = message->timeStamp_us;
+					lastMasterRequest_us = message->endTime_us;
 				}
 				PrintRawMessage(message, lastMasterRequest_us);
 			}

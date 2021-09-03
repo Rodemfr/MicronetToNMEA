@@ -46,19 +46,27 @@
 #define DEVICE_TYPE_DUAL_DISPLAY        0x81
 #define DEVICE_TYPE_ANALOG_WIND_DISPLAY 0x83
 
+#define MAX_DEVICES_PER_NETWORK 64
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
 typedef struct {
 	uint32_t deviceId;
-	uint32_t time_ms;
-	uint8_t size;
-} SlotDef_t;
+	uint32_t start_us;
+	uint32_t length_us;
+	uint8_t payloadBytes;
+} TxSlotDesc_t;
 
 typedef struct {
-	uint32_t nbslots;
-} SlotList;
+	uint32_t networkId;
+	uint32_t nbDevices;
+	uint32_t masterDevice;
+	uint32_t nbSlots;
+	TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
+	TxSlotDesc_t asyncSlot;
+} NetworkMap_t;
 
 class MicronetCodec
 {
@@ -76,8 +84,9 @@ public:
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
 	void DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
-	SlotDef_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
-	SlotDef_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
+	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap_t *networkMap);
+	TxSlotDesc_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
+	TxSlotDesc_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
 	uint8_t EncodeGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
 	uint8_t EncodeNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
 	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
