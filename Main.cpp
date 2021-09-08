@@ -41,7 +41,6 @@
 #include <Arduino.h>
 #include <SPI.h>
 #include <wiring.h>
-#include <iostream>
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 
 /***************************************************************************/
