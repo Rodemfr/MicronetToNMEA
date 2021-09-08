@@ -72,10 +72,8 @@ void MenuScanNetworks();
 void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
-#if USE_LSM303DLH
 void MenuCalibrateMagnetoMeter();
 void MenuTestHeading();
-#endif
 void SaveCalibration();
 void LoadCalibration();
 
@@ -93,11 +91,9 @@ MenuEntry_t mainMenu[] =
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
-#if USE_LSM303DLH
-		{ "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
-		{ "Test heading", MenuTestHeading },
-#endif
-		{ nullptr, nullptr } };
+{ "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
+{ "Test heading", MenuTestHeading },
+{ nullptr, nullptr } };
 
 /***************************************************************************/
 /*                              Functions                                  */
@@ -150,25 +146,18 @@ void setup()
 	}
 	CONSOLE.println("OK");
 
-#if USE_LSM303DLH
-	CONSOLE.print("Initializing LSM303DLH ... ");
+	CONSOLE.print("Initializing navigation compass ... ");
 	if (!gNavCompass.Init())
 	{
-		/* There was a problem detecting the LSM303 ... check your connections */
-		CONSOLE.println("Failed");
-		CONSOLE.println("Aborting execution : Verify connection to LSM303 board");
-		CONSOLE.println("Halted");
-
-		while (1)
-		{
-			digitalWrite(LED_PIN, HIGH);
-			delay(500);
-			digitalWrite(LED_PIN, LOW);
-			delay(500);
-		}
+		CONSOLE.println("NOT DETETCED");
+		gConfiguration.navCompassAvailable = false;
 	}
-	CONSOLE.println("OK");
-#endif
+	else
+	{
+		CONSOLE.println("LSM303DLH Found");
+		gConfiguration.navCompassAvailable = true;
+		gConfiguration.navCompassType = NAVCOMPASS_LSM303DLH;
+	}
 
 	// Configure CC1101 for listening Micronet devices
 	gRfReceiver.Init();
@@ -478,15 +467,31 @@ void MenuAbout()
 	CONSOLE.println(gConfiguration.waterSpeedFactor_per);
 	CONSOLE.print("Water temperature offset = ");
 	CONSOLE.println((int) (gConfiguration.waterTemperatureOffset_C));
-#if USE_LSM303DLH
-	CONSOLE.println("Using LSM303DLH for magnetic heading");
-	CONSOLE.print("Magnetometer calibration : ");
-	CONSOLE.print(gConfiguration.xMagOffset);
-	CONSOLE.print(" ");
-	CONSOLE.print(gConfiguration.yMagOffset);
-	CONSOLE.print(" ");
-	CONSOLE.println(gConfiguration.zMagOffset);
-#endif
+	if (gConfiguration.navCompassAvailable == false)
+	{
+		CONSOLE.println("No navigation compass detected, disabling magnetic heading.");
+	}
+	else
+	{
+		switch (gConfiguration.navCompassType)
+		{
+		case NAVCOMPASS_LSM303DLH:
+			CONSOLE.println("Using LSM303DLH for magnetic heading");
+			break;
+		case NAVCOMPASS_LSM303DLHC:
+			CONSOLE.println("Using LSM303DLHC for magnetic heading");
+			break;
+		default:
+			CONSOLE.println("Using unknown IC for magnetic heading");
+			break;
+		}
+		CONSOLE.print("Magnetometer calibration : ");
+		CONSOLE.print(gConfiguration.xMagOffset);
+		CONSOLE.print(" ");
+		CONSOLE.print(gConfiguration.yMagOffset);
+		CONSOLE.print(" ");
+		CONSOLE.println(gConfiguration.zMagOffset);
+	}
 	CONSOLE.println("Provides the following NMEA sentences :");
 	CONSOLE.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
 	CONSOLE.println(" - INMWV (Apparent wind. T120 required)");
@@ -680,10 +685,8 @@ void MenuConvertToNmea()
 	static int count = 0;
 	TxSlotDesc_t txSlot;
 	uint8_t payloadLength;
-#if USE_LSM303DLH
 	uint32_t lastHeadingTime = millis();
 	float heading;
-#endif
 
 	if (gConfiguration.networkId == 0)
 	{
@@ -779,18 +782,20 @@ void MenuConvertToNmea()
 		}
 		gNavDecoder.resetSentences();
 
-#if USE_LSM303DLH
-		// Handle magnetic compass
-		// Only request new reading if previous is at least 100ms old
-		if ((millis() - lastHeadingTime) > 100)
+		// Only execute mangetic heading code if navigation compass is available
+		if (gConfiguration.navCompassAvailable == true)
 		{
-			lastHeadingTime = millis();
-			heading = gNavCompass.GetHeading();
-			gNavData.hdg_deg.value = heading;
-//			gNavData.hdg_deg.valid = true;
-			gNavData.hdg_deg.timeStamp = lastHeadingTime;
+			// Handle magnetic compass
+			// Only request new reading if previous is at least 100ms old
+			if ((millis() - lastHeadingTime) > 100)
+			{
+				lastHeadingTime = millis();
+				heading = gNavCompass.GetHeading();
+				gNavData.hdg_deg.value = heading;
+				gNavData.hdg_deg.valid = true;
+				gNavData.hdg_deg.timeStamp = lastHeadingTime;
+			}
 		}
-#endif
 
 		if (CONSOLE != NMEA_IN)
 		{
@@ -850,7 +855,6 @@ void MenuScanAllMicronetTraffic()
 	} while (!exitSniffLoop);
 }
 
-#if USE_LSM303DLH
 void MenuCalibrateMagnetoMeter()
 {
 	bool exitLoop = false;
@@ -865,6 +869,12 @@ void MenuCalibrateMagnetoMeter()
 	float zMin = 1000;
 	float zMax = -1000;
 	char c;
+
+	if (gConfiguration.navCompassAvailable == false)
+	{
+		CONSOLE.println("No navigation compass detected. Exiting menu ...");
+		return;
+	}
 
 	CONSOLE.println("Calibrating magnetometer ... ");
 
@@ -948,6 +958,12 @@ void MenuTestHeading()
 	uint32_t lastHeadingTime = millis();
 	float heading;
 
+	if (gConfiguration.navCompassAvailable == false)
+	{
+		CONSOLE.println("No navigation compass detected. Exiting menu ...");
+		return;
+	}
+
 	CONSOLE.println("Testing heading ... ");
 
 	do
@@ -977,7 +993,6 @@ void MenuTestHeading()
 		yield();
 	} while (!exitLoop);
 }
-#endif
 
 void SaveCalibration()
 {

@@ -35,20 +35,19 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-// Use LSM303DLH configuration
-#define USE_LSM303DLH        0
-#define LSM303DLH_I2C        Wire1
+// NavCompass I2C bus
+#define NAVCOMPASS_I2C Wire2
 
 // CC1101/SPI pins
-#define CS0_PIN              10
-#define MOSI_PIN             11
-#define MISO_PIN             12
-#define SCK_PIN              14
-#define GDO0_PIN             24
-#define GDO2_PIN             25
+#define CS0_PIN        10
+#define MOSI_PIN       11
+#define MISO_PIN       12
+#define SCK_PIN        14
+#define GDO0_PIN       24
+#define GDO2_PIN       25
 
 // ERROR LED pin
-#define LED_PIN              LED_BUILTIN
+#define LED_PIN        LED_BUILTIN
 
 // Default packet length for RF reception. Must be less than 64.
 #define RF_DEFAULT_PACKET_LENGTH 60

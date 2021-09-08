@@ -41,6 +41,11 @@
 /*                                Types                                    */
 /***************************************************************************/
 
+typedef enum {
+	NAVCOMPASS_LSM303DLH,
+	NAVCOMPASS_LSM303DLHC
+} NavCompassType_t;
+
 /***************************************************************************/
 /*                               Classes                                   */
 /***************************************************************************/
@@ -54,6 +59,11 @@ public:
 	void LoadFromEeprom();
 	void SaveToEeprom();
 
+	// The following parameters are NOT loaded/saved from/to EEPROM
+	bool navCompassAvailable;
+	NavCompassType_t navCompassType;
+
+	// The following parameters are loaded/saved from/to EEPROM
 	uint32_t networkId;
 	uint32_t deviceId;
 	float waterSpeedFactor_per;

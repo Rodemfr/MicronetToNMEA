@@ -61,7 +61,7 @@ NavCompass::~NavCompass()
 
 bool NavCompass::Init()
 {
-	LSM303DLH_I2C.begin();
+	NAVCOMPASS_I2C.begin();
 
 	uint8_t ira = I2CRead(LSM303DLH_MAG_ADDR, IRA_REG_M);
 	uint8_t irb = I2CRead(LSM303DLH_MAG_ADDR, IRB_REG_M);
@@ -153,30 +153,30 @@ unsigned char NavCompass::I2CRead(uint8_t i2cAddress, uint8_t address)
 {
 	char temp;
 
-	LSM303DLH_I2C.beginTransmission(i2cAddress);
-	LSM303DLH_I2C.write(address);
-	LSM303DLH_I2C.endTransmission();
-	LSM303DLH_I2C.requestFrom(i2cAddress, (uint8_t) 1);
-	temp = LSM303DLH_I2C.read();
-	LSM303DLH_I2C.endTransmission();
+	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
+	NAVCOMPASS_I2C.write(address);
+	NAVCOMPASS_I2C.endTransmission();
+	NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t) 1);
+	temp = NAVCOMPASS_I2C.read();
+	NAVCOMPASS_I2C.endTransmission();
 
 	return temp;
 }
 
 void NavCompass::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
 {
-	LSM303DLH_I2C.beginTransmission(i2cAddress);
-	LSM303DLH_I2C.write(address);
-	LSM303DLH_I2C.endTransmission();
-	LSM303DLH_I2C.requestFrom(i2cAddress, (uint8_t) length);
-	LSM303DLH_I2C.readBytes(buffer, LSM303DLH_I2C.available());
-	LSM303DLH_I2C.endTransmission();
+	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
+	NAVCOMPASS_I2C.write(address);
+	NAVCOMPASS_I2C.endTransmission();
+	NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t) length);
+	NAVCOMPASS_I2C.readBytes(buffer, NAVCOMPASS_I2C.available());
+	NAVCOMPASS_I2C.endTransmission();
 }
 
 void NavCompass::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
 {
-	LSM303DLH_I2C.beginTransmission(i2cAddress);
-	LSM303DLH_I2C.write(address);
-	LSM303DLH_I2C.write(data);
-	LSM303DLH_I2C.endTransmission();
+	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
+	NAVCOMPASS_I2C.write(address);
+	NAVCOMPASS_I2C.write(data);
+	NAVCOMPASS_I2C.endTransmission();
 }
