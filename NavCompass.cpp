@@ -11,8 +11,11 @@
 
 #include <Wire.h>
 
-#define LSM303DLH_MAG_ADDR  0x1E
-#define LSM303DLH_ACC_ADDR  0x18
+#define LSM303DLH_MAG_ADDR   0x1E
+#define LSM303DLH_ACC_ADDR   0x18
+#define LSM303DLH_ACC_ADDR_1 0x19
+
+#define LSM303DLHC_WHO_AM_I 0x3C
 
 #define CTRL_REG1_A       0x20
 #define CTRL_REG2_A       0x21
@@ -49,9 +52,15 @@
 #define IRA_REG_M         0x0a
 #define IRB_REG_M         0x0b
 #define IRC_REG_M         0x0c
+#define WHO_AM_I_M        0x0f
+
+typedef enum {
+	NAVCOMPASS_DEVICE_LSM303DLH,
+	NAVCOMPASS_DEVICE_LSM303DLHC
+} NavCompass_Device_Type_t;
 
 NavCompass::NavCompass() :
-		heading(0), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
+		accAddr(LSM303DLH_ACC_ADDR), magAddr(LSM303DLH_MAG_ADDR), deviceType(NAVCOMPASS_DEVICE_LSM303DLH), heading(0), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
 {
 }
 
@@ -61,21 +70,47 @@ NavCompass::~NavCompass()
 
 bool NavCompass::Init()
 {
+	uint8_t ira, irb, irc, sr, whoami;
+
 	NAVCOMPASS_I2C.begin();
 
-	uint8_t ira = I2CRead(LSM303DLH_MAG_ADDR, IRA_REG_M);
-	uint8_t irb = I2CRead(LSM303DLH_MAG_ADDR, IRB_REG_M);
-	uint8_t irc = I2CRead(LSM303DLH_MAG_ADDR, IRC_REG_M);
+	if (!I2CRead(LSM303DLH_ACC_ADDR_1, STATUS_REG_A, &sr))
+	{
+		if (!I2CRead(LSM303DLH_ACC_ADDR, STATUS_REG_A, &sr))
+		{
+			return false;
+		}
+		accAddr = LSM303DLH_ACC_ADDR;
+	} else
+	{
+		accAddr = LSM303DLH_ACC_ADDR_1;
+	}
+
+	I2CRead(LSM303DLH_MAG_ADDR, IRA_REG_M, &ira);
+	I2CRead(LSM303DLH_MAG_ADDR, IRB_REG_M, &irb);
+	I2CRead(LSM303DLH_MAG_ADDR, IRC_REG_M, &irc);
 
 	if ((ira != 'H') || (irb != '4') || (irc != '3'))
 	{
 		return false;
 	}
 
-	I2CWrite(LSM303DLH_ACC_ADDR, 0x27, CTRL_REG1_A);  // 0x47 = ODR 50hz all axes on
-	I2CWrite(LSM303DLH_MAG_ADDR, 0x10, CRA_REG_M);    // 15Hz
-	I2CWrite(LSM303DLH_MAG_ADDR, 0x03, CRB_REG_M);    // Gauss range
-	I2CWrite(LSM303DLH_MAG_ADDR, 0x00, MR_REG_M);     // Continuous mode
+	magAddr = LSM303DLH_MAG_ADDR;
+
+	I2CRead(magAddr, WHO_AM_I_M, &whoami);
+
+	if (whoami == LSM303DLHC_WHO_AM_I)
+	{
+		deviceType = NAVCOMPASS_DEVICE_LSM303DLHC;
+	} else
+	{
+		deviceType = NAVCOMPASS_DEVICE_LSM303DLH;
+	}
+
+	I2CWrite(accAddr, 0x27, CTRL_REG1_A);  // 0x47 = ODR 50hz all axes on
+	I2CWrite(magAddr, 0x10, CRA_REG_M);    // 15Hz
+	I2CWrite(magAddr, 0x03, CRB_REG_M);    // Gauss range
+	I2CWrite(magAddr, 0x00, MR_REG_M);     // Continuous mode
 
 	return true;
 }
@@ -85,7 +120,7 @@ void NavCompass::GetMagneticField(float *magX, float *magY, float *magZ)
 	uint8_t magBuffer[6];
 	int16_t mx, my, mz;
 
-	I2CBurstRead(LSM303DLH_MAG_ADDR, OUT_X_H_M, magBuffer, 6);
+	I2CBurstRead(magAddr, OUT_X_H_M, magBuffer, 6);
 
 	mx = ((int16_t) (magBuffer[0] << 8)) | magBuffer[1];
 	my = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3];
@@ -99,13 +134,22 @@ void NavCompass::GetMagneticField(float *magX, float *magY, float *magZ)
 void NavCompass::GetAcceleration(float *accX, float *accY, float *accZ)
 {
 	int16_t ax, ay, az;
+	uint8_t regValue;
 
-	ax = I2CRead(LSM303DLH_ACC_ADDR, OUT_X_H_A);
-	ax = (ax << 8) | I2CRead(LSM303DLH_ACC_ADDR, OUT_X_L_A);
-	ay = I2CRead(LSM303DLH_ACC_ADDR, OUT_Y_H_A);
-	ay = (ay << 8) | I2CRead(LSM303DLH_ACC_ADDR, OUT_Y_L_A);
-	az = I2CRead(LSM303DLH_ACC_ADDR, OUT_Z_H_A);
-	az = (az << 8) | I2CRead(LSM303DLH_ACC_ADDR, OUT_Z_L_A);
+	I2CRead(accAddr, OUT_X_H_A, &regValue);
+	ax = regValue;
+	I2CRead(accAddr, OUT_X_L_A, &regValue);
+	ax = (ax << 8) | regValue;
+
+	I2CRead(accAddr, OUT_Y_H_A, &regValue);
+	ay = regValue;
+	I2CRead(accAddr, OUT_Y_L_A, &regValue);
+	ay = (ay << 8) | regValue;
+
+	I2CRead(accAddr, OUT_Z_H_A, &regValue);
+	az = regValue;
+	I2CRead(accAddr, OUT_Z_L_A, &regValue);
+	az = (az << 8) | regValue;
 
 	*accX = (float) -ax / 16384.0f;
 	*accY = (float) -ay / 16384.0f;
@@ -149,34 +193,38 @@ float NavCompass::GetHeading()
 	return angle;
 }
 
-unsigned char NavCompass::I2CRead(uint8_t i2cAddress, uint8_t address)
+bool NavCompass::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
 {
-	char temp;
-
 	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
 	NAVCOMPASS_I2C.write(address);
-	NAVCOMPASS_I2C.endTransmission();
+	if (NAVCOMPASS_I2C.endTransmission() != 0)
+	{
+		return false;
+	}
 	NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t) 1);
-	temp = NAVCOMPASS_I2C.read();
+	*data = NAVCOMPASS_I2C.read();
 	NAVCOMPASS_I2C.endTransmission();
 
-	return temp;
+	return (NAVCOMPASS_I2C.endTransmission() == 0);
 }
 
-void NavCompass::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
+bool NavCompass::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
 {
 	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
 	NAVCOMPASS_I2C.write(address);
-	NAVCOMPASS_I2C.endTransmission();
+	if (NAVCOMPASS_I2C.endTransmission() != 0)
+	{
+		return false;
+	}
 	NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t) length);
 	NAVCOMPASS_I2C.readBytes(buffer, NAVCOMPASS_I2C.available());
-	NAVCOMPASS_I2C.endTransmission();
+	return (NAVCOMPASS_I2C.endTransmission() == 0);
 }
 
-void NavCompass::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
+bool NavCompass::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
 {
 	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
 	NAVCOMPASS_I2C.write(address);
 	NAVCOMPASS_I2C.write(data);
-	NAVCOMPASS_I2C.endTransmission();
+	return (NAVCOMPASS_I2C.endTransmission() == 0);
 }

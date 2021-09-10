@@ -22,13 +22,15 @@ public:
 	void GetAcceleration(float *accX, float* accY, float *accZ);
 
 private:
+	uint8_t accAddr, magAddr;
+	uint32_t deviceType;
 	float heading;
 	float magX, magY, magZ;
 	float accX, accY, accZ;
 
-	unsigned char I2CRead(uint8_t i2cAddress, uint8_t address);
-	void I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length);
-	void I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address);
+	bool I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data);
+	bool I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length);
+	bool I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address);
 };
 
 #endif /* NAVCOMPASS_H_ */

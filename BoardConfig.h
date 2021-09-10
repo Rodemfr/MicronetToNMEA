@@ -36,7 +36,7 @@
 /***************************************************************************/
 
 // NavCompass I2C bus
-#define NAVCOMPASS_I2C Wire2
+#define NAVCOMPASS_I2C Wire1
 
 // CC1101/SPI pins
 #define CS0_PIN        10
