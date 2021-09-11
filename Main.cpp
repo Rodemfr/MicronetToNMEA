@@ -153,7 +153,8 @@ void setup()
 	}
 	else
 	{
-		CONSOLE.println("LSM303DLH Found");
+		CONSOLE.print(gNavCompass.GetDeviceName().c_str());
+		CONSOLE.println(" Found");
 		gConfiguration.navCompassAvailable = true;
 		gConfiguration.navCompassType = NAVCOMPASS_LSM303DLH;
 	}
