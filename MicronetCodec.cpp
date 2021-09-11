@@ -489,6 +489,10 @@ uint8_t MicronetCodec::EncodeNavMessage(MicronetMessage_t *message, uint32_t net
 	{
 		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_VMGWP, (short) (navData->vmc_kt.value * 100));
 	}
+	if (navData->hdg_deg.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
+	}
 
 	message->len = offset;
 
