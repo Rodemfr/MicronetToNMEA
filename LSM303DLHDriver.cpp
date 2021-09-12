@@ -127,8 +127,8 @@ void LSM303DLHDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 	my = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3];
 	mz = ((int16_t) (magBuffer[4] << 8)) | magBuffer[5];
 
-	*magX = mx / LSB_per_Gauss_XY;
-	*magY = my / LSB_per_Gauss_XY;
+	*magX = -mx / LSB_per_Gauss_XY;
+	*magY = -my / LSB_per_Gauss_XY;
 	*magZ = mz / LSB_per_Gauss_Z;
 }
 
@@ -154,7 +154,7 @@ void LSM303DLHDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 
 	*accX = ax * mGal_per_LSB;
 	*accY = ay * mGal_per_LSB;
-	*accZ = az * mGal_per_LSB;
+	*accZ = -az * mGal_per_LSB;
 }
 
 bool LSM303DLHDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)

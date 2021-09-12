@@ -55,9 +55,12 @@ float NavCompass::GetHeading()
 {
 	float magX, magY, magZ;
 	float accelX, accelY, accelZ;
-	float pBow, pStarboard;
 	float starboardY, starboardZ;
 	float starboardNorm;
+	float pStarboard;
+	float bowX, bowY, bowZ;
+	float bowNorm;
+	float pBow;
 
 	// Get Acceleration and Magnetic data from LSM303
 	// Note that we don't care about units of both acceleration and magnetic field since we
@@ -72,13 +75,19 @@ float NavCompass::GetHeading()
 
 	// TODO : filter data
 
-	// Build starboard axis from boat's bow & gravity vector
-	starboardY = accelZ - accelX;
-	starboardZ = accelX - accelY;
+	// Build starboard axis from Nav Compass X axis & gravity vector
+	starboardY = accelZ;
+	starboardZ = -accelY;
 	starboardNorm = sqrtf(starboardY * starboardY + starboardZ * starboardZ);
 
+	// Build starboard axis from starboard axis & gravity vector
+	bowX = (accelY * accelY) + (accelZ * accelZ);
+	bowY = -accelX * accelY;
+	bowZ = -accelX * accelZ;
+	bowNorm = sqrtf(bowX * bowX + bowY * bowY + bowZ * bowZ);
+
 	// Project magnetic field on bow & starboard axis
-	pBow = magX;
+	pBow = (magX * bowX + magY * bowY + magZ * bowZ) / bowNorm;
 	pStarboard = (magY * starboardY + magZ * starboardZ) / starboardNorm;
 
 	float angle = atan2(-pStarboard, pBow) * 180 / M_PI;
