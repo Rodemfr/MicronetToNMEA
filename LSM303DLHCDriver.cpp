@@ -57,12 +57,8 @@
 #define TEMP_OUT_H_M      0x01 // this may conflicting with CRB_REG_M
 #define TEMP_OUT_L_M      0x40
 
-static float LSB_per_Gauss_XY = 1100.0f; // Varies with range
-static float LSB_per_Gauss_Z = 980.0f;   // Varies with range
-static float mGal_per_LSB = 1.0f;        // Varies with range
-
 LSM303DLHCDriver::LSM303DLHCDriver() :
-		accAddr(LSM303DLHC_ACC_ADDR), magAddr(LSM303DLHC_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
+		accAddr(LSM303DLHC_ACC_ADDR), magAddr(LSM303DLHC_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0), LSB_per_Gauss_XY(1100.0f), LSB_per_Gauss_Z(980.0f), mGal_per_LSB(1.0f)
 {
 }
 
@@ -105,7 +101,7 @@ bool LSM303DLHCDriver::Init()
 	// DLHC Acceleration register
 	I2CWrite(accAddr, 0x57, CTRL_REG1_A); // 0x57=0b01010111 Normal Mode, ODR 100hz, all axes on
 	I2CWrite(accAddr, 0x08, CTRL_REG4_A); // 0x08=0b00001000 Range: +/-2 Gal, Sens.: 1mGal/LSB, highRes on
-	mGal_per_LSB = 1.0;
+	mGal_per_LSB = 1.0f / 4096.0f;
 	// DLHC Magnetic register
 	I2CWrite(magAddr, 0x20, CRB_REG_M);   // 0x20=0b00100000 Range: +/-1.3 Gauss gain: 1100LSB/Gauss
 	LSB_per_Gauss_XY = 1100;
@@ -131,9 +127,9 @@ void LSM303DLHCDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 	mz = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3]; // stupid change in order for DLHC
 	my = ((int16_t) (magBuffer[4] << 8)) | magBuffer[5];
 
-	*magX = (float) mx;
-	*magY = (float) my;
-	*magZ = (float) mz;
+	*magX = mx / LSB_per_Gauss_XY;
+	*magY = my / LSB_per_Gauss_XY;
+	*magZ = mz / LSB_per_Gauss_Z;
 }
 
 void LSM303DLHCDriver::GetAcceleration(float *accX, float *accY, float *accZ)
@@ -156,9 +152,9 @@ void LSM303DLHCDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 	I2CRead(accAddr, OUT_Z_L_A, &regValue);
 	az = (az << 8) | regValue;
 
-	*accX = (float) (ax >> 4); // DLHC registers contain a left-aligned 12-bit number, so values should be shifted right by 4 bits (divided by 16)
-	*accY = (float) (ay >> 4);
-	*accZ = (float) (az >> 4);
+	*accX = ax * mGal_per_LSB;
+	*accY = ay * mGal_per_LSB;
+	*accZ = az * mGal_per_LSB;
 }
 
 bool LSM303DLHCDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
