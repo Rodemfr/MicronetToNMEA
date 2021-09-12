@@ -73,8 +73,8 @@ float NavCompass::GetHeading()
 	// TODO : filter data
 
 	// Build starboard axis from boat's bow & gravity vector
-	starboardY = accelZ;
-	starboardZ = -accelY;
+	starboardY = accelZ - accelX;
+	starboardZ = accelX - accelY;
 	starboardNorm = sqrtf(starboardY * starboardY + starboardZ * starboardZ);
 
 	// Project magnetic field on bow & starboard axis
