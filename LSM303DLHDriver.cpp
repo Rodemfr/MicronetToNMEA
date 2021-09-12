@@ -52,11 +52,8 @@
 #define IRC_REG_M         0x0c
 #define WHO_AM_I_M        0x0f
 
-static float LSB_per_Gauss_XY = 1100.0f; // Varies with range
-static float LSB_per_Gauss_Z = 980.0f;   // Varies with range
-static float mGal_per_LSB = 1.0f;        // Varies with range
-
-LSM303DLHDriver::LSM303DLHDriver() : accAddr(LSM303DLH_ACC_ADDR), magAddr(LSM303DLH_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
+LSM303DLHDriver::LSM303DLHDriver() :
+		accAddr(LSM303DLH_ACC_ADDR), magAddr(LSM303DLH_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0), LSB_per_Gauss_XY(1100.0f), LSB_per_Gauss_Z(980.0f), mGal_per_LSB(1.0f)
 {
 }
 
@@ -77,7 +74,8 @@ bool LSM303DLHDriver::Init()
 			return false;
 		}
 		accAddr = LSM303DLH_ACC_ADDR;
-	} else
+	}
+	else
 	{
 		accAddr = LSM303DLH_ACC_ADDR_1;
 	}
@@ -100,17 +98,22 @@ bool LSM303DLHDriver::Init()
 		return false;
 	}
 
-	I2CWrite(accAddr, 0x27, CTRL_REG1_A);  // 0x47 = ODR 50hz all axes on
-	I2CWrite(magAddr, 0x10, CRA_REG_M);    // 15Hz
-	I2CWrite(magAddr, 0x03, CRB_REG_M);    // Gauss range
-	I2CWrite(magAddr, 0x00, MR_REG_M);     // Continuous mode
+	// Magnetic register
+	I2CWrite(magAddr, 0x18, CRA_REG_M);   // 0x18=0b00011000 ODR 75Hz
+	I2CWrite(accAddr, 0x27, CTRL_REG1_A); // 0x27=0b00100111 Normal Mode, ODR 50hz, all axes on
+	I2CWrite(accAddr, 0x00, CTRL_REG4_A); // 0x00=0b00000000 Range: +/-2 Gal, Sens.: 1mGal/LSB
+	mGal_per_LSB = 1.0 / 16384.0;
+	I2CWrite(magAddr, 0x60, CRB_REG_M);   // 0x60=0b01100000 Range: +/-2.5 Gauss gain: 635LSB/Gauss
+	LSB_per_Gauss_XY = 635;
+	LSB_per_Gauss_Z = 570;
+	I2CWrite(magAddr, 0x00, MR_REG_M);    // Continuous mode
 
 	return true;
 }
 
 string LSM303DLHDriver::GetDeviceName()
 {
-	return(string("LSM303DLH"));
+	return (string("LSM303DLH"));
 }
 
 void LSM303DLHDriver::GetMagneticField(float *magX, float *magY, float *magZ)
@@ -124,9 +127,9 @@ void LSM303DLHDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 	my = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3];
 	mz = ((int16_t) (magBuffer[4] << 8)) | magBuffer[5];
 
-	*magX = ((float) mx / 635.0f);
-	*magY = ((float) my / 635.0f);
-	*magZ = ((float) mz / 635.0f);
+	*magX = mx / LSB_per_Gauss_XY;
+	*magY = my / LSB_per_Gauss_XY;
+	*magZ = mz / LSB_per_Gauss_Z;
 }
 
 void LSM303DLHDriver::GetAcceleration(float *accX, float *accY, float *accZ)
@@ -149,9 +152,9 @@ void LSM303DLHDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 	I2CRead(accAddr, OUT_Z_L_A, &regValue);
 	az = (az << 8) | regValue;
 
-	*accX = (float) -ax / 16384.0f;
-	*accY = (float) -ay / 16384.0f;
-	*accZ = (float) -az / 16384.0f;
+	*accX = ax * mGal_per_LSB;
+	*accY = ay * mGal_per_LSB;
+	*accZ = az * mGal_per_LSB;
 }
 
 bool LSM303DLHDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)

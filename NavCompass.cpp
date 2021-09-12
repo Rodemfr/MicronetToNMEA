@@ -29,7 +29,9 @@ bool NavCompass::Init()
 	{
 		delete navCompassDriver;
 		navCompassDriver = new LSM303DLHDriver();
-	} else if (!navCompassDriver->Init())
+	}
+
+	if (!navCompassDriver->Init())
 	{
 		delete navCompassDriver;
 		return false;

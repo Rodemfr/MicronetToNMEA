@@ -947,6 +947,8 @@ void MenuTestHeading()
 	bool exitLoop = false;
 	uint32_t lastHeadingTime = millis();
 	float heading;
+	float accX, accY, accZ;
+	float magX, magY, magZ;
 
 	if (gConfiguration.navCompassAvailable == false)
 	{
@@ -968,8 +970,27 @@ void MenuTestHeading()
 			count++;
 			if (count % 3 == 0)
 			{
+				CONSOLE.print("Hdg (");
 				CONSOLE.println(heading);
-			}
+
+				gNavCompass.GetMagneticField(&magX, &magY, &magZ);
+				CONSOLE.print("Mag (");
+				CONSOLE.print(magX);
+				CONSOLE.print(" ");
+				CONSOLE.print(magY);
+				CONSOLE.print(" ");
+				CONSOLE.print(magZ);
+				CONSOLE.println(")");
+
+				gNavCompass.GetAcceleration(&accX, &accY, &accZ);
+				CONSOLE.print("Acc (");
+				CONSOLE.print(accX);
+				CONSOLE.print(" ");
+				CONSOLE.print(accY);
+				CONSOLE.print(" ");
+				CONSOLE.print(accZ);
+				CONSOLE.println(")");
+}
 		}
 
 		while (CONSOLE.available() > 0)
