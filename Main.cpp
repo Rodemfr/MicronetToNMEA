@@ -156,7 +156,6 @@ void setup()
 		CONSOLE.print(gNavCompass.GetDeviceName().c_str());
 		CONSOLE.println(" Found");
 		gConfiguration.navCompassAvailable = true;
-		gConfiguration.navCompassType = NAVCOMPASS_LSM303DLH;
 	}
 
 	// Configure CC1101 for listening Micronet devices
@@ -473,18 +472,9 @@ void MenuAbout()
 	}
 	else
 	{
-		switch (gConfiguration.navCompassType)
-		{
-		case NAVCOMPASS_LSM303DLH:
-			CONSOLE.println("Using LSM303DLH for magnetic heading");
-			break;
-		case NAVCOMPASS_LSM303DLHC:
-			CONSOLE.println("Using LSM303DLHC for magnetic heading");
-			break;
-		default:
-			CONSOLE.println("Using unknown IC for magnetic heading");
-			break;
-		}
+		CONSOLE.print("Using ");
+		CONSOLE.print(gNavCompass.GetDeviceName().c_str());
+		CONSOLE.println(" for magnetic heading");
 		CONSOLE.print("Magnetometer calibration : ");
 		CONSOLE.print(gConfiguration.xMagOffset);
 		CONSOLE.print(" ");

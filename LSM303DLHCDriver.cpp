@@ -1,26 +1,27 @@
 /*
- * LSM303DLHDriver.cpp
+ * LSM303DLHCDriver.cpp
  *
  *  Created on: 11 sept. 2021
  *      Author: Ronan
  */
 
-#include "LSM303DLHDriver.h"
+#include "LSM303DLHCDriver.h"
 #include "BoardConfig.h"
 #include <Wire.h>
 
-#define LSM303DLH_MAG_ADDR   0x1E
-#define LSM303DLH_ACC_ADDR   0x18
-#define LSM303DLH_ACC_ADDR_1 0x19
+#define LSM303DLHC_MAG_ADDR   0x1E
+#define LSM303DLHC_ACC_ADDR   0x19
 
 #define LSM303DLHC_WHO_AM_I 0x3C
+
+#define GAUSS_TO_NANOTESLA 100000.0f
 
 #define CTRL_REG1_A       0x20
 #define CTRL_REG2_A       0x21
 #define CTRL_REG3_A       0x22
 #define CTRL_REG4_A       0x23
 #define CTRL_REG5_A       0x24
-#define HP_FILTER_RESET_A 0x25
+#define CTRL_REG6_A       0x25
 #define REFERENCE_A       0x26
 #define STATUS_REG_A      0x27
 #define OUT_X_L_A         0x28
@@ -29,6 +30,8 @@
 #define OUT_Y_H_A         0x2b
 #define OUT_Z_L_A         0x2c
 #define OUT_Z_H_A         0x2d
+#define FIFO_CTRL_REG_A   0x2e
+#define FIFO_SRC_REG_A    0x2f
 #define INT1_CFG_A        0x30
 #define INT1_SOURCE_A     0x31
 #define INT1_THS_A        0x32
@@ -51,69 +54,73 @@
 #define IRB_REG_M         0x0b
 #define IRC_REG_M         0x0c
 #define WHO_AM_I_M        0x0f
+#define TEMP_OUT_H_M      0x01 // this may conflicting with CRB_REG_M
+#define TEMP_OUT_L_M      0x40
 
 static float LSB_per_Gauss_XY = 1100.0f; // Varies with range
 static float LSB_per_Gauss_Z = 980.0f;   // Varies with range
 static float mGal_per_LSB = 1.0f;        // Varies with range
 
-LSM303DLHDriver::LSM303DLHDriver() : accAddr(LSM303DLH_ACC_ADDR), magAddr(LSM303DLH_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
+LSM303DLHCDriver::LSM303DLHCDriver() :
+		accAddr(LSM303DLHC_ACC_ADDR), magAddr(LSM303DLHC_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0)
 {
 }
 
-LSM303DLHDriver::~LSM303DLHDriver()
+LSM303DLHCDriver::~LSM303DLHCDriver()
 {
 }
 
-bool LSM303DLHDriver::Init()
+bool LSM303DLHCDriver::Init()
 {
 	uint8_t ira, irb, irc, sr, whoami;
 
 	NAVCOMPASS_I2C.begin();
 
-	if (!I2CRead(LSM303DLH_ACC_ADDR_1, STATUS_REG_A, &sr))
+	if (!I2CRead(LSM303DLHC_ACC_ADDR, STATUS_REG_A, &sr))
 	{
-		if (!I2CRead(LSM303DLH_ACC_ADDR, STATUS_REG_A, &sr))
-		{
-			return false;
-		}
-		accAddr = LSM303DLH_ACC_ADDR;
-	} else
-	{
-		accAddr = LSM303DLH_ACC_ADDR_1;
+		return false;
 	}
+	accAddr = LSM303DLHC_ACC_ADDR;
 
-	I2CRead(LSM303DLH_MAG_ADDR, IRA_REG_M, &ira);
-	I2CRead(LSM303DLH_MAG_ADDR, IRB_REG_M, &irb);
-	I2CRead(LSM303DLH_MAG_ADDR, IRC_REG_M, &irc);
+	I2CRead(LSM303DLHC_MAG_ADDR, IRA_REG_M, &ira);
+	I2CRead(LSM303DLHC_MAG_ADDR, IRB_REG_M, &irb);
+	I2CRead(LSM303DLHC_MAG_ADDR, IRC_REG_M, &irc);
 
 	if ((ira != 'H') || (irb != '4') || (irc != '3'))
 	{
 		return false;
 	}
 
-	magAddr = LSM303DLH_MAG_ADDR;
+	magAddr = LSM303DLHC_MAG_ADDR;
 
 	I2CRead(magAddr, WHO_AM_I_M, &whoami);
 
-	if (whoami == LSM303DLHC_WHO_AM_I)
+	if (whoami != LSM303DLHC_WHO_AM_I)
 	{
 		return false;
 	}
 
-	I2CWrite(accAddr, 0x27, CTRL_REG1_A);  // 0x47 = ODR 50hz all axes on
-	I2CWrite(magAddr, 0x10, CRA_REG_M);    // 15Hz
-	I2CWrite(magAddr, 0x03, CRB_REG_M);    // Gauss range
-	I2CWrite(magAddr, 0x00, MR_REG_M);     // Continuous mode
+	// DLHC Magnetic register
+	I2CWrite(magAddr, 0x18, CRA_REG_M); // 0x18=0b00011000 ODR 75Hz
+	// DLHC Acceleration register
+	I2CWrite(accAddr, 0x57, CTRL_REG1_A); // 0x57=0b01010111 Normal Mode, ODR 100hz, all axes on
+	I2CWrite(accAddr, 0x08, CTRL_REG4_A); // 0x08=0b00001000 Range: +/-2 Gal, Sens.: 1mGal/LSB, highRes on
+	mGal_per_LSB = 1.0;
+	// DLHC Magnetic register
+	I2CWrite(magAddr, 0x20, CRB_REG_M);   // 0x20=0b00100000 Range: +/-1.3 Gauss gain: 1100LSB/Gauss
+	LSB_per_Gauss_XY = 1100;
+	LSB_per_Gauss_Z = 980;
+	I2CWrite(magAddr, 0x00, MR_REG_M);    // Continuous mode
 
 	return true;
 }
 
-string LSM303DLHDriver::GetDeviceName()
+string LSM303DLHCDriver::GetDeviceName()
 {
-	return(string("LSM303DLH"));
+	return (string("LSM303DLHC"));
 }
 
-void LSM303DLHDriver::GetMagneticField(float *magX, float *magY, float *magZ)
+void LSM303DLHCDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 {
 	uint8_t magBuffer[6];
 	int16_t mx, my, mz;
@@ -121,15 +128,15 @@ void LSM303DLHDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 	I2CBurstRead(magAddr, OUT_X_H_M, magBuffer, 6);
 
 	mx = ((int16_t) (magBuffer[0] << 8)) | magBuffer[1];
-	my = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3];
-	mz = ((int16_t) (magBuffer[4] << 8)) | magBuffer[5];
+	mz = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3]; // stupid change in order for DLHC
+	my = ((int16_t) (magBuffer[4] << 8)) | magBuffer[5];
 
-	*magX = ((float) mx / 635.0f);
-	*magY = ((float) my / 635.0f);
-	*magZ = ((float) mz / 635.0f);
+	*magX = (float) mx;
+	*magY = (float) my;
+	*magZ = (float) mz;
 }
 
-void LSM303DLHDriver::GetAcceleration(float *accX, float *accY, float *accZ)
+void LSM303DLHCDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 {
 	int16_t ax, ay, az;
 	uint8_t regValue;
@@ -149,12 +156,12 @@ void LSM303DLHDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 	I2CRead(accAddr, OUT_Z_L_A, &regValue);
 	az = (az << 8) | regValue;
 
-	*accX = (float) -ax / 16384.0f;
-	*accY = (float) -ay / 16384.0f;
-	*accZ = (float) -az / 16384.0f;
+	*accX = (float) (ax >> 4); // DLHC registers contain a left-aligned 12-bit number, so values should be shifted right by 4 bits (divided by 16)
+	*accY = (float) (ay >> 4);
+	*accZ = (float) (az >> 4);
 }
 
-bool LSM303DLHDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
+bool LSM303DLHCDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
 {
 	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
 	NAVCOMPASS_I2C.write(address);
@@ -169,7 +176,7 @@ bool LSM303DLHDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data
 	return (NAVCOMPASS_I2C.endTransmission() == 0);
 }
 
-bool LSM303DLHDriver::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
+bool LSM303DLHCDriver::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
 {
 	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
 	NAVCOMPASS_I2C.write(address);
@@ -182,7 +189,7 @@ bool LSM303DLHDriver::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t 
 	return (NAVCOMPASS_I2C.endTransmission() == 0);
 }
 
-bool LSM303DLHDriver::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
+bool LSM303DLHCDriver::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
 {
 	NAVCOMPASS_I2C.beginTransmission(i2cAddress);
 	NAVCOMPASS_I2C.write(address);

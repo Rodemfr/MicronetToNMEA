@@ -9,6 +9,7 @@
 #include "BoardConfig.h"
 #include "Globals.h"
 #include "LSM303DLHDriver.h"
+#include "LSM303DLHCDriver.h"
 
 NavCompass::NavCompass() :
 		heading(0), navCompassDetected(false), navCompassDriver(nullptr)
@@ -23,8 +24,12 @@ bool NavCompass::Init()
 {
 	navCompassDetected = false;
 
-	navCompassDriver = new LSM303DLHDriver();
+	navCompassDriver = new LSM303DLHCDriver();
 	if (!navCompassDriver->Init())
+	{
+		delete navCompassDriver;
+		navCompassDriver = new LSM303DLHDriver();
+	} else if (!navCompassDriver->Init())
 	{
 		delete navCompassDriver;
 		return false;

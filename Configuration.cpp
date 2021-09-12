@@ -81,7 +81,6 @@ Configuration::Configuration()
 {
 	// Set default configuration
 	navCompassAvailable = false;
-	navCompassType = NAVCOMPASS_LSM303DLH;
 	networkId = 0;
 	waterSpeedFactor_per = 1.0f;
 	waterTemperatureOffset_C = 0;
