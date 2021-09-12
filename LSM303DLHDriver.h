@@ -27,9 +27,9 @@ private:
 	uint8_t accAddr, magAddr;
 	float magX, magY, magZ;
 	float accX, accY, accZ;
-	float LSB_per_Gauss_XY;
-	float LSB_per_Gauss_Z;
-	float mGal_per_LSB;
+	float LsbPerGaussXY;
+	float LsbPerGaussZ;
+	float GPerLsb;
 
 	bool I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data);
 	bool I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length);
