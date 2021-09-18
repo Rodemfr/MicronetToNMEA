@@ -70,9 +70,9 @@
 #define BLU_TX_PIN   33
 
 // The console to use for menu and NMEA output
-#define CONSOLE BLU_CONSOLE
-#define NMEA_OUT BLU_CONSOLE
-#define NMEA_IN BLU_CONSOLE
+#define CONSOLE USB_CONSOLE
+#define NMEA_OUT USB_CONSOLE
+#define NMEA_IN USB_CONSOLE
 
 // NMEA decoder configuration
 #define DISABLE_NMEA_CHECKSUM 0
