@@ -191,7 +191,7 @@ void setup()
 	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfReceiverIsr, RISING);
 
 	// Start listening
-	gRfReceiver.SetRx();
+	RfFlushAndRestartRx();
 
 	// Display serial menu
 	gMenuManager.PrintMenu();
@@ -236,7 +236,7 @@ void RfReceiverIsr()
 	MicronetMessage_t message;
 	int nbBytes;
 	int dataOffset;
-	bool newLengthFound = false;
+	int packetLength = -1;
 	uint32_t startTime_us = micros() - PREAMBLE_LENGTH_IN_US;
 
 	if (gRfReceiver.getMode() != 2)
@@ -266,23 +266,16 @@ void RfReceiverIsr()
 			gRfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
 			dataOffset += nbBytes;
 			// Check if we have reached the packet length field
-			if ((!newLengthFound) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
+			if ((packetLength < 0) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
 			{
-				newLengthFound = true;
 				// Yes : check that this is a valid length
 				if ((message.data[MICRONET_LEN_OFFSET_1] == message.data[MICRONET_LEN_OFFSET_2])
 						&& (message.data[MICRONET_LEN_OFFSET_1] < MICRONET_MAX_MESSAGE_LENGTH - 3)
 						&& ((message.data[MICRONET_LEN_OFFSET_1] + 2) >= MICRONET_PAYLOAD_OFFSET))
 				{
+					packetLength = message.data[MICRONET_LEN_OFFSET_1] + 2;
 					// Update CC1101's packet length register
-					gRfReceiver.setPacketLength(message.data[MICRONET_LEN_OFFSET_1] + 2);
-					// If CC1101 has already passed the number of bytes requested in the LEN field, setting packet length
-					// to a value below the number of byte already counted by CC1101 will make GDO0 not to be deasserted,
-					// so we have to add an extra check to leave the loop
-					if (dataOffset >= message.data[MICRONET_LEN_OFFSET_1] + 2)
-					{
-						break;
-					}
+					gRfReceiver.setPacketLength(packetLength);
 				}
 				else
 				{
@@ -292,21 +285,14 @@ void RfReceiverIsr()
 				}
 			}
 		}
-		// Continue reading as long as CC1101 doesn't tell us that the packet reception is finished
-	} while (digitalRead(GDO0_PIN));
+		// Continue reading as long as entire packet has not been received
+	} while (dataOffset < packetLength);
 
-	// Collect remaining bytes that could have been missed in the last loop
-	nbBytes = gRfReceiver.SpiReadStatus(CC1101_RXBYTES);
-	if (nbBytes > 0)
-	{
-		gRfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
-		dataOffset += nbBytes;
-	}
 	uint32_t endTime_us = micros();
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	RfFlushAndRestartRx();
 	// Fill message structure
-	message.len = message.data[MICRONET_LEN_OFFSET_1] + 2;
+	message.len = packetLength;
 	message.rssi = gRfReceiver.getRssi();
 	message.startTime_us = startTime_us;
 	message.endTime_us = endTime_us;
@@ -320,6 +306,12 @@ void RfFlushAndRestartRx()
 	gRfReceiver.setSyncMode(2);
 	gRfReceiver.SpiStrobe(CC1101_SFRX);
 	gRfReceiver.setPacketLength(RF_DEFAULT_PACKET_LENGTH);
+	// TEST : set fifo threshold as interrupt source
+	gRfReceiver.SpiWriteReg(CC1101_PKTCTRL0, 0x04);
+	gRfReceiver.SpiWriteReg(CC1101_PKTCTRL1, 0x00);
+	gRfReceiver.SpiWriteReg(CC1101_FIFOTHR, 0x03);
+	gRfReceiver.SpiWriteReg(CC1101_IOCFG0, 0x01);
+
 	gRfReceiver.SetRx();
 }
 
@@ -328,6 +320,7 @@ void RfTxMessage(MicronetMessage_t *message)
 	// Change CC1101 configuration for emission
 	gRfReceiver.setSidle();
 	gRfReceiver.setSyncMode(0);
+	gRfReceiver.SpiWriteReg(CC1101_IOCFG0, 0x06);
 	gRfReceiver.SpiStrobe(CC1101_SFTX);
 	gRfReceiver.setPA(12);
 	// Set packet length taking into account the preamble and sync byte we send manually

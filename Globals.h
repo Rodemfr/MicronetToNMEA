@@ -38,8 +38,8 @@
 #include "NmeaEncoder.h"
 #include "NmeaDecoder.h"
 #include "NavigationData.h"
-#include <ELECHOUSE_CC1101_SRC_DRV.h>
 #include "NavCompass.h"
+#include "ELECHOUSE_CC1101_SRC_DRV.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
