@@ -8,7 +8,8 @@
 #include "RfDriver.h"
 #include <arduino.h>
 
-RfDriver::RfDriver() : gdo0_pin(0), gdo2_pin(0), messageFifo(nullptr)
+RfDriver::RfDriver() :
+		gdo0_pin(0), gdo2_pin(0), messageFifo(nullptr), rxState(RX_STATE_IDLE)
 {
 }
 
@@ -59,60 +60,69 @@ bool RfDriver::Init(int gdo0_pin, int gdo2_pin, MicronetMessageFifo *messageFifo
 
 void RfDriver::Gdo0Isr()
 {
-	MicronetMessage_t message;
+	static MicronetMessage_t message;
 	int nbBytes;
-	int dataOffset;
-	int packetLength = -1;
-	uint32_t startTime_us = micros() - PREAMBLE_LENGTH_IN_US;
+	static int dataOffset;
+	static int packetLength;
+	static uint32_t startTime_us;
 
 	if (RfReceiver.getMode() != 2)
 	{
 		return;
 	}
 
-	dataOffset = 0;
 	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
 	// begin collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
 	// CC1101 to change packet size on the fly as soon as we will have identified the length field
-	do
+	// How many bytes are already in the FIFO ?
+	nbBytes = RfReceiver.SpiReadStatus(CC1101_RXBYTES);
+	// Check for FIFO overflow
+	if (nbBytes & 0x80)
 	{
-		// How many bytes are already in the FIFO ?
-		nbBytes = RfReceiver.SpiReadStatus(CC1101_RXBYTES);
-		// Check for FIFO overflow
-		if (nbBytes & 0x80)
+		// Yes : ignore current packet and restart CC1101 reception for the next packet
+		RfFlushAndRestartRx();
+		return;
+	}
+
+	if (rxState == RX_STATE_IDLE)
+	{
+		startTime_us = micros() - PREAMBLE_LENGTH_IN_US;
+		packetLength = -1;
+		dataOffset = 0;
+	}
+	// Are there new bytes in the FIFO ?
+	if (nbBytes > 0)
+	{
+		// Yes : read them
+		RfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
+		dataOffset += nbBytes;
+		// Check if we have reached the packet length field
+		if ((rxState == RX_STATE_IDLE) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
 		{
-			// Yes : ignore current packet and restart CC1101 reception for the next packet
-			RfFlushAndRestartRx();
-			return;
-		}
-		// Are there new bytes in the FIFO ?
-		if (nbBytes > 0)
-		{
-			// Yes : read them
-			RfReceiver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
-			dataOffset += nbBytes;
-			// Check if we have reached the packet length field
-			if ((packetLength < 0) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
+			// Yes : check that this is a valid length
+			if ((message.data[MICRONET_LEN_OFFSET_1] == message.data[MICRONET_LEN_OFFSET_2])
+					&& (message.data[MICRONET_LEN_OFFSET_1] < MICRONET_MAX_MESSAGE_LENGTH - 3)
+					&& ((message.data[MICRONET_LEN_OFFSET_1] + 2) >= MICRONET_PAYLOAD_OFFSET))
 			{
-				// Yes : check that this is a valid length
-				if ((message.data[MICRONET_LEN_OFFSET_1] == message.data[MICRONET_LEN_OFFSET_2])
-						&& (message.data[MICRONET_LEN_OFFSET_1] < MICRONET_MAX_MESSAGE_LENGTH - 3)
-						&& ((message.data[MICRONET_LEN_OFFSET_1] + 2) >= MICRONET_PAYLOAD_OFFSET))
-				{
-					packetLength = message.data[MICRONET_LEN_OFFSET_1] + 2;
-					// Update CC1101's packet length register
-					RfReceiver.setPacketLength(packetLength);
-				}
-				else
-				{
-					// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
-					RfFlushAndRestartRx();
-					return;
-				}
+				packetLength = message.data[MICRONET_LEN_OFFSET_1] + 2;
+				// Update CC1101's packet length register
+				RfReceiver.setPacketLength(packetLength);
+			}
+			else
+			{
+				// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
+				RfFlushAndRestartRx();
+				return;
 			}
 		}
 		// Continue reading as long as entire packet has not been received
-	} while (dataOffset < packetLength);
+	}
+
+	if (dataOffset < packetLength)
+	{
+		rxState = RX_STATE_RECEIVING;
+		return;
+	}
 
 	uint32_t endTime_us = micros();
 	// Restart CC1101 reception as soon as possible not to miss the next packet
@@ -136,7 +146,7 @@ void RfDriver::RfFlushAndRestartRx()
 	RfReceiver.SpiWriteReg(CC1101_PKTCTRL1, 0x00);
 	RfReceiver.SpiWriteReg(CC1101_FIFOTHR, 0x03);
 	RfReceiver.SpiWriteReg(CC1101_IOCFG0, 0x01);
-
+	rxState = RX_STATE_IDLE;
 	RfReceiver.SetRx();
 }
 

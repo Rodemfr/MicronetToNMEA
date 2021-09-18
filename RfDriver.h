@@ -12,6 +12,11 @@
 #include "MicronetMessageFifo.h"
 #include "ELECHOUSE_CC1101_SRC_DRV.h"
 
+typedef enum {
+	RX_STATE_IDLE = 0,
+	RX_STATE_RECEIVING
+} RfDriverRxState_t;
+
 class RfDriver
 {
 public:
@@ -28,6 +33,7 @@ private:
 	int gdo2_pin;
 	ELECHOUSE_CC1101 RfReceiver;
 	MicronetMessageFifo *messageFifo;
+	RfDriverRxState_t rxState;
 };
 
 #endif /* RFDRIVER_H_ */
