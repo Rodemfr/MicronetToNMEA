@@ -54,8 +54,8 @@
 #define IRB_REG_M         0x0b
 #define IRC_REG_M         0x0c
 #define WHO_AM_I_M        0x0f
-#define TEMP_OUT_H_M      0x01 // this may conflicting with CRB_REG_M
-#define TEMP_OUT_L_M      0x40
+#define TEMP_OUT_H_M      0x31
+#define TEMP_OUT_L_M      0x32
 
 LSM303DLHCDriver::LSM303DLHCDriver() :
 		accAddr(LSM303DLHC_ACC_ADDR), magAddr(LSM303DLHC_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0), LSB_per_Gauss_XY(1100.0f), LSB_per_Gauss_Z(980.0f), mGal_per_LSB(1.0f)
@@ -96,16 +96,15 @@ bool LSM303DLHCDriver::Init()
 		return false;
 	}
 
-	// DLHC Magnetic register
-	I2CWrite(magAddr, 0x18, CRA_REG_M); // 0x18=0b00011000 ODR 75Hz
 	// DLHC Acceleration register
-	I2CWrite(accAddr, 0x57, CTRL_REG1_A); // 0x57=0b01010111 Normal Mode, ODR 100hz, all axes on
+	I2CWrite(accAddr, 0x47, CTRL_REG1_A); // 0x47=0b01000111 Normal Mode, ODR 50Hz, all axes on
 	I2CWrite(accAddr, 0x08, CTRL_REG4_A); // 0x08=0b00001000 Range: +/-2 Gal, Sens.: 1mGal/LSB, highRes on
-	mGal_per_LSB = 1.0f / 16384.0f;
+	mGal_per_LSB = 1.0f;
 	// DLHC Magnetic register
-	I2CWrite(magAddr, 0x20, CRB_REG_M);   // 0x20=0b00100000 Range: +/-1.3 Gauss gain: 1100LSB/Gauss
-	LSB_per_Gauss_XY = 1100;
-	LSB_per_Gauss_Z = 980;
+	I2CWrite(magAddr, 0x90, CRA_REG_M); // 0x90=0b10010000 ODR 15Hz, temperature sensor on
+	I2CWrite(magAddr, 0x20, CRB_REG_M); // 0x20=0b00100000 Range: +/-1.3 Gauss gain: 1100LSB/Gauss
+	LSB_per_Gauss_XY = 1100.0f;
+	LSB_per_Gauss_Z = 980.0f;
 	I2CWrite(magAddr, 0x00, MR_REG_M);    // Continuous mode
 
 	return true;
