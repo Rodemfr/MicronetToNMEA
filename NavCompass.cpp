@@ -12,8 +12,12 @@
 #include "LSM303DLHCDriver.h"
 
 NavCompass::NavCompass() :
-		heading(0), navCompassDetected(false), navCompassDriver(nullptr)
+		headingIndex(0), navCompassDetected(false), navCompassDriver(nullptr)
 {
+	for (int i = 0; i < HEADING_HISTORY_LENGTH; i++)
+	{
+		headingHistory[i] = 0.0f;
+	}
 }
 
 NavCompass::~NavCompass()
@@ -73,8 +77,6 @@ float NavCompass::GetHeading()
 	magY -= gConfiguration.yMagOffset;
 	magZ -= gConfiguration.zMagOffset;
 
-	// TODO : filter data
-
 	// Build starboard axis from Nav Compass X axis & gravity vector
 	starboardY = accelZ;
 	starboardZ = -accelY;
@@ -94,10 +96,22 @@ float NavCompass::GetHeading()
 	if (angle < 0)
 		angle += 360;
 
-	return angle;
+	headingHistory[headingIndex++] = angle;
+	if (headingIndex >= HEADING_HISTORY_LENGTH)
+	{
+		headingIndex = 0;
+	}
+
+	angle = 0.0f;
+	for (int i = 0; i < HEADING_HISTORY_LENGTH; i++)
+	{
+		angle += headingHistory[i];
+	}
+
+	return angle / HEADING_HISTORY_LENGTH;
 }
 
-void NavCompass::GetMagneticField(float *magX, float* magY, float *magZ)
+void NavCompass::GetMagneticField(float *magX, float *magY, float *magZ)
 {
 	if (navCompassDetected)
 	{
@@ -105,7 +119,7 @@ void NavCompass::GetMagneticField(float *magX, float* magY, float *magZ)
 	}
 }
 
-void NavCompass::GetAcceleration(float *accX, float* accY, float *accZ)
+void NavCompass::GetAcceleration(float *accX, float *accY, float *accZ)
 {
 	if (navCompassDetected)
 	{

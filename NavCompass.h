@@ -15,6 +15,8 @@
 
 using string = std::string;
 
+#define HEADING_HISTORY_LENGTH 16
+
 class NavCompass
 {
 public:
@@ -28,7 +30,8 @@ public:
 	void GetAcceleration(float *accX, float* accY, float *accZ);
 
 private:
-	float heading;
+	float headingHistory[HEADING_HISTORY_LENGTH];
+	uint32_t headingIndex;
 	bool navCompassDetected;
 	NavCompassDriver *navCompassDriver;
 };
