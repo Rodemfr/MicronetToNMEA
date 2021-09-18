@@ -39,7 +39,7 @@
 #include "NmeaDecoder.h"
 #include "NavigationData.h"
 #include "NavCompass.h"
-#include "ELECHOUSE_CC1101_SRC_DRV.h"
+#include "RfDriver.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -53,7 +53,7 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-extern ELECHOUSE_CC1101 gRfReceiver;
+extern RfDriver gRfReceiver;
 extern MenuManager gMenuManager;
 extern MicronetMessageFifo gRxMessageFifo;
 extern MicronetCodec gMicronetCodec;
