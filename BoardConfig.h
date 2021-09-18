@@ -35,22 +35,19 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-// NavCompass I2C bus
+// Selects on which I2C bus is connected compass as per Wiring library definition
 #define NAVCOMPASS_I2C Wire1
 
 // CC1101/SPI pins
-#define CS0_PIN        10
-#define MOSI_PIN       11
-#define MISO_PIN       12
-#define SCK_PIN        14
-#define GDO0_PIN       24
-#define GDO2_PIN       25
+#define CS0_PIN  10
+#define MOSI_PIN 11
+#define MISO_PIN 12
+#define SCK_PIN  14
+#define GDO0_PIN 24
+#define GDO2_PIN 25
 
 // ERROR LED pin
-#define LED_PIN        LED_BUILTIN
-
-// Default packet length for RF reception. Must be less than 64.
-#define RF_DEFAULT_PACKET_LENGTH 60
+#define LED_PIN LED_BUILTIN
 
 // NMEA/GNSS UART pins
 #define GNSS_SERIAL   Serial1

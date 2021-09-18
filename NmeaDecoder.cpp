@@ -126,7 +126,6 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 	if (sentenceBuffer[sentenceIndex][0] != '$')
 		return;
 
-#if DISABLE_NMEA_CHECKSUM == 0
 	char *pCs = strrchr(sentenceBuffer[sentenceIndex], '*') + 1;
 	if (pCs == nullptr)
 		return;
@@ -142,7 +141,6 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 
 	if (crc != Cs)
 		return;
-#endif
 
 	uint32_t sId = ((uint8_t) sentenceBuffer[sentenceIndex][3]) << 16;
 	sId |= ((uint8_t) sentenceBuffer[sentenceIndex][4]) << 8;
@@ -151,16 +149,20 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 	char *pField = sentenceBuffer[sentenceIndex] + 7;
 	switch (sId)
 	{
-	case 'RMB':
+	case 0x524D42:
+		// RMB sentence
 		DecodeRMBSentence(pField, navData);
 		break;
-	case 'RMC':
+	case 0x524D43:
+		// RMC sentence
 		DecodeRMCSentence(pField, navData);
 		break;
-	case 'GGA':
+	case 0x474741:
+		// GGA sentence
 		DecodeGGASentence(pField, navData);
 		break;
-	case 'VTG':
+	case 0x565447:
+		// VTG sentence
 		DecodeVTGSentence(pField, navData);
 		break;
 	}
