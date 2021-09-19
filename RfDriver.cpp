@@ -8,8 +8,12 @@
 #include "RfDriver.h"
 #include <arduino.h>
 
+#include <TeensyTimerInterrupt.h>
+
+TeensyTimerInterrupt timerInt(TEENSY_TIMER_3);
+
 RfDriver::RfDriver() :
-		gdo0_pin(0), gdo2_pin(0), messageFifo(nullptr), rxState(RX_STATE_IDLE)
+		gdo0Pin(0), gdo2Pin(0), messageFifo(nullptr), rxState(RX_STATE_IDLE)
 {
 }
 
@@ -17,19 +21,25 @@ RfDriver::~RfDriver()
 {
 }
 
-bool RfDriver::Init(int gdo0_pin, int gdo2_pin, MicronetMessageFifo *messageFifo)
+void TimerHandler()
+{
+	timerInt.disableTimer();
+	Serial.println("Ping");
+}
+
+bool RfDriver::Init(int gdo0Pin, int gdo2Pin, MicronetMessageFifo *messageFifo)
 {
 	if (!RfReceiver.getCC1101())
 	{
 		return false;
 	}
 
-	this->gdo0_pin = gdo0_pin;
-	this->gdo2_pin = gdo2_pin;
+	this->gdo0Pin = gdo0Pin;
+	this->gdo2Pin = gdo2Pin;
 	this->messageFifo = messageFifo;
 
 	RfReceiver.Init();
-	RfReceiver.setGDO(gdo0_pin, gdo2_pin); // Practicaly, GDO2 pin isn't used. You don't need to wire it
+	RfReceiver.setGDO(gdo0Pin, gdo2Pin); // Practicaly, GDO2 pin isn't used. You don't need to wire it
 	RfReceiver.setCCMode(1); // set config for internal transmission mode.
 	RfReceiver.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
 	RfReceiver.setMHZ(869.778 - 0.034); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
@@ -55,10 +65,12 @@ bool RfDriver::Init(int gdo0_pin, int gdo2_pin, MicronetMessageFifo *messageFifo
 	RfReceiver.setPQT(4); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
 	RfReceiver.setAppendStatus(0); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 
+	timerInt.attachInterruptInterval(10000 * 1000, TimerHandler);
+
 	return true;
 }
 
-void RfDriver::Gdo0Isr()
+void RfDriver::GDO0Callback()
 {
 	static MicronetMessage_t message;
 	int nbBytes;
@@ -80,7 +92,7 @@ void RfDriver::Gdo0Isr()
 	if (nbBytes & 0x80)
 	{
 		// Yes : ignore current packet and restart CC1101 reception for the next packet
-		RfFlushAndRestartRx();
+		RestartReception();
 		return;
 	}
 
@@ -111,7 +123,7 @@ void RfDriver::Gdo0Isr()
 			else
 			{
 				// The packet length is not valid : ignore current packet and restart CC1101 reception for the next packet
-				RfFlushAndRestartRx();
+				RestartReception();
 				return;
 			}
 		}
@@ -126,7 +138,7 @@ void RfDriver::Gdo0Isr()
 
 	uint32_t endTime_us = micros();
 	// Restart CC1101 reception as soon as possible not to miss the next packet
-	RfFlushAndRestartRx();
+	RestartReception();
 	// Fill message structure
 	message.len = packetLength;
 	message.rssi = RfReceiver.getRssi();
@@ -135,7 +147,7 @@ void RfDriver::Gdo0Isr()
 	messageFifo->Push(message);
 }
 
-void RfDriver::RfFlushAndRestartRx()
+void RfDriver::RestartReception()
 {
 	RfReceiver.setSidle();
 	RfReceiver.setSyncMode(2);
@@ -150,7 +162,7 @@ void RfDriver::RfFlushAndRestartRx()
 	RfReceiver.SetRx();
 }
 
-void RfDriver::RfTxMessage(MicronetMessage_t *message)
+void RfDriver::TransmitMessage(MicronetMessage_t *message)
 {
 	// Change CC1101 configuration for emission
 	RfReceiver.setSidle();
@@ -176,7 +188,7 @@ void RfDriver::RfTxMessage(MicronetMessage_t *message)
 		}
 	}
 	// Wait for end of tranmission
-	while (digitalRead(gdo0_pin))
+	while (digitalRead(gdo0Pin))
 		;
 	// Stop Tx mode
 	RfReceiver.setSidle();

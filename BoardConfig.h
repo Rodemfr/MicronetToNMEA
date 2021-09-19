@@ -44,7 +44,7 @@
 #define MISO_PIN 12
 #define SCK_PIN  14
 #define GDO0_PIN 24
-#define GDO2_PIN 25
+#define GDO2_PIN 25 // GDO2 is not used by MicronetToNMEA but CC1101 driver set it as output anyway, so we must allocate one pin to it
 
 // ERROR LED pin
 #define LED_PIN LED_BUILTIN
@@ -70,9 +70,6 @@
 #define CONSOLE USB_CONSOLE
 #define NMEA_OUT USB_CONSOLE
 #define NMEA_IN USB_CONSOLE
-
-// NMEA decoder configuration
-#define DISABLE_NMEA_CHECKSUM 0
 
 /***************************************************************************/
 /*                                Types                                    */

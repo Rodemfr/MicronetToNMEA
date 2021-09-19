@@ -160,7 +160,7 @@ void setup()
 	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, RISING);
 
 	// Start listening
-	gRfReceiver.RfFlushAndRestartRx();
+	gRfReceiver.RestartReception();
 
 	// Display serial menu
 	gMenuManager.PrintMenu();
@@ -202,7 +202,7 @@ void GNSS_CALLBACK()
 
 void RfIsr()
 {
-	gRfReceiver.Gdo0Isr();
+	gRfReceiver.GDO0Callback();
 }
 
 void PrintByte(uint8_t data)
@@ -576,8 +576,8 @@ void MenuConvertToNmea()
 					gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
 					WAIT_TIME_US(txSlot.start_us);
 				}
-				gRfReceiver.RfTxMessage(&txMessage);
-				gRfReceiver.RfFlushAndRestartRx();
+				gRfReceiver.TransmitMessage(&txMessage);
+				gRfReceiver.RestartReception();
 
 				gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
 
