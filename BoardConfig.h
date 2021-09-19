@@ -67,9 +67,9 @@
 #define BLU_TX_PIN   33
 
 // The console to use for menu and NMEA output
-#define CONSOLE USB_CONSOLE
+#define CONSOLE  USB_CONSOLE
 #define NMEA_OUT USB_CONSOLE
-#define NMEA_IN USB_CONSOLE
+#define NMEA_IN  USB_CONSOLE
 
 /***************************************************************************/
 /*                                Types                                    */

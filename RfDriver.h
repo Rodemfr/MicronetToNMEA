@@ -26,14 +26,19 @@ public:
 	bool Init(int gdo0_pin, int gdo2_pin, MicronetMessageFifo *messageFifo);
 	void GDO0Callback();
 	void RestartReception();
-	void TransmitMessage(MicronetMessage_t *message);
+	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
 
 private:
 	int gdo0Pin;
 	int gdo2Pin;
-	ELECHOUSE_CC1101 RfReceiver;
+	ELECHOUSE_CC1101 cc1101Driver;
 	MicronetMessageFifo *messageFifo;
 	RfDriverRxState_t rxState;
+	MicronetMessage_t messageToTransmit;
+
+	void TransmitCallback();
+	static void TimerHandler();
+	static RfDriver *rfDriver;
 };
 
 #endif /* RFDRIVER_H_ */

@@ -52,9 +52,9 @@
 			<location>C:/Users/Ronan/Documents/Arduino/libraries/SmartRC-CC1101-Driver-Lib</location>
 		</link>
 		<link>
-			<name>libraries/Teensy_TimerInterrupt</name>
+			<name>libraries/TeensyTimerTool</name>
 			<type>2</type>
-			<location>C:/Users/Ronan/Documents/Arduino/libraries/Teensy_TimerInterrupt</location>
+			<location>C:/Users/Ronan/Documents/Arduino/libraries/TeensyTimerTool</location>
 		</link>
 		<link>
 			<name>libraries/Wire</name>

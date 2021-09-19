@@ -567,17 +567,13 @@ void MenuConvertToNmea()
 						gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
 								payloadLength);
 					}
-
-					WAIT_TIME_US(txSlot.start_us);
 				}
 				else
 				{
 					txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
 					gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
-					WAIT_TIME_US(txSlot.start_us);
 				}
-				gRfReceiver.TransmitMessage(&txMessage);
-				gRfReceiver.RestartReception();
+				gRfReceiver.TransmitMessage(&txMessage, txSlot.start_us);
 
 				gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
 
