@@ -44,7 +44,6 @@
 #define MISO_PIN       12
 #define SCK_PIN        14
 #define GDO0_PIN       24
-#define GDO2_PIN       25
 
 // ERROR LED pin
 #define LED_PIN        LED_BUILTIN
