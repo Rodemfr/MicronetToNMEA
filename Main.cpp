@@ -69,7 +69,6 @@ void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
-void MenuTestHeading();
 void SaveCalibration();
 void LoadCalibration();
 
@@ -88,7 +87,6 @@ MenuEntry_t mainMenu[] =
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 { "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
-{ "Test heading", MenuTestHeading },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -789,69 +787,6 @@ void MenuCalibrateMagnetoMeter()
 		gConfiguration.SaveToEeprom();
 		CONSOLE.println("Configuration saved");
 	}
-}
-
-void MenuTestHeading()
-{
-	bool exitLoop = false;
-	uint32_t lastHeadingTime = millis();
-	float heading;
-	float accX, accY, accZ;
-	float magX, magY, magZ;
-
-	if (gConfiguration.navCompassAvailable == false)
-	{
-		CONSOLE.println("No navigation compass detected. Exiting menu ...");
-		return;
-	}
-
-	CONSOLE.println("Testing heading ... ");
-
-	do
-	{
-		static int count;
-		// Handle magnetic compass
-		// Only request new reading if previous is at least 100ms old
-		if ((millis() - lastHeadingTime) > 100)
-		{
-			lastHeadingTime = millis();
-			heading = gNavCompass.GetHeading();
-			count++;
-			if (count % 3 == 0)
-			{
-				CONSOLE.print("Hdg (");
-				CONSOLE.println(heading);
-
-				gNavCompass.GetMagneticField(&magX, &magY, &magZ);
-				CONSOLE.print("Mag (");
-				CONSOLE.print(magX);
-				CONSOLE.print(" ");
-				CONSOLE.print(magY);
-				CONSOLE.print(" ");
-				CONSOLE.print(magZ);
-				CONSOLE.println(")");
-
-				gNavCompass.GetAcceleration(&accX, &accY, &accZ);
-				CONSOLE.print("Acc (");
-				CONSOLE.print(accX);
-				CONSOLE.print(" ");
-				CONSOLE.print(accY);
-				CONSOLE.print(" ");
-				CONSOLE.print(accZ);
-				CONSOLE.println(")");
-}
-		}
-
-		while (CONSOLE.available() > 0)
-		{
-			if (CONSOLE.read() == 0x1b)
-			{
-				CONSOLE.println("ESC key pressed, stopping scan.");
-				exitLoop = true;
-			}
-		}
-		yield();
-	} while (!exitLoop);
 }
 
 void SaveCalibration()
