@@ -17,7 +17,7 @@ OneShotTimer timerInt;
 RfDriver *RfDriver::rfDriver;
 
 RfDriver::RfDriver() :
-		gdo0Pin(0), gdo2Pin(0), messageFifo(nullptr), rxState(RX_STATE_IDLE)
+		gdo0Pin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE)
 {
 }
 
@@ -25,7 +25,7 @@ RfDriver::~RfDriver()
 {
 }
 
-bool RfDriver::Init(int gdo0Pin, int gdo2Pin, MicronetMessageFifo *messageFifo)
+bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo)
 {
 	if (!cc1101Driver.getCC1101())
 	{
@@ -33,14 +33,13 @@ bool RfDriver::Init(int gdo0Pin, int gdo2Pin, MicronetMessageFifo *messageFifo)
 	}
 
 	this->gdo0Pin = gdo0Pin;
-	this->gdo2Pin = gdo2Pin;
 	this->messageFifo = messageFifo;
 	rfDriver = this;
 
 	timerInt.begin(TimerHandler);
 
 	cc1101Driver.Init();
-	cc1101Driver.setGDO(gdo0Pin, gdo2Pin); // Practicaly, GDO2 pin isn't used. You don't need to wire it
+	cc1101Driver.setGDO0(gdo0Pin);
 	cc1101Driver.setCCMode(1); // set config for internal transmission mode.
 	cc1101Driver.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
 	cc1101Driver.setMHZ(869.778 - 0.034); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
@@ -71,16 +70,27 @@ bool RfDriver::Init(int gdo0Pin, int gdo2Pin, MicronetMessageFifo *messageFifo)
 
 void RfDriver::GDO0Callback()
 {
+	if (rfState == RF_STATE_TX_TRANSMITTING)
+	{
+		GDO0TxCallback();
+	}
+	else if (rfState == RF_STATE_TX_LAST_TRANSMIT)
+	{
+		GDO0LastTxCallback();
+	}
+	else
+	{
+		GDO0RxCallback();
+	}
+}
+
+void RfDriver::GDO0RxCallback()
+{
 	static MicronetMessage_t message;
 	static int dataOffset;
 	static int packetLength;
 	static uint32_t startTime_us;
 	int nbBytes;
-
-	if (cc1101Driver.getMode() != 2)
-	{
-		return;
-	}
 
 	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
 	// begin collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
@@ -95,7 +105,7 @@ void RfDriver::GDO0Callback()
 		return;
 	}
 
-	if (rxState == RX_STATE_IDLE)
+	if (rfState == RF_STATE_RX_IDLE)
 	{
 		// This is a new message
 		startTime_us = micros() - PREAMBLE_LENGTH_IN_US;
@@ -109,7 +119,7 @@ void RfDriver::GDO0Callback()
 		cc1101Driver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 		// Check if we have reached the packet length field
-		if ((rxState == RX_STATE_IDLE) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
+		if ((rfState == RF_STATE_RX_IDLE) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
 		{
 			// Yes : check that this is a valid length
 			if ((message.data[MICRONET_LEN_OFFSET_1] == message.data[MICRONET_LEN_OFFSET_2])
@@ -132,7 +142,7 @@ void RfDriver::GDO0Callback()
 
 	if (dataOffset < packetLength)
 	{
-		rxState = RX_STATE_RECEIVING;
+		rfState = RF_STATE_RX_RECEIVING;
 		return;
 	}
 
@@ -147,18 +157,42 @@ void RfDriver::GDO0Callback()
 	messageFifo->Push(message);
 }
 
-void RfDriver::RestartReception()
+void RfDriver::GDO0TxCallback()
+{
+	int bytesInFifo = 17; // Corresponds to the FIFO threshold of 0x0b
+
+	while ((bytesInFifo < 62) && (bytesFromMessage < messageToTransmit.len))
+	{
+		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[bytesFromMessage++]);
+		bytesInFifo++;
+	}
+
+	Serial.println(bytesInFifo);
+
+	if (bytesFromMessage >= messageToTransmit.len)
+	{
+		rfState = RF_STATE_TX_LAST_TRANSMIT;
+		cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x05);
+	}
+}
+
+void RfDriver::GDO0LastTxCallback()
 {
 	cc1101Driver.setSidle();
+	cc1101Driver.SpiStrobe(CC1101_SFTX);
+	RestartReception();
+}
+
+void RfDriver::RestartReception()
+{
+	rfState = RF_STATE_RX_IDLE;
+	cc1101Driver.setSidle();
 	cc1101Driver.setSyncMode(2);
-	cc1101Driver.SpiStrobe(CC1101_SFRX);
+	cc1101Driver.setLengthConfig(0);
 	cc1101Driver.setPacketLength(60);
-	// TEST : set fifo threshold as interrupt source
-	cc1101Driver.SpiWriteReg(CC1101_PKTCTRL0, 0x04);
-	cc1101Driver.SpiWriteReg(CC1101_PKTCTRL1, 0x00);
+	cc1101Driver.SpiStrobe(CC1101_SFRX);
 	cc1101Driver.SpiWriteReg(CC1101_FIFOTHR, 0x03);
 	cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x01);
-	rxState = RX_STATE_IDLE;
 	cc1101Driver.SetRx();
 }
 
@@ -185,36 +219,36 @@ void RfDriver::TransmitCallback()
 {
 	// Change CC1101 configuration for transmission
 	cc1101Driver.setSidle();
-	cc1101Driver.setSyncMode(0);
-	cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x06);
-	cc1101Driver.SpiStrobe(CC1101_SFTX);
 	cc1101Driver.setPA(12);
-
-	// Set packet length taking into account the preamble and sync byte we send manually
-	cc1101Driver.setPacketLength(messageToTransmit.len + MICRONET_RF_PREAMBLE_LENGTH + 1);
+	cc1101Driver.setSyncMode(0);
+	cc1101Driver.setLengthConfig(2);
+	cc1101Driver.SpiStrobe(CC1101_SFTX);
 
 	// Fill FIFO with preamble + sync byte
-	for (int i = 0; i < MICRONET_RF_PREAMBLE_LENGTH; i++)
+	int bytesInFifo = 0;
+	for (bytesInFifo = 0; bytesInFifo < MICRONET_RF_PREAMBLE_LENGTH; bytesInFifo++)
 		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, 0x55);
 	cc1101Driver.SpiWriteReg(CC1101_TXFIFO, MICRONET_RF_SYNC_BYTE);
 
-	// Start transmission
-	cc1101Driver.SetTx();
-
-	// Fill FIFO with the rest of the message, taking care not to overflow it
-	int i = 0;
-	while (i < messageToTransmit.len)
+	bytesFromMessage = 0;
+	while ((bytesInFifo < 62) && (bytesFromMessage < messageToTransmit.len))
 	{
-		if ((cc1101Driver.SpiReadReg(CC1101_TXBYTES) & 0x7f) < 62)
-		{
-			cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[i++]);
-		}
+		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[bytesFromMessage++]);
+		bytesInFifo++;
 	}
 
-	// Wait for end of transmission
-	while (digitalRead(gdo0Pin))
-		;
+	if (bytesFromMessage < messageToTransmit.len)
+	{
+		rfState = RF_STATE_TX_TRANSMITTING;
+		cc1101Driver.SpiWriteReg(CC1101_FIFOTHR, 0x0b);
+		cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x43);
+	}
+	else
+	{
+		rfState = RF_STATE_TX_LAST_TRANSMIT;
+		cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x05);
+	}
 
-	// Return to Rx Mode
-	RestartReception();
+	// Start transmission
+	cc1101Driver.SetTx();
 }

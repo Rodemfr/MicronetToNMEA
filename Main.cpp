@@ -126,7 +126,7 @@ void setup()
 
 	CONSOLE.print("Initializing CC1101 ... ");
 	// Check connection to CC1101
-	if (!gRfReceiver.Init(GDO0_PIN, GDO2_PIN, &gRxMessageFifo))
+	if (!gRfReceiver.Init(GDO0_PIN, &gRxMessageFifo))
 	{
 		CONSOLE.println("Failed");
 		CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
