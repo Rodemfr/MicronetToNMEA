@@ -89,6 +89,7 @@ public:
 	TxSlotDesc_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
 	uint8_t EncodeGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
 	uint8_t EncodeNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
+	uint8_t EncodeCompleteMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
 	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
 	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);

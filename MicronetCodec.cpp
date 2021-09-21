@@ -501,6 +501,81 @@ uint8_t MicronetCodec::EncodeNavMessage(MicronetMessage_t *message, uint32_t net
 	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
+uint8_t MicronetCodec::EncodeCompleteMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId,
+		NavigationData *navData)
+{
+	int offset = 0;
+
+	// Network ID
+	message->data[offset++] = (networkId >> 24) & 0xff;
+	message->data[offset++] = (networkId >> 16) & 0xff;
+	message->data[offset++] = (networkId >> 8) & 0xff;
+	message->data[offset++] = networkId & 0xff;
+	// Device ID
+	message->data[offset++] = (deviceId >> 24) & 0xff;
+	message->data[offset++] = (deviceId >> 16) & 0xff;
+	message->data[offset++] = (deviceId >> 8) & 0xff;
+	message->data[offset++] = deviceId & 0xff;
+	// Message info
+	message->data[offset++] = MICRONET_MESSAGE_ID_SEND_DATA;
+	message->data[offset++] = 0x01;
+	message->data[offset++] = 0x09;
+	// Header CRC
+	message->data[offset++] = 0x00;
+	// Message size
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
+	// Data fields
+	if (navData->time.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (navData->time.hour << 8) + navData->time.minute);
+	}
+	if (navData->date.valid)
+	{
+		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE,
+				(navData->date.day << 16) + (navData->date.month << 8) + navData->date.year);
+	}
+	if ((navData->sog_kt.valid) || (navData->cog_deg.valid))
+	{
+		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog_kt.value * 10.0f,
+				navData->cog_deg.value);
+	}
+	if ((navData->latitude_deg.valid) || (navData->longitude_deg.valid))
+	{
+		offset += AddPositionField(message->data + offset, navData->latitude_deg.value, navData->longitude_deg.value);
+	}
+	if (navData->time.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (navData->time.hour << 8) + navData->time.minute);
+	}
+	if (navData->xte_nm.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_XTE, (short) (navData->xte_nm.value * 100));
+	}
+	if (navData->dtw_nm.valid)
+	{
+		offset += Add32bitField(message->data + offset, MICRONET_FIELD_ID_DTW, (short) (navData->dtw_nm.value * 100));
+	}
+	if (navData->btw_deg.valid)
+	{
+		offset += AddQuad16bitField(message->data + offset, MICRONET_FIELD_ID_BTW, (short) navData->btw_deg.value, 0, 0, 0);
+	}
+	if (navData->vmc_kt.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_VMGWP, (short) (navData->vmc_kt.value * 100));
+	}
+	if (navData->hdg_deg.valid)
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
+	}
+
+	message->len = offset;
+
+	WriteHeaderLengthAndCrc(message);
+
+	return offset - MICRONET_PAYLOAD_OFFSET;
+}
+
 uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId,
 		uint8_t payloadLength)
 {

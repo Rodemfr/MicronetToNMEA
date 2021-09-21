@@ -101,19 +101,22 @@ void setup()
 
 	// Init USB serial link
 	USB_CONSOLE.begin(USB_BAUDRATE);
-	while (!USB_CONSOLE);
+	while (!USB_CONSOLE)
+		;
 
 	// Init GNSS NMEA serial link
 	GNSS_SERIAL.setRX(GNSS_RX_PIN);
 	GNSS_SERIAL.setTX(GNSS_TX_PIN);
 	GNSS_SERIAL.begin(GNSS_BAUDRATE);
-	while (!GNSS_SERIAL);
+	while (!GNSS_SERIAL)
+		;
 
 	// Init serial link with HC-06
 	BLU_CONSOLE.setRX(BLU_RX_PIN);
 	BLU_CONSOLE.setTX(BLU_TX_PIN);
 	BLU_CONSOLE.begin(BLU_BAUDRATE);
-	while (!BLU_CONSOLE);
+	while (!BLU_CONSOLE)
+		;
 
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
@@ -191,12 +194,11 @@ void loop()
 
 void GNSS_CALLBACK()
 {
-	// This callback is call each time we received data from the NMEA GNSS
+	// This callback is called each time we received data from the NMEA GNSS
 	while (GNSS_SERIAL.available() > 0)
 	{
 		// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it
-		// to repeat it later to the console output. This way, there is not risk to interleave GNSS related sentence
-		// and Micronet related sentences.
+		// to repeat it later to the console output.
 		gGnssDecoder.PushChar(GNSS_SERIAL.read(), &gNavData);
 	}
 }
@@ -523,7 +525,6 @@ void MenuConvertToNmea()
 	char nmeaSentence[256];
 	MicronetMessage_t *rxMessage;
 	MicronetMessage_t txMessage;
-	static int count = 0;
 	TxSlotDesc_t txSlot;
 	uint8_t payloadLength;
 	uint32_t lastHeadingTime = millis();
@@ -554,14 +555,8 @@ void MenuConvertToNmea()
 				txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
 				if (txSlot.start_us != 0)
 				{
-					if ((count & 0x01) == 0)
-						payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId,
-								gConfiguration.deviceId, &gNavData);
-					else
-						payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId,
-								gConfiguration.deviceId, &gNavData);
-					count++;
-
+					payloadLength = gMicronetCodec.EncodeCompleteMessage(&txMessage, gConfiguration.networkId,
+							gConfiguration.deviceId, &gNavData);
 					if (txSlot.payloadBytes < payloadLength)
 					{
 						txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
