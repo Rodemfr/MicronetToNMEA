@@ -167,8 +167,6 @@ void RfDriver::GDO0TxCallback()
 		bytesInFifo++;
 	}
 
-	Serial.println(bytesInFifo);
-
 	if (bytesFromMessage >= messageToTransmit.len)
 	{
 		rfState = RF_STATE_TX_LAST_TRANSMIT;
