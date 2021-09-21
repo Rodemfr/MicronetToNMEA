@@ -103,16 +103,19 @@ void setup()
 
 	// Init USB serial link
 	USB_CONSOLE.begin(USB_BAUDRATE);
+	while (!USB_CONSOLE);
 
-	// Init NMEA GNSS serial link
+	// Init GNSS NMEA serial link
 	GNSS_SERIAL.setRX(GNSS_RX_PIN);
 	GNSS_SERIAL.setTX(GNSS_TX_PIN);
 	GNSS_SERIAL.begin(GNSS_BAUDRATE);
+	while (!GNSS_SERIAL);
 
 	// Init serial link with HC-06
 	BLU_CONSOLE.setRX(BLU_RX_PIN);
 	BLU_CONSOLE.setTX(BLU_TX_PIN);
 	BLU_CONSOLE.begin(BLU_BAUDRATE);
+	while (!BLU_CONSOLE);
 
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
