@@ -549,46 +549,49 @@ void MenuConvertToNmea()
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
 			if ((gMicronetCodec.GetNetworkId(rxMessage) == gConfiguration.networkId)
-					&& (gMicronetCodec.VerifyHeaderCrc(rxMessage))
-					&& (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA))
+					&& (gMicronetCodec.VerifyHeaderCrc(rxMessage)))
 			{
-				txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
-				if (txSlot.start_us != 0)
+				if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 				{
-					payloadLength = gMicronetCodec.EncodeCompleteMessage(&txMessage, gConfiguration.networkId,
-							gConfiguration.deviceId, &gNavData);
-					if (txSlot.payloadBytes < payloadLength)
+					txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
+					if (txSlot.start_us != 0)
+					{
+						payloadLength = gMicronetCodec.EncodeCompleteMessage(&txMessage, gConfiguration.networkId,
+								gConfiguration.deviceId, &gNavData);
+						if (txSlot.payloadBytes < payloadLength)
+						{
+							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
+							gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
+									payloadLength);
+						}
+					}
+					else
 					{
 						txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-						gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
-								payloadLength);
+						gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
+								52);
 					}
-				}
-				else
-				{
-					txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-					gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId, 52);
-				}
-				gRfReceiver.TransmitMessage(&txMessage, txSlot.start_us);
+					gRfReceiver.TransmitMessage(&txMessage, txSlot.start_us);
 
-				gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
-
-				if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
-					NMEA_OUT.print(nmeaSentence);
-				if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
-					NMEA_OUT.print(nmeaSentence);
-				if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
-					NMEA_OUT.print(nmeaSentence);
-				if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
-					NMEA_OUT.print(nmeaSentence);
-				if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
-					NMEA_OUT.print(nmeaSentence);
-				if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
-					NMEA_OUT.print(nmeaSentence);
-				if (gNavData.calibrationUpdated)
-				{
-					gNavData.calibrationUpdated = false;
-					SaveCalibration();
+					if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
+						NMEA_OUT.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
+						NMEA_OUT.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
+						NMEA_OUT.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
+						NMEA_OUT.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
+						NMEA_OUT.print(nmeaSentence);
+					if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
+						NMEA_OUT.print(nmeaSentence);
+					if (gNavData.calibrationUpdated)
+					{
+						gNavData.calibrationUpdated = false;
+						SaveCalibration();
+					}
+				} else {
+					gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
 				}
 			}
 			gRxMessageFifo.DeleteMessage();

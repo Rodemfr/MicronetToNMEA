@@ -36,7 +36,7 @@ private:
 	MicronetMessageFifo *messageFifo;
 	RfDriverState_t rfState;
 	MicronetMessage_t messageToTransmit;
-	int bytesFromMessage;
+	int messageBytesSent;
 
 	void GDO0RxCallback();
 	void GDO0TxCallback();

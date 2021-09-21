@@ -17,7 +17,7 @@ OneShotTimer timerInt;
 RfDriver *RfDriver::rfDriver;
 
 RfDriver::RfDriver() :
-		gdo0Pin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE)
+		gdo0Pin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(0)
 {
 }
 
@@ -161,13 +161,13 @@ void RfDriver::GDO0TxCallback()
 {
 	int bytesInFifo = 17; // Corresponds to the FIFO threshold of 0x0b
 
-	while ((bytesInFifo < 62) && (bytesFromMessage < messageToTransmit.len))
+	while ((bytesInFifo < 62) && (messageBytesSent < messageToTransmit.len))
 	{
-		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[bytesFromMessage++]);
+		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[messageBytesSent++]);
 		bytesInFifo++;
 	}
 
-	if (bytesFromMessage >= messageToTransmit.len)
+	if (messageBytesSent >= messageToTransmit.len)
 	{
 		rfState = RF_STATE_TX_LAST_TRANSMIT;
 		cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x05);
@@ -228,14 +228,14 @@ void RfDriver::TransmitCallback()
 		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, 0x55);
 	cc1101Driver.SpiWriteReg(CC1101_TXFIFO, MICRONET_RF_SYNC_BYTE);
 
-	bytesFromMessage = 0;
-	while ((bytesInFifo < 62) && (bytesFromMessage < messageToTransmit.len))
+	messageBytesSent = 0;
+	while ((bytesInFifo < 62) && (messageBytesSent < messageToTransmit.len))
 	{
-		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[bytesFromMessage++]);
+		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[messageBytesSent++]);
 		bytesInFifo++;
 	}
 
-	if (bytesFromMessage < messageToTransmit.len)
+	if (messageBytesSent < messageToTransmit.len)
 	{
 		rfState = RF_STATE_TX_TRANSMITTING;
 		cc1101Driver.SpiWriteReg(CC1101_FIFOTHR, 0x0b);
