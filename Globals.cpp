@@ -50,7 +50,7 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-ELECHOUSE_CC1101 gRfReceiver;       // CC1101 Driver object
+RfDriver gRfReceiver;               // CC1101 Driver object
 MenuManager gMenuManager;           // Menu manager object
 MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
