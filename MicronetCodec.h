@@ -83,13 +83,11 @@ public:
 	uint8_t GetHeaderCrc(MicronetMessage_t *message);
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
-	void DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
+	void DecodeDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
 	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap_t *networkMap);
 	TxSlotDesc_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
 	TxSlotDesc_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
-	uint8_t EncodeGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
-	uint8_t EncodeNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
-	uint8_t EncodeCompleteMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
+	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
 	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
 	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);

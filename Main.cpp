@@ -101,22 +101,19 @@ void setup()
 
 	// Init USB serial link
 	USB_CONSOLE.begin(USB_BAUDRATE);
-	while (!USB_CONSOLE)
-		;
 
 	// Init GNSS NMEA serial link
 	GNSS_SERIAL.setRX(GNSS_RX_PIN);
 	GNSS_SERIAL.setTX(GNSS_TX_PIN);
 	GNSS_SERIAL.begin(GNSS_BAUDRATE);
-	while (!GNSS_SERIAL)
-		;
 
 	// Init serial link with HC-06
 	BLU_CONSOLE.setRX(BLU_RX_PIN);
 	BLU_CONSOLE.setTX(BLU_TX_PIN);
 	BLU_CONSOLE.begin(BLU_BAUDRATE);
-	while (!BLU_CONSOLE)
-		;
+
+	// Let time for serial drivers to set-up
+	delay (250);
 
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
@@ -556,7 +553,7 @@ void MenuConvertToNmea()
 					txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
 					if (txSlot.start_us != 0)
 					{
-						payloadLength = gMicronetCodec.EncodeCompleteMessage(&txMessage, gConfiguration.networkId,
+						payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
 								gConfiguration.deviceId, &gNavData);
 						if (txSlot.payloadBytes < payloadLength)
 						{
@@ -591,7 +588,7 @@ void MenuConvertToNmea()
 						SaveCalibration();
 					}
 				} else {
-					gMicronetCodec.DecodeMessage(rxMessage, &gNavData);
+					gMicronetCodec.DecodeDataMessage(rxMessage, &gNavData);
 				}
 			}
 			gRxMessageFifo.DeleteMessage();
