@@ -107,10 +107,10 @@ void setup()
 	GNSS_SERIAL.setTX(GNSS_TX_PIN);
 	GNSS_SERIAL.begin(GNSS_BAUDRATE);
 
-	// Init serial link with HC-06
-	BLU_CONSOLE.setRX(BLU_RX_PIN);
-	BLU_CONSOLE.setTX(BLU_TX_PIN);
-	BLU_CONSOLE.begin(BLU_BAUDRATE);
+	// Init wired serial link
+	WIRED_SERIAL.setRX(WIRED_RX_PIN);
+	WIRED_SERIAL.setTX(WIRED_TX_PIN);
+	WIRED_SERIAL.begin(WIRED_BAUDRATE);
 
 	// Let time for serial drivers to set-up
 	delay (250);

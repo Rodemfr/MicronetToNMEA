@@ -55,15 +55,15 @@
 #define GNSS_RX_PIN   0
 #define GNSS_TX_PIN   1
 
-// Wired UART params
+// USB UART params
 #define USB_CONSOLE  Serial
 #define USB_BAUDRATE 115200
 
-// Wireless Bluetooth UART params
-#define BLU_CONSOLE  Serial5
-#define BLU_BAUDRATE 115200
-#define BLU_RX_PIN   34
-#define BLU_TX_PIN   33
+// Wired UART params
+#define WIRED_SERIAL   Serial5
+#define WIRED_BAUDRATE 115200
+#define WIRED_RX_PIN   34
+#define WIRED_TX_PIN   33
 
 // The console to use for menu and NMEA output
 #define CONSOLE  USB_CONSOLE
