@@ -14,8 +14,6 @@
 
 #define LSM303DLHC_WHO_AM_I 0x3C
 
-#define GAUSS_TO_NANOTESLA 100000.0f
-
 #define CTRL_REG1_A       0x20
 #define CTRL_REG2_A       0x21
 #define CTRL_REG3_A       0x22
@@ -126,9 +124,9 @@ void LSM303DLHCDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 	mz = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3]; // stupid change in order for DLHC
 	my = ((int16_t) (magBuffer[4] << 8)) | magBuffer[5];
 
-	*magX = mx / LSB_per_Gauss_XY;
-	*magY = my / LSB_per_Gauss_XY;
-	*magZ = mz / LSB_per_Gauss_Z;
+	*magX = (float) mx;
+	*magY = (float) my;
+	*magZ = (float) mz;
 }
 
 void LSM303DLHCDriver::GetAcceleration(float *accX, float *accY, float *accZ)
@@ -151,9 +149,9 @@ void LSM303DLHCDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 	I2CRead(accAddr, OUT_Z_L_A, &regValue);
 	az = (az << 8) | regValue;
 
-	*accX = ax * mGal_per_LSB;
-	*accY = ay * mGal_per_LSB;
-	*accZ = az * mGal_per_LSB;
+	*accX = (float) (ax >> 4); // DLHC registers contain a left-aligned 12-bit number, so values should be shifted right by 4 bits (divided by 16)
+	*accY = (float) (ay >> 4);
+	*accZ = (float) (az >> 4);
 }
 
 bool LSM303DLHCDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
