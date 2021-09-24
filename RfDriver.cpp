@@ -6,7 +6,7 @@
  */
 
 #include "RfDriver.h"
-#include <arduino.h>
+#include <Arduino.h>
 
 #include <TeensyTimerTool.h>
 
