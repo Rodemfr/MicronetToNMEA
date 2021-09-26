@@ -184,9 +184,9 @@ void LSM303DLHDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 	az = (az << 8) | regValue;
 
 	// Convert to G
-	*accX = ax * GPerLsb;
-	*accY = ay * GPerLsb;
-	*accZ = -az * GPerLsb;
+	*accX = -ax * GPerLsb;
+	*accY = -ay * GPerLsb;
+	*accZ = az * GPerLsb;
 }
 
 // TODO : Create a static class to drive I2C so that this code will not be duplicated for each compass driver

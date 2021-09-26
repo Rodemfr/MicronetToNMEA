@@ -78,14 +78,14 @@ float NavCompass::GetHeading()
 	magZ -= gConfiguration.zMagOffset;
 
 	// Build starboard axis from Nav Compass X axis & gravity vector
-	starboardY = accelZ;
-	starboardZ = -accelY;
+	starboardY = -accelZ;
+	starboardZ = accelY;
 	starboardNorm = sqrtf(starboardY * starboardY + starboardZ * starboardZ);
 
 	// Build starboard axis from starboard axis & gravity vector
 	bowX = (accelY * accelY) + (accelZ * accelZ);
-	bowY = -accelX * accelY;
-	bowZ = -accelX * accelZ;
+	bowY = accelX * accelY;
+	bowZ = accelX * accelZ;
 	bowNorm = sqrtf(bowX * bowX + bowY * bowY + bowZ * bowZ);
 
 	// Project magnetic field on bow & starboard axis

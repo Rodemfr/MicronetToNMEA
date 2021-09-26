@@ -69,6 +69,7 @@ void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
+void MenuDebugCompass();
 void SaveCalibration();
 void LoadCalibration();
 
@@ -87,6 +88,7 @@ MenuEntry_t mainMenu[] =
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 { "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
+{ "Debug compass", MenuDebugCompass },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -113,7 +115,7 @@ void setup()
 	WIRED_SERIAL.begin(WIRED_BAUDRATE);
 
 	// Let time for serial drivers to set-up
-	delay (250);
+	delay(250);
 
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
@@ -587,7 +589,9 @@ void MenuConvertToNmea()
 						gNavData.calibrationUpdated = false;
 						SaveCalibration();
 					}
-				} else {
+				}
+				else
+				{
 					gMicronetCodec.DecodeDataMessage(rxMessage, &gNavData);
 				}
 			}
@@ -782,6 +786,61 @@ void MenuCalibrateMagnetoMeter()
 		gConfiguration.SaveToEeprom();
 		CONSOLE.println("Configuration saved");
 	}
+}
+
+void MenuDebugCompass()
+{
+	bool exitLoop = false;
+	uint32_t pDisplayTime = 0;
+	uint32_t currentTime;
+	float mx, my, mz;
+	float ax, ay, az;
+	char c;
+
+	if (gConfiguration.navCompassAvailable == false)
+	{
+		CONSOLE.println("No navigation compass detected. Exiting menu ...");
+		return;
+	}
+
+	CONSOLE.println("Reading compass values ... ");
+
+	do
+	{
+		currentTime = millis();
+		if ((currentTime - pDisplayTime) > 250)
+		{
+			gNavCompass.GetMagneticField(&mx, &my, &mz);
+			gNavCompass.GetAcceleration(&ax, &ay, &az);
+			pDisplayTime = currentTime;
+
+			CONSOLE.print("Mag (");
+			CONSOLE.print(mx);
+			CONSOLE.print(" ");
+			CONSOLE.print(my);
+			CONSOLE.print(" ");
+			CONSOLE.print(mz);
+			CONSOLE.println(")");
+
+			CONSOLE.print("Acc (");
+			CONSOLE.print(ax);
+			CONSOLE.print(" ");
+			CONSOLE.print(ay);
+			CONSOLE.print(" ");
+			CONSOLE.print(az);
+			CONSOLE.println(")");
+		}
+
+		while (CONSOLE.available() > 0)
+		{
+			if (CONSOLE.read() == 0x1b)
+			{
+				CONSOLE.println("ESC key pressed, stopping scan.");
+				exitLoop = true;
+			}
+		}
+		yield();
+	} while (!exitLoop);
 }
 
 void SaveCalibration()
