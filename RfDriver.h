@@ -26,6 +26,8 @@ public:
 	virtual ~RfDriver();
 
 	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo);
+	void SetFrequency(float freqMhz);
+	void SetDeviation(float freqMhz);
 	void GDO0Callback();
 	void RestartReception();
 	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);

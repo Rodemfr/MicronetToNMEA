@@ -70,6 +70,7 @@ void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
 void MenuDebugCompass();
+void MenuTuneFSK();
 void SaveCalibration();
 void LoadCalibration();
 
@@ -88,7 +89,8 @@ MenuEntry_t mainMenu[] =
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 { "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
-{ "Debug compass", MenuDebugCompass },
+{ "*DEBUG* Test compass", MenuDebugCompass },
+{ "*DEBUG* Tune FSK Modulation", MenuTuneFSK },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -618,7 +620,7 @@ void MenuConvertToNmea()
 		}
 		gNavDecoder.resetSentences();
 
-		// Only execute mangetic heading code if navigation compass is available
+		// Only execute magnetic heading code if navigation compass is available
 		if (gConfiguration.navCompassAvailable == true)
 		{
 			// Handle magnetic compass
@@ -795,7 +797,6 @@ void MenuDebugCompass()
 	uint32_t currentTime;
 	float mx, my, mz;
 	float ax, ay, az;
-	char c;
 
 	if (gConfiguration.navCompassAvailable == false)
 	{
@@ -841,6 +842,92 @@ void MenuDebugCompass()
 		}
 		yield();
 	} while (!exitLoop);
+}
+
+void MenuTuneFSK()
+{
+	bool exitTuneLoop;
+	MicronetMessage_t *rxMessage;
+	uint32_t lastMessageTime = millis();
+
+	CONSOLE.println("");
+	CONSOLE.println("Starting FSK tuning");
+	CONSOLE.println("Press ESC key at any time to stop tuning come back to menu.");
+	CONSOLE.println("");
+
+#define NB_MEASURES 40
+	bool updateFreq = false;
+	float centerFreq = RF_CENTERFREQUENCY_MHZ;
+	float freqStep = 0.007;
+	int nbSteps = NB_MEASURES;
+	int currentStep = 0;
+	float currentFreq = centerFreq - (nbSteps * freqStep / 2);
+	float minFreq = 100000;
+	float maxFreq = 0;
+
+	exitTuneLoop = false;
+
+	gRfReceiver.SetFrequency(currentFreq);
+
+	gRxMessageFifo.ResetFifo();
+	do
+	{
+		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
+		{
+			if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
+			{
+				CONSOLE.print("*");
+				updateFreq = true;
+				if (currentFreq < minFreq)
+					minFreq = currentFreq;
+				if (currentFreq > maxFreq)
+					maxFreq = currentFreq;
+			}
+			gRxMessageFifo.DeleteMessage();
+		}
+
+		if ((updateFreq) || (millis() - lastMessageTime > 1250))
+		{
+			if (!updateFreq)
+			{
+				CONSOLE.print(".");
+			}
+			lastMessageTime = millis();
+			updateFreq = false;
+			if (currentStep <= nbSteps)
+			{
+				currentFreq += freqStep;
+				gRfReceiver.SetFrequency(currentFreq);
+				currentStep++;
+			}
+			else
+			{
+				exitTuneLoop = true;
+			}
+		}
+
+		while (CONSOLE.available() > 0)
+		{
+			if (CONSOLE.read() == 0x1b)
+			{
+				CONSOLE.println("ESC key pressed, stopping conversion.");
+				exitTuneLoop = true;
+			}
+		}
+
+		yield();
+	} while (!exitTuneLoop);
+
+	CONSOLE.println("");
+	CONSOLE.print("Frequency = ");
+	CONSOLE.print(((maxFreq + minFreq) / 2) * 1000);
+	CONSOLE.println("kHz)");
+	CONSOLE.print("Range = ");
+	CONSOLE.print((maxFreq - minFreq) * 1000);
+	CONSOLE.println("kHz");
+
+	gRfReceiver.SetFrequency(RF_CENTERFREQUENCY_MHZ);
+	gRfReceiver.SetDeviation(RF_DEVIATION_MHZ);
 }
 
 void SaveCalibration()
