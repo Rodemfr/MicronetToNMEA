@@ -73,7 +73,7 @@ LSM303DLHDriver::~LSM303DLHDriver()
 // Returns true if LSM303DLH has been found on the I2C bus, false else
 bool LSM303DLHDriver::Init()
 {
-	uint8_t ira, irb, irc, sr, whoami;
+	uint8_t ira = 0, irb = 0, irc = 0, sr, whoami = 0;
 
 	NAVCOMPASS_I2C.begin();
 
@@ -164,7 +164,7 @@ void LSM303DLHDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 void LSM303DLHDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 {
 	int16_t ax, ay, az;
-	uint8_t regValue;
+	uint8_t regValue = 0;
 
 	// Read of all acceleration measurements
 	// X axis
