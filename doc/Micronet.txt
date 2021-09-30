@@ -1,11 +1,11 @@
-All the description below is the result of an observation of the data traffic transiting between Micronet devices.
+All the description below is the result of observations of data traffic transiting between Micronet devices.
 The interpretation of this traffic is purely speculative and might be completely erroneous.
-The NMEA conversion seems to work well, so many of these interpretation are probably correct, but a number of strange
-observations let think that there are also a lot a misinterpretations.
+The NMEA conversion software seems to work well, so many of these interpretation are probably correct, but a number
+of strange behaviors let think that there are also a lot a misinterpretations.
 
-As a conclusion, if you want to play with your system and understand it better, you are at the right place. But if
-you want to have a robust, reliable and waterproof device which has been extensively tested, you would better go to your
-nearest Raymarine/TackTick reseller.
+As a consequence, if you want to play with your system and understand it better, you are at the right place. But if
+you want to have a robust, reliable, waterproof and extensively tested device, you would better go to your nearest
+Raymarine/TackTick reseller.
 
 ***************************
 *** Radio specification ***
@@ -16,22 +16,26 @@ Carrier frequency : 869.778MHz in Europe. Measured on my own TackTick network. I
 Modulation : 2-FSK
 Deviation : +-34kHz
 Sync word after preamble : 0x5599
+Bit rate : 76800Hz
 
-All data after the sync word is the Micronet message discribed below.
+All data after the sync word is the Micronet message described below.
 
-***********************************************
-*** Header common to every Micronet message ***
-***********************************************
+***************************************
+*** Micronet message general format ***
+***************************************
 
-General format :
+When a Micronet device wants to talk to another device, it sends a "Micronet message" on the radio.
+A Micronet message is formatted as follows :
 
 |83 03 77 37|02|03 90 87|02|01|07|5A|18 18|xx xx xx xx ...
 |    NID    |DT|  DID   |MI|SO|DE|CS| LEN |   
 |             MESSAGE HEADER              |    PAYLOAD ...
 
-NID = Network ID, is equal to the Device ID of the network main display
+NID = Network ID, is equal to the Device ID of the network main display. Each device is associated to a unique network
+      and will only consider a message if it is addressed to this network.
 
-DT + DID = Device ID (4 bytes) - Unique number identifying the device. The first byte DT defines the device type :
+DT + DID = Device ID (4 bytes) - Unique number identifying the device sending the message. The first byte "DT" defines
+           the device type.
      DT - Device Type
           0x01 Hull Transmitter
           0x02 Wind Transducer
@@ -39,40 +43,116 @@ DT + DID = Device ID (4 bytes) - Unique number identifying the device. The first
           0x04 Mast Rotation Sensor
           0x05 MOB
           0x06 SDPOD
-          
           0x83 Analog Wind Display
           0x81 Dual Display
 
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to know how to decode payload.
-     0x01 Request Data
-     0x02 Send Data
+     0x01 Master Request
+     0x02 Send Sync Data
      0x06 Set Parameter
+     0x07 Acknowledge parameter
      0x0a ?
      0x0b ?
 
-SO = Source
+SO = Source - Unclear if this byte really plays a role or not. Interpretation probably wrong.
      0x01 Measurement/non display device
      0x09 Display device
 
-DE = Destination
+DE = Destination - Unclear if this byte really plays a role or not. Interpretation probably wrong.
      0x00 Broadcast / All devices
      0x09 Display
 
 CS = Check sum of all previous bytes from NID to DE included.
 
-LEN = (Length - 2) of the complete message in bytes, including payload. Value duplicated on two bytes for robustness since it
-      is not covered by the header checksum.
+LEN = (Length - 2) of the complete message in bytes, including payload. Value duplicated on two bytes for robustness
+      since it is not covered by header checksum.
 
-***********************************
-*** Message 0x01 (Request Data) ***
-***********************************
+****************************
+*** Network organization ***
+****************************
 
-This message is sent by the main display to request other devices to send back their measured data. The main display is the one
-with which you powered the system. The initial handshake tells who, of all the displays, is the main one. The main display
-explicitely list all the device he wants data from. It knows this list from the auto network sequence before installation.
+A Micronet network is made of one Master device and several slaves. The master is the device which has been powered
+first, so it can be a different device if you have several displays, depending which one you used to start the network.
+Only the master device is allowed to initiate RF communication. Master always use message 0x01 (Master request) to
+initiate radio communications. Slave devices then answer in a predetermined manner to avoid RF collisions.
 
-This message also gives the previous "PL" value for each device which gives the maximum number of bytes expected in the payload
-of the device "Send Data" message. Also, if a device has to send sevral messages, it will be listed twice in the list. This
+"Master request" is sent by master every second and defines precisely when a slave device can talk on the network.
+"Master request" gives the list of every device known by the Master and the maximum payload that it can pass in a
+message (See detailed description of Master request below).
+
+Each slave device as a "transmission window" made of :
+   - a 2000us "guard time" during which nothing should be transmitted. Its role is to separate slaves transmissions
+     and to avoid overlap in case of poor timing precision. This practically means that a device must wait 2ms after
+     the start of the window before starting RF transmission.
+   - Preamble + sync word : 15 bytes set at 0x55 (preamble) followed by 0x5599 (sync word). The total duration of this
+     part is 1771us
+   - Message data : (14 + PL) bytes of Micornet message data
+   - Transmission window is rounded to the upper 244us
+
+|-----------------------------------------------------------------------------|
+|    Guard time    | preamble | 0x5599 |   Micronet message  | 244us rounding |
+|-----------------------------------------------------------------------------|
+|      2000us      |       1771us      |  (14 + PL) * 104us  |    0-244us     |
+
+Slave devices must answer in the same order than defined in "Master request" message. A slave device knows the start
+of its transmission window by calculating window sizes of the preceding slave windows. The first window starts just
+at the end of "Master request" message.
+
+Theses slave transmission windows are called "synchronous" windows. Their role is to allow a slave device to
+periodically send its measured data to the various displays of the network. For example, this is where a wind
+transducer will send wind data every second. The sync window is reserved for message 0x02 (Send Sync Data).
+
+There is however another way for a slave device to talk on a network. If a device is not listed in "Master Request"
+message or if it needs to send something else than its periodical data, it can use the so called "asynchronous"
+window. This transmission window is a special one which is located after the last syncronous window and which can
+be used by any device, including master itself.
+
+Typical usages of this window are :
+   - For a new device to request an attachement to a network (message 0x03)
+   - For an existing slave device to request a window size change (message 0x05)
+   - For the Master to verify presence of slave devices in the network (message 0x0a)
+   - For a display to transmit a user parameter change to other decives (message 0x06)
+   - Etc.
+   
+The structure of the asynchronous window is the following :
+
+|-----------------------------------------------------------------------------|
+|    Guard time    | preamble | 0x5599 |   Micronet message  | 244us rounding |
+|-----------------------------------------------------------------------------|
+|      2000us      |       1771us      |  (14 + 17) * 104us  |    0-244us     |
+
+Note that an asynchronous commands can not exceed a payload of 18 bytes. Asynchronous window starts 5400us after
+the end of the last synchronous window. Since asynchronous commands are subject to collision (any device can
+potentially talk in this window), they generally require an acknowledge from the other devices. As an example, a
+display device could send a parameter update message (0x06) which requires all other devices to acknowledge it
+with message 0x07. In that case others devices will use response windows located after the asynchronous slot.
+If other devices do not acknowledge, then it means that a collision likely occured on asynchronous window and
+that message must be sent again at a later network cycle.
+
+These response windows have the following structure :
+
+|-----------------------------------------------------------------------------|
+|    Guard time    | preamble | 0x5599 |   Micronet message  | 244us rounding |
+|-----------------------------------------------------------------------------|
+|      2000us      |       1771us      |      14 * 104us     |    0-244us     |
+
+They are located just after each others. And devices will response in reverse order compared to "Master Request"
+device list.
+
+Knowing all of this, here is the chronology of a network composed of devices A, B, C, D, E. A being the master.
+
+|-----------------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
+| A : 0x01 (BCDE) | B : 0x02 | C : 0x02 | D : 0x02 |  5400us  | Async window | Ack E | Ack D | Ack C | Ack B | Ack A | 
+|-----------------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
+
+**************************************
+*** Message 0x01 (Master resquest) ***
+**************************************
+
+This message is sent by the master device to request slave devices to communicate their measured data.
+
+This message also gives the "PL" value for each device which gives the maximum number of bytes expected in the payload
+of the "Send Sync Data" message. Also, if a device has to send several messages, it will be listed twice in the list. This
 way, we have a complete temporal map of the data exchange, allowing to know where to transmit our own messages, without
 colliding with other devices.
 
@@ -85,15 +165,16 @@ Here is the format (with an example) :
 DIDn - Device we request data from. Note that the sender is giving its own address, letting me think that the message could be
        better interpreted as a way of telling who is part of the network.
        
-PL - Maximum payload length of the message expected from the advertised DID
+PL - Maximum payload length of the message expected from the mentioned device. Note that a payload of zero bytes means
+     that there is no window at all for this device.
 
 CS - Checksum of the entire payload
 
-********************************
-*** Message 0x02 (Send Data) ***
-********************************
+*************************************
+*** Message 0x02 (Send Sync Data) ***
+*************************************
 
-This message is used to send data from one device to one another. It is a response to "Request Data" message sent by the main
+This message is used to send data from one device to dispay(s). It is a response to "Master request" message sent by the main
 display to collect data from all sensors. It sends a variable number of fields depending on the Device Type and its available
 sensors.
 Each field is coded the same way but with variable size and type. The number of fields can be dynamically discovered during
@@ -130,7 +211,7 @@ Observed Field formats :
 |06|FI|FP| VAL1| VAL2|FC| -> values on two 16bit integer followed by an unidentified byte
 |0a|FI|FP|    VAL1   |    VAL2   |FC| -> two values both on a 32bit integer
 
-FL = Field Length - (FL + 2) is the total length of the field, including CRC, allowing to skip in case the format/ID would be unknown
+FL = Field Length - (FL + 2) is the total length of the field, including CRC, allowing to skip in case the format/ID would be unknown to the display
      0x03 Total field description is on 5 bytes, including CRC. Value is on a 8bit integer.
      0x04 Total field description is on 6 bytes, including CRC. Value is on a 16bit integer.
      0x05 Total field description is on 7 bytes, including CRC. In this case there is an extra byte after the 16bit integer value which is unidentified yet.
@@ -149,7 +230,7 @@ FI = Field ID
      0x03 T*2(degC)
           |01|02|03|04|05|
           |03|03|FP|VA|FC|
-          VA = T * 2 (°C)
+          VA = T * 2 (?C)
      0x04 DPT
           |01|02|03|04|05|06|
           |04|04|FP| VAL |FC|
@@ -227,17 +308,16 @@ FI = Field ID
           Values are between -180 and 180
 
 FP = Field Property ??
-     0x05 It seems to be the value used when the data comes from the measuring sensor
-     0x03 It seems to be the value used when the data comes from a repeater (i.e. the main display or hull transmitter)
+     0x05 Seems to be the value used when the data comes from the measuring sensor
+     0x03 Seems to be the value used when the data comes from a repeater (i.e. the main display or hull transmitter)
 
-FC = Field checksum. Sum of the all the byte of the field.
+FC = Field checksum. Sum of all bytes of the field.
 
-****************************************
-*** Message 0x03 (Request Data Slot) ***
-****************************************
+******************************************
+*** Message 0x03 (Request Sync Window) ***
+******************************************
 
-When a device is not listed in the synchronous data schedule. It can request a transmission slot to the master device with this
-command.
+When a device is not listed in the synchronous data schedule. It can request a sync transmission window to the master device with this message.
 
 |01 0A 8B 60|01|0B 8B 60|03|01|09|FA|0F 0F|00 1A|1A|
 |    NUID   |DT|  DID   |MI|SO|DE|CS| LEN | PL  |PC|
@@ -246,11 +326,11 @@ PL - Maximum payload length of a message using this slot
 
 PC - Checksum of the entire payload
 
-***************************************
-*** Message 0x05 (Resize Data Slot) ***
-***************************************
+*****************************************
+*** Message 0x05 (Resize Sync Window) ***
+*****************************************
 
-When a device wants to change the size of its maximum payload in the synchronous data schedule, it can use this command. The payload size will
+When a device wants to change the size of its maximum payload in its synchronous window, it can use this command. The payload size will
 be updated at next cycle. 
 
 |83 03 77 37|01 0B C0 22|05|01|09|31|0E 0E|3D|3D|
@@ -263,6 +343,8 @@ PC - Checksum of the entire payload
 ************************************
 *** Message 0x06 (Set Parameter) ***
 ************************************
+
+this message is sent by a display when a parameter changed. This is typically used when user changes a configuration parameter.
 
 Example : Wind direction calibration +10 deg
 |83 03 77 37|83|03 77 37|06|09|09|80|13 13|FF|07|02|0A 00|04 16|
@@ -316,4 +398,23 @@ PL Parameter Length ? Seems to be the number of bytes on wich VA is coded.
 SQ Sequence number - Incremented by one at each new configuration. Reset to zero at each power-up of the system.
                      Not sure of the usage since I don't see how several configuration messages could possibly have
                      their order changed on the network. Maybe by usage of repeaters? 
-         
+
+************************************
+*** Message 0x07 (Ack Parameter) ***
+************************************
+
+***************************
+*** Message 0x0A (Ping) ***
+***************************
+
+*******************************
+*** Message 0x0B (Ack Ping) ***
+*******************************
+
+*************************
+*** Message 0x18 (??) ***
+*************************
+
+*************************
+*** Message 0x19 (??) ***
+*************************
