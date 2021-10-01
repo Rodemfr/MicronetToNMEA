@@ -58,7 +58,7 @@ bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo)
 	cc1101Driver.setPktFormat(0); // Format of RX and TX data. 0 = Normal mode, use FIFOs for RX and TX. 1 = Synchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins. 2 = Random TX mode; sends random data using PN9 generator. Used for test. Works as normal mode, setting 0 (00), in RX. 3 = Asynchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins.
 	cc1101Driver.setLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
 	cc1101Driver.setPacketLength(60); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
-	cc1101Driver.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.
+	cc1101Driver.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.n
 	cc1101Driver.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
 	cc1101Driver.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
 	cc1101Driver.setManchester(0); // Enables Manchester encoding/decoding. 0 = Disable. 1 = Enable.
@@ -78,6 +78,11 @@ void RfDriver::SetDeviation(float freqMhz)
  {
 	cc1101Driver.setDeviation(freqMhz);
  }
+
+void RfDriver::SetBandwidth(float bwMHz)
+{
+	cc1101Driver.setRxBW(bwMHz);
+}
 
 void RfDriver::GDO0Callback()
 {
