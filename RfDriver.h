@@ -26,6 +26,7 @@ public:
 	virtual ~RfDriver();
 
 	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo);
+	void SetFrequencyOffset(float offsetMHz);
 	void SetFrequency(float freqMhz);
 	void SetDeviation(float freqMhz);
 	void SetBandwidth(float bwMHz);
@@ -40,6 +41,7 @@ private:
 	RfDriverState_t rfState;
 	MicronetMessage_t messageToTransmit;
 	int messageBytesSent;
+	float frequencyOffset_mHz;
 
 	void GDO0RxCallback();
 	void GDO0TxCallback();

@@ -70,7 +70,7 @@ void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
 void MenuDebugCompass();
-void MenuTuneFSK();
+void MenuCalibrateRfFrequency();
 void MenuTestRFTx();
 void SaveCalibration();
 void LoadCalibration();
@@ -88,10 +88,10 @@ MenuEntry_t mainMenu[] =
 { "Scan Micronet networks", MenuScanNetworks },
 { "Attach converter to a network", MenuAttachNetwork },
 { "Start NMEA conversion", MenuConvertToNmea },
-{ "Scan all surrounding Micronet traffic", MenuScanAllMicronetTraffic },
+{ "Scan surrounding Micronet traffic", MenuScanAllMicronetTraffic },
+{ "Calibrate RF frequency", MenuCalibrateRfFrequency },
 { "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
 { "*DEBUG* Test compass", MenuDebugCompass },
-{ "*DEBUG* Tune FSK Modulation", MenuTuneFSK },
 { "*DEBUG* Test RF Tx", MenuTestRFTx },
 { nullptr, nullptr } };
 
@@ -148,6 +148,8 @@ void setup()
 		}
 	}
 	CONSOLE.println("OK");
+	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
+	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY);
 
 	CONSOLE.print("Initializing navigation compass ... ");
 	if (!gNavCompass.Init())
@@ -299,7 +301,7 @@ void PrintNetworkMap(NetworkMap_t *networkMap)
 
 void MenuAbout()
 {
-	CONSOLE.println("MicronetToNMEA, Version 0.4");
+	CONSOLE.println("MicronetToNMEA, Version 0.9");
 
 	CONSOLE.print("Device ID : ");
 	CONSOLE.println(gConfiguration.deviceId, HEX);
@@ -314,6 +316,9 @@ void MenuAbout()
 		CONSOLE.println("No Micronet Network attached");
 	}
 
+	CONSOLE.print("RF Frequency offset = ");
+	CONSOLE.print(gConfiguration.rfFrequencyOffset_MHz * 1000);
+	CONSOLE.println(" kHz");
 	CONSOLE.print("Wind speed factor = ");
 	CONSOLE.println(gConfiguration.windSpeedFactor_per);
 	CONSOLE.print("Wind direction offset = ");
@@ -790,6 +795,10 @@ void MenuCalibrateMagnetoMeter()
 		gConfiguration.SaveToEeprom();
 		CONSOLE.println("Configuration saved");
 	}
+	else
+	{
+		CONSOLE.println("Configuration discarded");
+	}
 }
 
 void MenuDebugCompass()
@@ -846,31 +855,44 @@ void MenuDebugCompass()
 	} while (!exitLoop);
 }
 
-void MenuTuneFSK()
+void MenuCalibrateRfFrequency()
 {
+#define FREQUENCY_SWEEP_RANGE_KHZ 200
+#define FREQUENCY_SWEEP_STEP_KHZ 2
+
 	bool exitTuneLoop;
+	bool updateFreq;
 	MicronetMessage_t *rxMessage;
 	uint32_t lastMessageTime = millis();
+	float currentFreq_mHz = MICRONET_RF_CENTER_FREQUENCY - (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f);
+	float firstWorkingFreq_mHz = 100000;
+	float lastWorkingFreq_mHz = 0;
+	float range_kHz, centerFrequency_mHz;
+	char c;
+
+	CONSOLE.println("");
+	CONSOLE.println("To tune RF frequency, you must put MicronetToNMEA HW close");
+	CONSOLE.println("to your Micronet main display (less than one meter).");
+	CONSOLE.println("You must not move any of the devices during the tuning phase.");
+	CONSOLE.println("Tuning phase will last about two minutes.");
+	CONSOLE.println("Press any key when you are ready to start.");
+
+	while (CONSOLE.available() == 0)
+	{
+		yield();
+	}
 
 	CONSOLE.println("");
 	CONSOLE.println("Starting Frequency tuning");
 	CONSOLE.println("Press ESC key at any time to stop tuning and come back to menu.");
 	CONSOLE.println("");
 
-#define NB_MEASURES 60
-	bool updateFreq = false;
-	float centerFreq = RF_CENTERFREQUENCY_MHZ;
-	float freqStep = 0.002;
-	int nbSteps = NB_MEASURES;
-	int currentStep = 0;
-	float currentFreq = centerFreq - (nbSteps * freqStep / 2);
-	float minFreq = 100000;
-	float maxFreq = 0;
-
-	exitTuneLoop = false;
-
+	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
 	gRfReceiver.SetBandwidth(95);
-	gRfReceiver.SetFrequency(currentFreq);
+	gRfReceiver.SetFrequency(currentFreq_mHz);
+
+	updateFreq = false;
+	exitTuneLoop = false;
 
 	gRxMessageFifo.ResetFifo();
 	do
@@ -880,12 +902,12 @@ void MenuTuneFSK()
 			if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 			{
 				lastMessageTime = millis();
-					CONSOLE.print("*");
-					updateFreq = true;
-					if (currentFreq < minFreq)
-						minFreq = currentFreq;
-					if (currentFreq > maxFreq)
-						maxFreq = currentFreq;
+				CONSOLE.print("*");
+				updateFreq = true;
+				if (currentFreq_mHz < firstWorkingFreq_mHz)
+					firstWorkingFreq_mHz = currentFreq_mHz;
+				if (currentFreq_mHz > lastWorkingFreq_mHz)
+					lastWorkingFreq_mHz = currentFreq_mHz;
 			}
 			gRxMessageFifo.DeleteMessage();
 		}
@@ -901,21 +923,43 @@ void MenuTuneFSK()
 		{
 			lastMessageTime = millis();
 			updateFreq = false;
-			if (currentStep <= nbSteps)
+			if (currentFreq_mHz < MICRONET_RF_CENTER_FREQUENCY + (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f))
 			{
-				currentFreq += freqStep;
-				gRfReceiver.SetFrequency(currentFreq);
-				currentStep++;
+				currentFreq_mHz += (FREQUENCY_SWEEP_STEP_KHZ / 1000.0f);
+				gRfReceiver.SetFrequency(currentFreq_mHz);
 			}
 			else
 			{
-				CONSOLE.println("");
-				CONSOLE.print("Frequency = ");
-				CONSOLE.print(((maxFreq + minFreq) / 2) * 1000);
-				CONSOLE.println("kHz)");
-				CONSOLE.print("Range = ");
-				CONSOLE.print((maxFreq - minFreq) * 1000);
-				CONSOLE.println("kHz");
+				centerFrequency_mHz = ((lastWorkingFreq_mHz + firstWorkingFreq_mHz) / 2);
+				range_kHz = (lastWorkingFreq_mHz - firstWorkingFreq_mHz) * 1000;
+				if ((range_kHz > 0) && (range_kHz < FREQUENCY_SWEEP_RANGE_KHZ))
+				{
+					CONSOLE.println("");
+					CONSOLE.print("Frequency = ");
+					CONSOLE.print(centerFrequency_mHz * 1000);
+					CONSOLE.println("kHz");
+					CONSOLE.print("Range = ");
+					CONSOLE.print(range_kHz);
+					CONSOLE.println("kHz");
+					CONSOLE.print("Deviation to real frequency = ");
+					CONSOLE.print((centerFrequency_mHz - MICRONET_RF_CENTER_FREQUENCY) * 1000);
+					CONSOLE.println("kHz");
+
+					CONSOLE.println("Do you want to save the new RF calibration values (y/n) ?");
+					while (CONSOLE.available() == 0)
+						;
+					c = CONSOLE.read();
+					if ((c == 'y') || (c == 'Y'))
+					{
+						gConfiguration.rfFrequencyOffset_MHz = (centerFrequency_mHz - MICRONET_RF_CENTER_FREQUENCY);
+						gConfiguration.SaveToEeprom();
+						CONSOLE.println("Configuration saved");
+					}
+					else
+					{
+						CONSOLE.println("Configuration discarded");
+					}
+				}
 
 				exitTuneLoop = true;
 			}
@@ -934,8 +978,8 @@ void MenuTuneFSK()
 	} while (!exitTuneLoop);
 
 	gRfReceiver.SetBandwidth(250);
-	gRfReceiver.SetFrequency(RF_CENTERFREQUENCY_MHZ);
-	gRfReceiver.SetDeviation(RF_DEVIATION_MHZ);
+	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
+	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY);
 }
 
 void MenuTestRFTx()

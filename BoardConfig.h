@@ -70,10 +70,6 @@
 #define NMEA_OUT USB_CONSOLE
 #define NMEA_IN  USB_CONSOLE
 
-// RF frequencies
-#define RF_CENTERFREQUENCY_MHZ 869.753
-#define RF_DEVIATION_MHZ       34
-
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/

@@ -71,6 +71,7 @@ public:
 	float xMagOffset;
 	float yMagOffset;
 	float zMagOffset;
+	float rfFrequencyOffset_MHz;
 };
 
 /***************************************************************************/

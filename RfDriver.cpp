@@ -43,8 +43,8 @@ bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo)
 	cc1101Driver.setGDO0(gdo0Pin);
 	cc1101Driver.setCCMode(1); // set config for internal transmission mode.
 	cc1101Driver.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
-	cc1101Driver.setMHZ(RF_CENTERFREQUENCY_MHZ); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
-	cc1101Driver.setDeviation(RF_DEVIATION_MHZ); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
+	cc1101Driver.setMHZ(MICRONET_RF_CENTER_FREQUENCY); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
+	cc1101Driver.setDeviation(MICRONET_RF_DEVIATION_MHZ); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
 	cc1101Driver.setChannel(0); // Set the Channelnumber from 0 to 255. Default is cahnnel 0.
 	cc1101Driver.setChsp(199.95); // The channel spacing is multiplied by the channel number CHAN and added to the base frequency in kHz. Value from 25.39 to 405.45. Default is 199.95 kHz.
 	cc1101Driver.setRxBW(250); // Set the Receive Bandwidth in kHz. Value from 58.03 to 812.50. Default is 812.50 kHz.
@@ -69,19 +69,24 @@ bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo)
 	return true;
 }
 
-void RfDriver::SetFrequency(float freqMhz)
+void RfDriver::SetFrequencyOffset(float offset_MHz)
 {
-	cc1101Driver.setMHZ(freqMhz);
+	frequencyOffset_mHz = offset_MHz;
 }
 
-void RfDriver::SetDeviation(float freqMhz)
+void RfDriver::SetFrequency(float freq_MHz)
+{
+	cc1101Driver.setMHZ(freq_MHz + frequencyOffset_mHz);
+}
+
+void RfDriver::SetDeviation(float freq_MHz)
  {
-	cc1101Driver.setDeviation(freqMhz);
+	cc1101Driver.setDeviation(freq_MHz);
  }
 
-void RfDriver::SetBandwidth(float bwMHz)
+void RfDriver::SetBandwidth(float bw_MHz)
 {
-	cc1101Driver.setRxBW(bwMHz);
+	cc1101Driver.setRxBW(bw_MHz);
 }
 
 void RfDriver::GDO0Callback()
