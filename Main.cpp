@@ -133,7 +133,7 @@ void setup()
 
 	CONSOLE.print("Initializing CC1101 ... ");
 	// Check connection to CC1101
-	if (!gRfReceiver.Init(GDO0_PIN, &gRxMessageFifo))
+	if (!gRfReceiver.Init(GDO0_PIN, &gRxMessageFifo, gConfiguration.rfFrequencyOffset_MHz))
 	{
 		CONSOLE.println("Failed");
 		CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
@@ -147,8 +147,6 @@ void setup()
 			delay(500);
 		}
 	}
-	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
-	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY);
 	CONSOLE.println("OK");
 
 	CONSOLE.print("Initializing navigation compass ... ");
@@ -994,8 +992,9 @@ void MenuTestRFTx()
 
 	do
 	{
+		CONSOLE.println("Tx!");
 		gMicronetCodec.EncodeSlotRequestMessage(&txMessage, 0x12345678, 0x12345678, 52);
-		gRfReceiver.TransmitMessage(&txMessage, micros() + 10000);
+		gRfReceiver.TransmitMessage(&txMessage, micros() + 50000);
 
 		delay(1000);
 

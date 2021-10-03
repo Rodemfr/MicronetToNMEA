@@ -25,7 +25,7 @@ public:
 	RfDriver();
 	virtual ~RfDriver();
 
-	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo);
+	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
 	void SetFrequencyOffset(float offsetMHz);
 	void SetFrequency(float freqMhz);
 	void SetDeviation(float freqMhz);
