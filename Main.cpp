@@ -147,9 +147,9 @@ void setup()
 			delay(500);
 		}
 	}
-	CONSOLE.println("OK");
 	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
 	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY);
+	CONSOLE.println("OK");
 
 	CONSOLE.print("Initializing navigation compass ... ");
 	if (!gNavCompass.Init())
@@ -887,7 +887,7 @@ void MenuCalibrateRfFrequency()
 	CONSOLE.println("Press ESC key at any time to stop tuning and come back to menu.");
 	CONSOLE.println("");
 
-	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
+	gRfReceiver.SetFrequencyOffset(0);
 	gRfReceiver.SetBandwidth(95);
 	gRfReceiver.SetFrequency(currentFreq_mHz);
 

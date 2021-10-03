@@ -18,7 +18,7 @@ OneShotTimer timerInt;
 RfDriver *RfDriver::rfDriver;
 
 RfDriver::RfDriver() :
-		gdo0Pin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(0)
+		gdo0Pin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(0), frequencyOffset_mHz(0)
 {
 }
 
