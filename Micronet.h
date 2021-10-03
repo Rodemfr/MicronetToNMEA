@@ -37,7 +37,9 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define MICRONET_RF_CENTER_FREQUENCY 869.782
+#define MICRONET_RF_CENTER_FREQUENCY 869.780
+// Note that the actual deviation on Micronet devices is around 38kHz and not 34
+// However, CC1101 produces 38 kHz deviation when requested 34 : problem of HW, Driver or measurement tools ?
 #define MICRONET_RF_DEVIATION_MHZ    34
 
 #define MICRONET_RF_PREAMBLE_LENGTH  14
