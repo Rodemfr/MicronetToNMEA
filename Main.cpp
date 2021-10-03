@@ -871,8 +871,8 @@ void MenuCalibrateRfFrequency()
 	char c;
 
 	CONSOLE.println("");
-	CONSOLE.println("To tune RF frequency, you must put MicronetToNMEA HW close");
-	CONSOLE.println("to your Micronet main display (less than one meter).");
+	CONSOLE.println("To tune RF frequency, you must start your Micronet network and");
+	CONSOLE.println("put MicronetToNMEA HW close to your Micronet main display (less than one meter).");
 	CONSOLE.println("You must not move any of the devices during the tuning phase.");
 	CONSOLE.println("Tuning phase will last about two minutes.");
 	CONSOLE.println("Press any key when you are ready to start.");
