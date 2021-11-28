@@ -11,7 +11,7 @@ Raymarine/TackTick reseller.
 *** Radio specification ***
 ***************************
 
-Carrier frequency : 869.780MHz in Europe. Measured on my own TackTick network. I don't know is this frequency might change
+Carrier frequency : 869.835MHz in Europe. Measured on my own TackTick network. I don't know is this frequency might change
                     in some circumstance.
 Modulation : 2-FSK
 Deviation : +-38kHz
@@ -96,7 +96,8 @@ Each slave device as a "transmission window" made of :
 
 Slave devices must answer in the same order than defined in "Master request" message. A slave device knows the start
 of its transmission window by calculating window sizes of the preceding slave windows. The first window starts just
-at the end of "Master request" message.
+at the end of "Master request" message. If a device is listed with a payload of zero, then it has no transmission
+window at all (no guard time, preamble or header).
 
 Theses slave transmission windows are called "synchronous" windows. Their role is to allow a slave device to
 periodically send its measured data to the various displays of the network. For example, this is where a wind
@@ -121,13 +122,13 @@ The structure of the asynchronous window is the following :
 |-----------------------------------------------------------------------------|
 |      2000us      |       1771us      |  (14 + 17) * 104us  |    0-244us     |
 
-Note that an asynchronous commands can not exceed a payload of 18 bytes. Asynchronous window starts 5400us after
+Note that an asynchronous commands can not exceed a payload of 17 bytes. Asynchronous window starts 5400us after
 the end of the last synchronous window. Since asynchronous commands are subject to collision (any device can
 potentially talk in this window), they generally require an acknowledge from the other devices. As an example, a
 display device could send a parameter update message (0x06) which requires all other devices to acknowledge it
-with message 0x07. In that case others devices will use response windows located after the asynchronous slot.
+with message 0x07. In that case other devices will use response windows located after the asynchronous slot.
 If other devices do not acknowledge, then it means that a collision likely occured on asynchronous window and
-that message must be sent again at a later network cycle.
+that message must be sent again during a later network cycle.
 
 These response windows have the following structure :
 
@@ -152,9 +153,8 @@ Knowing all of this, here is the chronology of a network composed of devices A, 
 This message is sent by the master device to request slave devices to communicate their measured data.
 
 This message also gives the "PL" value for each device which gives the maximum number of bytes expected in the payload
-of the "Send Sync Data" message. Also, if a device has to send several messages, it will be listed twice in the list. This
-way, we have a complete temporal map of the data exchange, allowing to know where to transmit our own messages, without
-colliding with other devices.
+of the "Send Sync Data" message. This way, we have a complete temporal map of the data exchange, allowing slaves to
+know where to transmit their messages, without colliding with other devices.
 
 Here is the format (with an example) :
 

@@ -855,8 +855,8 @@ void MenuDebugCompass()
 
 void MenuCalibrateRfFrequency()
 {
-#define FREQUENCY_SWEEP_RANGE_KHZ 200
-#define FREQUENCY_SWEEP_STEP_KHZ 2
+#define FREQUENCY_SWEEP_RANGE_KHZ 300
+#define FREQUENCY_SWEEP_STEP_KHZ 3
 
 	bool exitTuneLoop;
 	bool updateFreq;
