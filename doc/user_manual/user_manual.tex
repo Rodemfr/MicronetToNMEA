@@ -1,0 +1,183 @@
+\documentclass{report}
+
+\usepackage[T1]{fontenc}
+\usepackage[american]{babel}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{hmargin=2.5cm,vmargin=1.5cm}
+
+\begin{document}
+
+\title{MicronetToNMEA}
+
+\chapter {Introduction}
+
+\section{What is MicronetToNMEA}
+
+MicronetToNMEA is a Teensy/Arduino based project aimed at building a cheap NMEA/Micronet bridge. The initial purpose of this project was to understand Micronet wireless protocol and to be able to record wind and speed data on a PC. The understanding of the protocol went so well that MicronetToNMEA is now doing a lot more than that. It can:
+
+\begin{itemize}
+\item Send NMEA stream to your PC/Tablet with data on depth, water speed, wind, magnetic heading, GNSS positionning, speed, time, etc.
+\item Send Heading data from the navigation compass to your Micronet's displays (HDG).
+\item Send GNSS data to your Micronet displays (LAT, LON, TIME, DATE, COG, SOG).
+\item Send navigation data from OpenCPN or qtVlm to your Micronet displays (BTW, DTW, XTE, ETA).
+\end{itemize}
+
+\section{What is NOT MicronetToNMEA}
+
+MicronetToNMEA is not waterproof and more generally not reliable. All electronics used in this project are made for hobbyist and are all but robust. In the brutal, wet and salty environment of a boat, it will likely fail quickly. So be careful that MicronetToNMEA shouldn’t be used as primary navigation tool. Also note that Micronet wireless protocol has been reverse engineered and that many of its aspects are not yet properly understood. Worse, some understandings we think to be correct might very well be false in some circumstances. If you need state of the art and reliable navigation devices, just go to your nearest Raymarine/TackTick reseller.
+
+\section{Contributors}
+
+\begin{itemize}
+\item  Ronan Demoment : Main author
+\item Dietmar Warning : LSM303 drivers \& Bugfixes
+\item Contributors of YBW forum's Micronet thread : \href{https://forums.ybw.com/index.php?threads/raymarines-micronet.539500/}{Micronet Thread}
+\end{itemize}
+
+\chapter{Required and optional hardware}
+
+\section{Required hardware}
+
+To work properly, MicronetToNMEA needs at least a Teensy 3.5 board and a CC1101 based breakout board.
+
+\subsection{Teensy 3.5}
+In theory, you can port MicronetToNMEA SW to any 32bit Arduino compatible board. Practically, this might be a different story. Several people got into troubles trying to use ESP32 boards. While this is technically feasible, Arduino's library implementation between Teensy \& Esp32 board can be slightly different in some sensitive areas like interrupt handling, making porting complex.
+Teensy boards can be ordered here : \url{https://www.pjrc.com/teensy/}
+
+\subsection{CC1101 board}
+
+These boards are very cheap but the quality of the design and components is often average. So do not expect to have the same distance performance than an original TackTick device. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna) even if the board is announced to support 434 \& 868 (the IC can, but the board cannot). MicronetToNMEA needs a board designed for 868MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Example of suitable board:
+\href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101}
+
+\section{Optional hardware}
+
+You can add optional HW to MicronetToNMEA to enhance its capabilities.
+
+\subsection{NMEA0183 GNSS}
+
+If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point : it must output its data to the NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Be careful however to ensure that the model youorder is not counterfeit and really has flash memory to save its configuration. Avoid too cheap offers from unknown HW sources.
+
+\subsection{LSM303DLH or LSM303DLHC navigation compass breakout board}
+
+Connected to Teensy I2C bus, this IC will allow getting magnetic heading. MicronetToNMEA automatically detect the presence and type of LSM303DLH(c) on its I2C bus.
+
+\subsection{HC-06 Bluetooth transceiver}
+
+You can connect HC-06 device to MicronetToNMEA serial NMEA output to easily get a wireless connection to a PC/Tablet. Note that MicronetToNMEA does not configure HC-06 link, it is up to you to configure HC-06 before connecting it.
+
+\chapter{Required and optional software}
+
+\section{Arduino IDE (required)}
+Arduino IDE provides gcc-arm compiler and all libraries necessary for MicronetToNMEA. This is the first software you must install.
+
+\section{Teensyduino (required)}
+
+Teensyduino is an extension to Arduino IDE which add full support to all Teensy’s board, including Teensy 3.5. It must be installed on top of Arduino IDE to enable compilation for Teensy 3.5.
+
+\section{Sloeber (optional)}
+
+If you plan to do more than just compile MicronetToNMEA’s code, you probably need a more serious IDE. Sloeber is an Arduino compatible version of Eclipse. It provides many useful features, which will highly improve your productivity. It requires Arduino IDE and Teensyduino to be already installed.
+
+\chapter{Compilation}
+
+\section{With Arduino IDE}
+
+Here are the steps to compile MicronetToNMEA with Arduino IDE:
+
+\begin{itemize}
+\item Get the source code from MicronetToNMEA repository (\url{https://github.com/Rodemfr/MicronetToNMEA})
+\item Double-click on MicronetToNMEA.ino. This should open Arduino IDE.
+\item In Arduino IDE, select Teensy 3.5 target HW with menu “Tools->Board->Teensyduino->Teensy3.5”
+\item Go to menu “Tools->Manage Libraries...” and install the following libraries : SmartRC-CC1101-Driver-Lib and TeensyTimerTool
+\item Click on “Verify” button in the button bar, this should compile the project without error.
+\item Connect your Teensy 3.5 board onto USB port of your PC and Click “Upload” button to upload MicronetToNMEA binary into Teensy flash memory
+\end{itemize}
+
+\section{With Sloeber}
+
+Here are the steps to compile MicronetToNMEA with Sloeber IDE:
+
+\begin{itemize}
+\item Before trying to compile with sloeber, you must have successfully compiled with Arduino IDE
+\item Start Sloeber and create your Workspace as requested Select menu “File->New->Arduino Sketch"
+\item In Sloeber, select menu Arduino->Preferences
+\item Add Arduino's library and hardware path in the path lists
+\item Exit the panel by clicking "Apply and Close"
+\item Select menu File->New-Arduino Sketch
+\item Name your project "MicronetToNMEA"
+\item Don't use default project location and set the location to your git cloned repository of MicronetToNMEA
+\item Click "Next"
+\item Select Teensy's platform folderin the corresponding drop down menu
+\item Select "Teensy 3.5" board
+\item Select "Faster" optimization
+\item Select "Serial" USB Type
+\item Select 120MHz CPU Speed
+\item Click "Next"
+\item Select "No file" as code
+\end{itemize}
+
+Your project should be compiling now.
+
+Note that Sloeber can be somewhat picky with toolchain ort library paths. So don’t be surprised if you have to handle additional issues to compile with it. The effort is worth, code productivity with Eclipse is way beyond Arduino IDE.
+
+\section{Compile time configuration}
+
+By default, MicronetToNMEA is configured for a specific HW layout. This means that it is configured to be connected through specific SPI, I2C or GPIOs to various boards. This configuration can be changed to some extent to adapt your own needs. The file bearing this configuration is “BoardConfig.h”.Note that no coherency checks are done in the software. It is your responsibility to provide a reachable configuration (e.g. not to connect SPI wires to non SPI capable pins).
+
+Here is the description of its configuration switches:
+
+\begin{itemize}
+\item NAVCOMPASS\_I2C: Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.).
+\item RF\_SPI\_BUS: Defines SPI controller connected to RF IC (SPI, SPI1, SPI2).
+\item RF\_CS0\_PIN: Defines SPI Chip Select line connected to RF IC.
+\item RF\_MOSI\_PIN: Defines MOSI pin of SPI bus connected to RF IC.
+\item RF\_MISO\_PIN: Defines MISO pin of SPI bus connected to RF IC.
+\item RF\_SCK\_PIN: Defines SCK pin of SPI bus connected to RF IC.
+\item RF\_GDO0\_PIN: Defines GDO0 pin of SPI bus connected to RF IC.
+\item LED\_PIN: Defines the pin driving the LED, which is used for error signaling.
+\item GNSS\_SERIAL: Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.).
+\item GNSS\_BAUDRATE: Defines on which serial port is connected the NMEA GNSS.
+\item GNSS\_CALLBACK: Defines the name of the callback function called when new bytes arrive on the
+configured serial port.
+\item GNSS\_RX\_PIN: Defines serial RX pin connected NMEA GNSS TX pin.
+\item GNSS\_TX\_PIN: Defines serial TX pin connected NMEA GNSS RX pin.
+\item USB\_SERIAL: Defines which serial port is connected to USB serial converter.
+\item USB\_BAUDRATE: Defines baud rate of USB serial converter
+\end{itemize}
+
+\chapter{Installation}
+
+Teensy board must be connected to other boards with the same scheme than you have defined in “BoardConfig.h”.
+
+\begin{itemize}
+\item How to connect
+\item How to supply power
+\item Using console
+\item Configuring GNSS
+\item Configuring HC-06 Bluetooth HW
+\end{itemize}
+
+\chapter{Usage}
+
+\begin{itemize}
+\item Scanning for Micronet networks
+\item Attaching MicronetToNMEA to your existing Micronet networks
+\item Calibrating RF frequency
+\item Calibrating navigation compass
+\item Starting NMEA conversion
+\end{itemize}
+
+\chapter{NMEA}
+
+\begin{itemize}
+\item Supported sentences (IN and OUT)
+\end{itemize}
+
+\chapter{Future}
+
+\begin{itemize}
+\item Power consumption
+\end{itemize}
+
+\end{document}
