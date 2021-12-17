@@ -72,15 +72,16 @@ LEN = (Length - 2) of the complete message in bytes, including payload. Value du
 ****************************
 
 A Micronet network is made of one Master device and several slaves. The master is the device which has been powered
-first, so it can be a different device if you have several displays, depending which one you used to start the network.
-Only the master device is allowed to initiate RF communication. Master always use message 0x01 (Master request) to
-initiate radio communications. Slave devices then answer in a predetermined manner to avoid RF collisions.
+first, so it can be a different device if you have several displays. Only the master device is allowed to initiate
+RF communication. Master always use message 0x01 (Master request) to initiate radio communications. Slave devices
+then answer relatively to the Master request message, in a predetermined manner to avoid RF collisions.
 
 "Master request" is sent by master every second and defines precisely when a slave device can talk on the network.
 "Master request" gives the list of every device known by the Master and the maximum payload that it can pass in a
-message (See detailed description of Master request below).
+message (See detailed description of Master Request below). Once Master request message is terminated, slave devices
+can then talk on the network.
 
-Each slave device as a "transmission window" made of :
+Each slave device has a "transmission window" and made of :
    - a 2000us "guard time" during which nothing should be transmitted. Its role is to separate slaves transmissions
      and to avoid overlap in case of poor timing precision. This practically means that a device must wait 2ms after
      the start of the window before starting RF transmission.
@@ -94,10 +95,11 @@ Each slave device as a "transmission window" made of :
 |-----------------------------------------------------------------------------|
 |      2000us      |       1771us      |  (14 + PL) * 104us  |    0-244us     |
 
-Slave devices must answer in the same order than defined in "Master request" message. A slave device knows the start
-of its transmission window by calculating window sizes of the preceding slave windows. The first window starts just
-at the end of "Master request" message. If a device is listed with a payload of zero, then it has no transmission
-window at all (no guard time, preamble or header).
+Slave devices must answer in the same order than defined in "Master request" message. PL parameter is also provided
+by Master request message for each slave device. A slave device knows the start of its transmission window by
+calculating window sizes of the preceding slave windows. The first window starts just at the end of "Master Request"
+message. If a device is listed with a payload of zero, then it has no transmission window at all (no guard time,
+preamble or header).
 
 Theses slave transmission windows are called "synchronous" windows. Their role is to allow a slave device to
 periodically send its measured data to the various displays of the network. For example, this is where a wind
@@ -105,8 +107,8 @@ transducer will send wind data every second. The sync window is reserved for mes
 
 There is however another way for a slave device to talk on a network. If a device is not listed in "Master Request"
 message or if it needs to send something else than its periodical data, it can use the so called "asynchronous"
-window. This transmission window is a special one which is located after the last syncronous window and which can
-be used by any device, including master itself.
+window. This transmission window is a special one, located after the last syncronous window and which can be used
+by any device, including master itself.
 
 Typical usages of this window are :
    - For a new device to request an attachement to a network (message 0x03)
@@ -122,7 +124,7 @@ The structure of the asynchronous window is the following :
 |-----------------------------------------------------------------------------|
 |      2000us      |       1771us      |  (14 + 17) * 104us  |    0-244us     |
 
-Note that an asynchronous commands can not exceed a payload of 17 bytes. Asynchronous window starts 5400us after
+Note that asynchronous commands can not exceed a payload of 17 bytes. Asynchronous window starts 5400us after
 the end of the last synchronous window. Since asynchronous commands are subject to collision (any device can
 potentially talk in this window), they generally require an acknowledge from the other devices. As an example, a
 display device could send a parameter update message (0x06) which requires all other devices to acknowledge it
@@ -142,9 +144,9 @@ device list.
 
 Knowing all of this, here is the chronology of a network composed of devices A, B, C, D, E. A being the master.
 
-|-----------------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
-| A : 0x01 (BCDE) | B : 0x02 | C : 0x02 | D : 0x02 |  5400us  | Async window | Ack E | Ack D | Ack C | Ack B | Ack A | 
-|-----------------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
+|-----------------|----------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
+| A : 0x01 (BCDE) | B : 0x02 | C : 0x02 | D : 0x02 | E : 0x02 |  5400us  | Async window | Ack E | Ack D | Ack C | Ack B | Ack A | 
+|-----------------|----------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
 
 **************************************
 *** Message 0x01 (Master resquest) ***
@@ -152,7 +154,7 @@ Knowing all of this, here is the chronology of a network composed of devices A, 
 
 This message is sent by the master device to request slave devices to communicate their measured data.
 
-This message also gives the "PL" value for each device which gives the maximum number of bytes expected in the payload
+This message also provides the "PL" value for each device which gives the maximum number of bytes expected in the payload
 of the "Send Sync Data" message. This way, we have a complete temporal map of the data exchange, allowing slaves to
 know where to transmit their messages, without colliding with other devices.
 
