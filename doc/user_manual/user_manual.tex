@@ -4,6 +4,7 @@
 \usepackage[american]{babel}
 \usepackage{hyperref}
 \usepackage{geometry}
+\usepackage{graphicx}
 \geometry{hmargin=2.5cm,vmargin=1.5cm}
 
 \begin{document}
@@ -204,9 +205,25 @@ As an example, table \ref{table:boardconsumption} shows maximum current values f
 USB powering is especially useful when you plan to output NMEA through USB-serial. In this case, the connected PC/Tablet will provide power to the system and when MicronetToNMEA is not needed anymore, it will be automatically powered-off when you unplug the cable.
 
 \subsection{Power with an external DC source}
-While USB powering is easy to setup, it not a common source of power in a boat. It is more usual to get two wires with an unstable battery voltage somewhere between 11V and 15V. In that case, you will need a voltage regulator or a DC-DC converter which will be used to produce a stable 5V for the system. This 5V source can then be connected to the Vin pin of Teensy 3.5. The on-board regulator will then produce 3.3V from this input.
+While USB powering is easy to setup, it not a common source of power in a boat. It is more usual to get two wires with an unstable battery voltage between 11V and 15V. In that case, you will need a voltage regulator or a DC-DC converter which will be used to produce a stable 5V for the system. This 5V source can then be connected to the Vin pin of Teensy 3.5. The on-board regulator will then produce 3.3V from this input.
 \linebreak
 When Vin pin is connected to an external source of power, you must not connect an USB cable to avoid short circuit between Vin and Vusb which are connected together on Teensy by default. The Vin pin can handle voltages from 3.6 to 6V but it is strongly recommended to use 5V here. This way, if you accidentally connect a USB cable while powering Vin, there will be no short circuit.
+
+\begin{figure}
+\centering
+\includegraphics{MicronetToNMEA_DC_Power.png}
+	\caption{Powering Teensy with a DC-DC converter}
+\label{figure:dcpower}
+\end{figure}
+
+\section{Connecting CC1101}
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{MicronetToNMEA_CC1101.png}
+	\caption{Connecting Teensy to CC1101}
+	\label{figure:cc1101}
+\end{figure}
 
 \begin{itemize}
 \item How to connect
