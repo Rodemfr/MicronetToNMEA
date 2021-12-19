@@ -43,13 +43,25 @@ MicronetToNMEA is not waterproof and more generally not reliable. All electronic
 To work properly, MicronetToNMEA needs at least a Teensy 3.5 board and a CC1101 based breakout board.
 
 \subsection{Teensy 3.5}
-In theory, you can port MicronetToNMEA SW to any 32bit Arduino compatible board. Practically, this might be a different story. Several people got into troubles trying to use ESP32 boards. While this is technically feasible, Arduino's library implementation between Teensy \& Esp32 board can be slightly different in some sensitive areas like interrupt handling, making porting complex.
+Teensy 3.5 has been chosen as the core microcontroller of the MicronetToNMEA system. This choice has been led by one main reason : I had one available when I started investigating Micronet protocol. That's indeed a good reason but with time this board has also proven to be pretty well adapted :
+
+\begin{itemize}
+	\item It is small
+	\item Teensy software stack is rich and stable
+	\item It has a lot of highly configurable peripherals
+	\item GPIOs are 5V tolerant (important to connect 5V GNSS !)
+	\item It has a MicroSD slot for future recording features
+\end{itemize}
+
+In theory, you can port MicronetToNMEA SW to any 32bit Arduino compatible board. Practically, this might be a different story. Several people got into troubles trying to use ESP32 boards. While this is technically feasible, Arduino's library implementation between Teensy \& Esp32 board can be slightly different in some sensitive areas like interrupt handling. This makes porting complex.
+
 Teensy boards can be ordered here : \url{https://www.pjrc.com/teensy/}
 
 \subsection{CC1101 board}
 
-These boards are very cheap but the quality of the design and components is often average. So do not expect to have the same distance performance than an original TackTick device. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna) even if the board is announced to support 434 \& 868 (the IC can, but the board cannot). MicronetToNMEA needs a board designed for 868MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Example of suitable board:
-\href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101}
+CC1101 is absolutely mandatory to MicronetToNMEA. It is the IC which enable RF communication with Micronet/TackTick devices. CC1101 breakout boards are very cheap but the quality of design and components is often less than average. So do not expect to have the same distance performance than an original TackTick device. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna), even if the board is announced to support 434 \& 868 (the IC can, but the antenna filter can not). MicronetToNMEA needs a board designed for 868MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Here is an example of a suitable board: \href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101}
+
+These low-cost boards are often delivered without any documentation, especially pin-out description. In that case CC1101 datasheet might help : \href{https://www.ti.com/lit/ds/symlink/cc1101.pdf}{CC1101 datasheet}
 
 \section{Optional hardware}
 
@@ -57,11 +69,11 @@ You can add optional HW to MicronetToNMEA to enhance its capabilities.
 
 \subsection{NMEA0183 GNSS}
 
-If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point : it must output its data to the NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Be careful however to ensure that the model youorder is not counterfeit and really has flash memory to save its configuration. Avoid too cheap offers from unknown HW sources.
+If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point : it must output localization data on a RS232 link with using NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Be careful however that the model you order is not counterfeit and really has flash memory to save its configuration. Avoid too cheap offers from unknown HW sources.
 
 \subsection{LSM303DLH or LSM303DLHC navigation compass breakout board}
 
-Connected to Teensy I2C bus, this IC will allow getting magnetic heading. MicronetToNMEA automatically detect the presence and type of LSM303DLH(c) on its I2C bus.
+Connected to Teensy I2C bus, this IC will allow getting magnetic heading. MicronetToNMEA automatically detect the presence and type of LSM303DLH/DLHC on its I2C bus.
 
 \subsection{HC-06 Bluetooth transceiver}
 
@@ -218,24 +230,73 @@ When Vin pin is connected to an external source of power, you must not connect a
 
 \section{Connecting CC1101}
 
+CC1101 uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101's VCC \& GND. MOSI(SI), MISO(SO), CS0 and GD0 must be connected as per your BoardConfig.h definitions. Note that GD2 isn't used by MicronetToNMEA and doen't need to be connected to Teensy. Figure \ref{figure:cc1101} shows how to connect CC1101 with the default configuration.s
+
 \begin{figure}[h]
 	\centering
 	\includegraphics{MicronetToNMEA_CC1101.png}
-	\caption{Connecting Teensy to CC1101}
+	\caption{Connecting Teensy and CC1101}
 	\label{figure:cc1101}
 \end{figure}
 
+\section{Connecting LSM303}
+
+LSM303DLH(C) uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101's VCC \& GND. In addition SDA \& SCL must be connected as per your BoardConfig.h definitions. Note that DRDY, I1 \& I2 don't need to be connected. Figure \ref{figure:lsm303} shows how to connect LSM303DLH(C) with the default configuration.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{MicronetToNMEA_LSM303.png}
+	\caption{Connecting Teensy to LSM303}
+	\label{figure:lsm303}
+\end{figure}
+
+\section{Connecting GNSS}
+
+Unlike CC1101 or LSM303DLH(C), GNSS/GPS boards are often expecting 5V VCC as power. So you have to connect it directly to DC-DC Converter's output. You should check however that you GNSS board is not 3.3V powered, in which case you should use one of Teensy 3.3V pin.
+TX and RX pins must then be connected respectively on RX and TX of Teensy's UART. Noyte that Teensy 3.5 is 5V tolerant, so you connect GNSS even if it is using 5V output. Figure \ref{figure:gnss} shows how to connect GNSS for the default configuration.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{MicronetToNMEA_GNSS.png}
+	\caption{Connecting Teensy and GNSS}
+	\label{figure:gnss}
+\end{figure}
+
+GNSS is not configured by MicronetToNMEA, it is your responsibility to configure the GNSS with the correct parameters before connecting it. GNSS has to output an NMEA compatible stream at the same bitrate than specified in BoardConfig.h (38400 bps by default). The UBlox Neo M8N used to develop MicronetToNMEA has been configured using UBlox u-center software on windows which can change the configuration and save in M8N's flash.
+
+GNSS has to output the following sentences :
 \begin{itemize}
-\item How to connect
-\item Using console
-\item Configuring GNSS
-\item Configuring HC-06 Bluetooth HW
+	\item GGA : Time and position
+	\item VTG : Track and speed
+\end{itemize}
+
+Some users reported that the M8N GNSS they purchased had'nt the embedded flash to store configuration. It is unclear if they ordered cheap counterfeits or if the flash is optional. You should order a model which can save its configuration in non volatile memory to avoid having to patch MicronetToNMEA's code to configure the GNSS at startup.
+
+\section{Connecting HC-06 modules}
+
+When MicronetToNMEA is configured to send its console and/or NMEA output to a standard UART, you can consider connect a HC-06 Bluetooth transceiver to easily get wireless connectivity to your PC/Tablet. HC-06 is powered by 5V but can handle 3.3V signals. Only VCC, GND, RXD \& TXD need to be connected. Figure \ref{figure:hc06} shows how to connect HC-06 with the default configuration.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics{MicronetToNMEA_HC06.png}
+	\caption{Connecting Teensy and HC-06}
+	\label{figure:hc06}
+\end{figure}
+
+As for the GNSS, MicronetToNMEA does not configure HC-06 itlsef. It is your responsability to configure HC-06 properly (i.e. with parameters matching BoardConfig.h) prior to connecting it to Teensy.
+
+\section{Recommandations}
+
+\begin{itemize}
+	\item Not metal and/or carbon between devices
+	\item Far from electrical and metal parts
+	\item Calibrate MicronetToNMEA far from the boat
 \end{itemize}
 
 \chapter{Usage}
 
 \begin{itemize}
-\item Scanning for Micronet networks
+\item Scanning Micronet networks
 \item Attaching MicronetToNMEA to your existing Micronet networks
 \item Calibrating RF frequency
 \item Calibrating navigation compass
@@ -246,12 +307,6 @@ When Vin pin is connected to an external source of power, you must not connect a
 
 \begin{itemize}
 \item Supported sentences (IN and OUT)
-\end{itemize}
-
-\chapter{Future}
-
-\begin{itemize}
-\item Power consumption
 \end{itemize}
 
 \end{document}
