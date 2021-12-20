@@ -28,6 +28,8 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include <Arduino.h>
+
 #include "BoardConfig.h"
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
@@ -38,7 +40,6 @@
 #include "NmeaDecoder.h"
 #include "NavCompass.h"
 
-#include <Arduino.h>
 #include <SPI.h>
 #include <wiring.h>
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
@@ -535,6 +536,7 @@ void MenuConvertToNmea()
 	uint8_t payloadLength;
 	uint32_t lastHeadingTime = millis();
 	float heading;
+	int cycleCounter = 0;
 
 	if (gConfiguration.networkId == 0)
 	{
@@ -562,8 +564,17 @@ void MenuConvertToNmea()
 					txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
 					if (txSlot.start_us != 0)
 					{
-						payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
-								gConfiguration.deviceId, &gNavData);
+						cycleCounter++;
+						if (cycleCounter &= 0x01)
+						{
+							payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData);
+						}
+						else
+						{
+							payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData);
+						}
 						if (txSlot.payloadBytes < payloadLength)
 						{
 							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
