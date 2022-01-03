@@ -80,14 +80,14 @@ void RfDriver::SetFrequency(float freq_MHz)
 	cc1101Driver.setMHZ(freq_MHz + frequencyOffset_mHz);
 }
 
-void RfDriver::SetDeviation(float freq_MHz)
+void RfDriver::SetDeviation(float freq_KHz)
  {
-	cc1101Driver.setDeviation(freq_MHz);
+	cc1101Driver.setDeviation(freq_KHz);
  }
 
-void RfDriver::SetBandwidth(float bw_MHz)
+void RfDriver::SetBandwidth(float bw_KHz)
 {
-	cc1101Driver.setRxBW(bw_MHz);
+	cc1101Driver.setRxBW(bw_KHz);
 }
 
 void RfDriver::GDO0Callback()

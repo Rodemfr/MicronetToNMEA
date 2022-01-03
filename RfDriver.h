@@ -27,9 +27,9 @@ public:
 
 	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
 	void SetFrequencyOffset(float offsetMHz);
-	void SetFrequency(float freqMhz);
-	void SetDeviation(float freqMhz);
-	void SetBandwidth(float bwMHz);
+	void SetFrequency(float freqMHz);
+	void SetDeviation(float freqKHz);
+	void SetBandwidth(float bwKHz);
 	void GDO0Callback();
 	void RestartReception();
 	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
