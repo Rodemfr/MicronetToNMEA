@@ -317,7 +317,9 @@ void MenuAbout()
 
 	CONSOLE.print("RF Frequency offset = ");
 	CONSOLE.print(gConfiguration.rfFrequencyOffset_MHz * 1000);
-	CONSOLE.println(" kHz");
+	CONSOLE.print(" kHz (");
+	CONSOLE.print((int) (1000000.0 * gConfiguration.rfFrequencyOffset_MHz / MICRONET_RF_CENTER_FREQUENCY_MHZ));
+	CONSOLE.println(" ppm)");
 	CONSOLE.print("Wind speed factor = ");
 	CONSOLE.println(gConfiguration.windSpeedFactor_per);
 	CONSOLE.print("Wind direction offset = ");
@@ -873,7 +875,7 @@ void MenuCalibrateRfFrequency()
 	bool updateFreq;
 	MicronetMessage_t *rxMessage;
 	uint32_t lastMessageTime = millis();
-	float currentFreq_mHz = MICRONET_RF_CENTER_FREQUENCY - (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f);
+	float currentFreq_mHz = MICRONET_RF_CENTER_FREQUENCY_MHZ - (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f);
 	float firstWorkingFreq_mHz = 100000;
 	float lastWorkingFreq_mHz = 0;
 	float range_kHz, centerFrequency_mHz;
@@ -932,7 +934,7 @@ void MenuCalibrateRfFrequency()
 		{
 			lastMessageTime = millis();
 			updateFreq = false;
-			if (currentFreq_mHz < MICRONET_RF_CENTER_FREQUENCY + (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f))
+			if (currentFreq_mHz < MICRONET_RF_CENTER_FREQUENCY_MHZ + (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f))
 			{
 				currentFreq_mHz += (FREQUENCY_SWEEP_STEP_KHZ / 1000.0f);
 				gRfReceiver.SetFrequency(currentFreq_mHz);
@@ -951,7 +953,7 @@ void MenuCalibrateRfFrequency()
 					CONSOLE.print(range_kHz);
 					CONSOLE.println("kHz");
 					CONSOLE.print("Deviation to real frequency = ");
-					CONSOLE.print((centerFrequency_mHz - MICRONET_RF_CENTER_FREQUENCY) * 1000);
+					CONSOLE.print((centerFrequency_mHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) * 1000);
 					CONSOLE.println("kHz");
 
 					CONSOLE.println("Do you want to save the new RF calibration values (y/n) ?");
@@ -960,7 +962,7 @@ void MenuCalibrateRfFrequency()
 					c = CONSOLE.read();
 					if ((c == 'y') || (c == 'Y'))
 					{
-						gConfiguration.rfFrequencyOffset_MHz = (centerFrequency_mHz - MICRONET_RF_CENTER_FREQUENCY);
+						gConfiguration.rfFrequencyOffset_MHz = (centerFrequency_mHz - MICRONET_RF_CENTER_FREQUENCY_MHZ);
 						gConfiguration.SaveToEeprom();
 						CONSOLE.println("Configuration saved");
 					}
@@ -988,7 +990,7 @@ void MenuCalibrateRfFrequency()
 
 	gRfReceiver.SetBandwidth(250);
 	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
-	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY);
+	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ);
 }
 
 void MenuTestRFTx()
