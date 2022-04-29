@@ -50,6 +50,7 @@
 
 // NMEA/GNSS UART pins
 #define GNSS_SERIAL   Serial1
+#define GNSS_INIT_BAUDRATE 9600
 #define GNSS_BAUDRATE 38400
 #define GNSS_CALLBACK serialEvent1
 #define GNSS_RX_PIN   0
