@@ -51,6 +51,18 @@
 #define MAX_SCANNED_NETWORKS  5
 #define WAIT_TIME_US(t) {while (micros() < t);}
 
+#define USE_UBLOXM8N       // initalization unconfigured of UBLOX M8N 
+#define UBLOX_GGA_ENABLE   // enable uBlox GGA message
+//#define UBLOX_VTG_ENABLE // enable uBlox VTG message
+#define UBLOX_RMC_ENABLE   // enable uBlox RMC message
+//#define UBLOX_DEBUG      // Show configuration strings on terminal 
+
+#ifdef USE_UBLOXM8N
+  const PROGMEM  uint8_t ClearConfig[] = {0xB5, 0x62, 0x06, 0x09, 0x0D, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x01, 0x19, 0x98};
+  const PROGMEM  uint8_t UART138400[]  = {0xB5, 0x62, 0x06, 0x00, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0xD0, 0x08, 0x00, 0x00, 0x00, 0x96, 0x00, 0x00, 0x07, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x92, 0x8A};
+  const PROGMEM  uint8_t Navrate5hz[]  = {0xB5, 0x62, 0x06, 0x08, 0x06, 0x00, 0xC8, 0x00, 0x01, 0x00, 0x01, 0x00, 0xDE, 0x6A};
+#endif
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
@@ -100,6 +112,41 @@ MenuEntry_t mainMenu[] =
 /*                              Functions                                  */
 /***************************************************************************/
 
+#ifdef USE_UBLOXM8N
+  void GPS_SendConfig(const uint8_t *Progmem_ptr, uint8_t arraysize)
+  {
+    uint8_t byteread, index;
+    #ifdef UBLOX_DEBUG
+    CONSOLE.print(F("GPSSend  "));
+    #endif
+    for (index = 0; index < arraysize; index++)
+    {
+      byteread = pgm_read_byte_near(Progmem_ptr++);
+      if (byteread < 0x10)
+      {
+        #ifdef UBLOX_DEBUG
+        CONSOLE.print(F("0"));
+        #endif
+      }
+      #ifdef UBLOX_DEBUG
+      CONSOLE.print(byteread, HEX);
+      CONSOLE.print(F(" "));
+      #endif
+    }
+    #ifdef UBLOX_DEBUG
+    CONSOLE.println();
+    #endif
+    Progmem_ptr = Progmem_ptr - arraysize;                  //set Progmem_ptr back to start
+  
+    for (index = 0; index < arraysize; index++)
+    {
+      byteread = pgm_read_byte_near(Progmem_ptr++);
+      GNSS_SERIAL.write(byteread);
+    }
+    delay(100);
+  }
+#endif
+
 void setup()
 {
 	// Load configuration from EEPROM
@@ -112,7 +159,7 @@ void setup()
 	// Init GNSS NMEA serial link
 	GNSS_SERIAL.setRX(GNSS_RX_PIN);
 	GNSS_SERIAL.setTX(GNSS_TX_PIN);
-	GNSS_SERIAL.begin(GNSS_BAUDRATE);
+	GNSS_SERIAL.begin(GNSS_INIT_BAUDRATE);
 
 	// Init wired serial link
 	WIRED_SERIAL.setRX(WIRED_RX_PIN);
@@ -122,6 +169,60 @@ void setup()
 	// Let time for serial drivers to set-up
 	delay(250);
 
+	  // Init Ublox
+  #ifdef USE_UBLOXM8N
+
+  
+  uint32_t startmS = 0;
+  CONSOLE.println("UBlox_GPS_Configuration Starting");
+
+  //lets see 2 seconds of GPS characters at normal power up GPS configuration
+  do
+  {
+    while (GNSS_SERIAL.available())
+    {
+      CONSOLE.write(GNSS_SERIAL.read());
+    }
+  }
+  while (millis() < (startmS + 2000));
+  GPS_SendConfig(ClearConfig, 21);    
+  delay(500);
+  GPS_SendConfig(UART138400, 28);
+  GNSS_SERIAL.begin(GNSS_BAUDRATE);
+  delay(100);
+  GNSS_SERIAL.println("");
+  GNSS_SERIAL.println("$PUBX,40,DTM,0,0,0,0,0,0*46");
+  GNSS_SERIAL.println("$PUBX,40,GBS,0,0,0,0,0,0*4D");
+#ifdef UBLOX_GGA_ENABLE
+  GNSS_SERIAL.println("$PUBX,40,GGA,0,1,0,0,0,0*5B"); //GGA on
+#else
+  GNSS_SERIAL.println("$PUBX,40,GGA,0,0,0,0,0,0*5A"); //GGA off
+#endif
+  GNSS_SERIAL.println("$PUBX,40,GLL,0,0,0,0,0,0*5C"); 
+  GNSS_SERIAL.println("$PUBX,40,GNS,0,0,0,0,0,0*41");
+  GNSS_SERIAL.println("$PUBX,40,GRS,0,0,0,0,0,0*5D");
+  GNSS_SERIAL.println("$PUBX,40,GSA,0,0,0,0,0,0*4E");
+  GNSS_SERIAL.println("$PUBX,40,GST,0,0,0,0,0,0*5B");
+  GNSS_SERIAL.println("$PUBX,40,GSV,0,0,0,0,0,0*59");
+#ifdef UBLOX_RMC_ENABLE
+  GNSS_SERIAL.println("$PUBX,40,RMC,0,1,0,0,0,0*46"); //RMC on
+#else 
+  GNSS_SERIAL.println("$PUBX,40,RMC,0,0,0,0,0,0*47"); //RMC off
+#endif
+  GNSS_SERIAL.println("$PUBX,40,VLW,0,0,0,0,0,0*56");
+#ifdef UBLOX_VTG_ENABLE
+  GNSS_SERIAL.println("$PUBX,40,VTG,0,1,0,0,0,0*5F"); //VTG on 
+#else 
+  GNSS_SERIAL.println("$PUBX,40,VTG,0,0,0,0,0,0*5E"); //VTG off
+#endif
+  GNSS_SERIAL.println("$PUBX,40,THS,0,0,0,0,0,0*54");
+  GNSS_SERIAL.println("$PUBX,40,ZDA,0,0,0,0,0,0*44"); 
+  GPS_SendConfig(Navrate5hz, 14);
+
+  #endif
+
+	
+	
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
 
