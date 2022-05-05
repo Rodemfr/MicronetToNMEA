@@ -53,6 +53,8 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
+bool datetimePacket = false;
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
@@ -542,33 +544,33 @@ uint8_t MicronetCodec::EncodeGnssMessage(MicronetMessage_t *message, uint32_t ne
 	message->data[offset++] = 0x00;
 	message->data[offset++] = 0x00;
 	// Data fields
-	if (navData->time.valid)
-	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (navData->time.hour << 8) + navData->time.minute);
+	if (datetimePacket) { 
+		if (navData->time.valid)
+		{
+			offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (navData->time.hour << 8) + navData->time.minute);
+		}
+		if (navData->date.valid)
+		{
+			offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE,
+					(navData->date.day << 16) + (navData->date.month << 8) + navData->date.year);
+		}
+		datetimePacket = false;
+	} else {	
+		if ((navData->sog_kt.valid) || (navData->cog_deg.valid))
+		{
+			offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog_kt.value * 10.0f,
+					navData->cog_deg.value);
+		}
+		if ((navData->latitude_deg.valid) || (navData->longitude_deg.valid))
+		{
+			offset += AddPositionField(message->data + offset, navData->latitude_deg.value, navData->longitude_deg.value);
+		}
+		if (navData->hdg_deg.valid)
+		{
+			offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
+		}
+         	datetimePacket = true;
 	}
-	if (navData->date.valid)
-	{
-		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_DATE,
-				(navData->date.day << 16) + (navData->date.month << 8) + navData->date.year);
-	}
-	if ((navData->sog_kt.valid) || (navData->cog_deg.valid))
-	{
-		offset += AddDual16bitField(message->data + offset, MICRONET_FIELD_ID_SOGCOG, navData->sog_kt.value * 10.0f,
-				navData->cog_deg.value);
-	}
-	if ((navData->latitude_deg.valid) || (navData->longitude_deg.valid))
-	{
-		offset += AddPositionField(message->data + offset, navData->latitude_deg.value, navData->longitude_deg.value);
-	}
-	if (navData->time.valid)
-	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_TIME, (navData->time.hour << 8) + navData->time.minute);
-	}
-	if (navData->hdg_deg.valid)
-	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
-	}
-
 	message->len = offset;
 
 	WriteHeaderLengthAndCrc(message);
