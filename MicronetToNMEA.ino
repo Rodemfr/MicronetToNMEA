@@ -53,7 +53,7 @@
 
 #define USE_UBLOXM8N       // initalization unconfigured of UBLOX M8N 
 #define UBLOX_GGA_ENABLE   // enable uBlox GGA message
-//#define UBLOX_VTG_ENABLE // enable uBlox VTG message
+#define UBLOX_VTG_ENABLE // enable uBlox VTG message
 #define UBLOX_RMC_ENABLE   // enable uBlox RMC message
 //#define UBLOX_DEBUG      // Show configuration strings on terminal 
 
