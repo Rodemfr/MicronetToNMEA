@@ -567,15 +567,28 @@ void MenuConvertToNmea()
 					if (txSlot.start_us != 0)
 					{
 						cycleCounter++;
-						if (cycleCounter &= 0x01)
+						switch (cycleCounter & 0x03)
 						{
-							payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData);
-						}
-						else
-						{
-							payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData);
+						case 0:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
+							break;
+						case 1:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_HDG);
+							break;
+						case 2:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_HDG);
+							break;
+						case 3:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_HDG);
+							break;
 						}
 						if (txSlot.payloadBytes < payloadLength)
 						{
