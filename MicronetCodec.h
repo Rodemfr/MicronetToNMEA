@@ -48,6 +48,16 @@
 
 #define MAX_DEVICES_PER_NETWORK 64
 
+#define DATA_FIELD_TIME     0x00000001
+#define DATA_FIELD_DATE     0x00000002
+#define DATA_FIELD_SOGCOG   0x00000004
+#define DATA_FIELD_POSITION 0x00000008
+#define DATA_FIELD_XTE      0x00000010
+#define DATA_FIELD_DTW      0x00000020
+#define DATA_FIELD_BTW      0x00000040
+#define DATA_FIELD_VMGWP    0x00000080
+#define DATA_FIELD_HDG      0x00000100
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
@@ -87,9 +97,7 @@ public:
 	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap_t *networkMap);
 	TxSlotDesc_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
 	TxSlotDesc_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
-	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
-	uint8_t EncodeGnssMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
-	uint8_t EncodeNavMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData);
+	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData, uint32_t dataFields);
 	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
 	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
