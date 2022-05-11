@@ -30,6 +30,8 @@ public:
 	void SetFrequency(float freqMHz);
 	void SetDeviation(float freqKHz);
 	void SetBandwidth(float bwKHz);
+	void SetBaudrateOffset(float offset_baud);
+	void SetBaudrate(float baudrate_baud);
 	void GDO0Callback();
 	void RestartReception();
 	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
@@ -42,6 +44,7 @@ private:
 	MicronetMessage_t messageToTransmit;
 	int messageBytesSent;
 	float frequencyOffset_mHz;
+	float baudrateOffset_baud;
 
 	void GDO0RxCallback();
 	void GDO0TxCallback();

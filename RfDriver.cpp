@@ -18,7 +18,7 @@ OneShotTimer timerInt;
 RfDriver *RfDriver::rfDriver;
 
 RfDriver::RfDriver() :
-		gdo0Pin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(0), frequencyOffset_mHz(0)
+		gdo0Pin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(0), frequencyOffset_mHz(0), baudrateOffset_baud(0)
 {
 }
 
@@ -88,6 +88,16 @@ void RfDriver::SetDeviation(float freq_KHz)
 void RfDriver::SetBandwidth(float bw_KHz)
 {
 	cc1101Driver.setRxBW(bw_KHz);
+}
+
+void RfDriver::SetBaudrateOffset(float baudrateOffset_baud)
+{
+	this->baudrateOffset_baud = baudrateOffset_baud;
+}
+
+void RfDriver::SetBaudrate(float baudrate_baud)
+{
+	cc1101Driver.setDRate((baudrate_baud + baudrateOffset_baud) / 1000.0f);
 }
 
 void RfDriver::GDO0Callback()

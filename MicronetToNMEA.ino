@@ -72,6 +72,7 @@ void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
 void MenuDebugCompass();
 void MenuCalibrateRfFrequency();
+void MenuCalibrateBaudRate();
 void MenuTestRFTx();
 void SaveCalibration();
 void LoadCalibration();
@@ -91,6 +92,7 @@ MenuEntry_t mainMenu[] =
 { "Start NMEA conversion", MenuConvertToNmea },
 { "Scan surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 { "Calibrate RF frequency", MenuCalibrateRfFrequency },
+{ "Calibrate baudrate", MenuCalibrateBaudRate },
 { "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
 { "*DEBUG* Test compass", MenuDebugCompass },
 { "*DEBUG* Test RF Tx", MenuTestRFTx },
@@ -1004,6 +1006,133 @@ void MenuCalibrateRfFrequency()
 	gRfReceiver.SetBandwidth(250);
 	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
 	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ);
+}
+
+void MenuCalibrateBaudRate()
+{
+#define BAUDRATE_SWEEP_RANGE_BAUD 4000
+#define BAUDRATE_SWEEP_STEP_BAUD 50
+
+	bool exitTuneLoop;
+	bool updateBaudrate;
+	MicronetMessage_t *rxMessage;
+	uint32_t lastMessageTime = millis();
+	float currentBaudrate_baud = MICRONET_RF_BAUDRATE_BAUD - (BAUDRATE_SWEEP_RANGE_BAUD / 2);
+	float firstWorkingBaudRate_baud = 1000000;
+	float lastWorkingBaudRate_baud = 0;
+	float range_baud, centerBaudrate_baud;
+	char c;
+
+	CONSOLE.println("");
+	CONSOLE.println("To tune baudrate, you must start your Micronet network and");
+	CONSOLE.println("put MicronetToNMEA HW close to your Micronet main display (less than one meter).");
+	CONSOLE.println("You must not move any of the devices during the tuning phase.");
+	CONSOLE.println("Tuning phase will last about two minutes.");
+	CONSOLE.println("Press any key when you are ready to start.");
+
+	while (CONSOLE.available() == 0)
+	{
+		yield();
+	}
+
+	CONSOLE.println("");
+	CONSOLE.println("Starting Baudrate tuning");
+	CONSOLE.println("Press ESC key at any time to stop tuning and come back to menu.");
+	CONSOLE.println("");
+
+	gRfReceiver.SetBaudrateOffset(0);
+
+	updateBaudrate = false;
+	exitTuneLoop = false;
+
+	gRxMessageFifo.ResetFifo();
+	do
+	{
+		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
+		{
+			if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
+			{
+				lastMessageTime = millis();
+				CONSOLE.print("*");
+				updateBaudrate = true;
+				if (currentBaudrate_baud < firstWorkingBaudRate_baud)
+					firstWorkingBaudRate_baud = currentBaudrate_baud;
+				if (currentBaudrate_baud > lastWorkingBaudRate_baud)
+					lastWorkingBaudRate_baud = currentBaudrate_baud;
+			}
+			gRxMessageFifo.DeleteMessage();
+		}
+
+		if (millis() - lastMessageTime > 1250)
+		{
+			lastMessageTime = millis();
+			CONSOLE.print(".");
+			updateBaudrate = true;
+		}
+
+		if (updateBaudrate)
+		{
+			lastMessageTime = millis();
+			updateBaudrate = false;
+			if (currentBaudrate_baud < MICRONET_RF_BAUDRATE_BAUD + (BAUDRATE_SWEEP_RANGE_BAUD / 2))
+			{
+				currentBaudrate_baud += BAUDRATE_SWEEP_STEP_BAUD;
+				gRfReceiver.SetBaudrate(currentBaudrate_baud);
+			}
+			else
+			{
+				centerBaudrate_baud = ((lastWorkingBaudRate_baud + firstWorkingBaudRate_baud) / 2);
+				range_baud = (lastWorkingBaudRate_baud - firstWorkingBaudRate_baud);
+				if ((range_baud > 0) && (range_baud < BAUDRATE_SWEEP_RANGE_BAUD))
+				{
+					CONSOLE.println("");
+					CONSOLE.print("Baudrate = ");
+					CONSOLE.print(centerBaudrate_baud);
+					CONSOLE.println(" baud");
+					CONSOLE.print("Range = ");
+					CONSOLE.print(range_baud);
+					CONSOLE.println(" baud");
+					CONSOLE.print("Deviation to real baudrate = ");
+					CONSOLE.print(centerBaudrate_baud - MICRONET_RF_BAUDRATE_BAUD);
+					CONSOLE.println(" baud");
+
+					CONSOLE.println("Do you want to save the new RF calibration values (y/n) ?");
+					while (CONSOLE.available() == 0)
+						;
+					c = CONSOLE.read();
+					if ((c == 'y') || (c == 'Y'))
+					{
+						gConfiguration.baudrateOffset_baud = (centerBaudrate_baud - MICRONET_RF_BAUDRATE_BAUD);
+						gConfiguration.SaveToEeprom();
+						CONSOLE.println("Configuration saved");
+					}
+					else
+					{
+						CONSOLE.println("Configuration discarded");
+					}
+				}
+
+				exitTuneLoop = true;
+			}
+		}
+
+		while (CONSOLE.available() > 0)
+		{
+			if (CONSOLE.read() == 0x1b)
+			{
+				CONSOLE.println("\r\nESC key pressed, stopping frequency tuning.");
+				exitTuneLoop = true;
+			}
+		}
+
+		yield();
+	} while (!exitTuneLoop);
+
+	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
+	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ);
+
+	gRfReceiver.SetBaudrateOffset(gConfiguration.baudrateOffset_baud);
+	gRfReceiver.SetBaudrate(MICRONET_RF_BAUDRATE_BAUD);
 }
 
 void MenuTestRFTx()

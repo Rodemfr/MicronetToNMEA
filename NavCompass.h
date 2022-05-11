@@ -15,7 +15,7 @@
 
 using string = std::string;
 
-#define HEADING_HISTORY_LENGTH 8
+#define HEADING_HISTORY_LENGTH 12
 
 class NavCompass
 {
