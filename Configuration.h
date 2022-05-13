@@ -72,7 +72,6 @@ public:
 	float yMagOffset;
 	float zMagOffset;
 	float rfFrequencyOffset_MHz;
-	float baudrateOffset_baud;
 };
 
 /***************************************************************************/

@@ -44,7 +44,6 @@ private:
 	MicronetMessage_t messageToTransmit;
 	int messageBytesSent;
 	float frequencyOffset_mHz;
-	float baudrateOffset_baud;
 
 	void GDO0RxCallback();
 	void GDO0TxCallback();
