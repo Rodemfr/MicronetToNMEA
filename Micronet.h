@@ -31,13 +31,18 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "BoardConfig.h"
 #include <stdint.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
+#if (FREQUENCY_SYSTEM == 1)
+#define MICRONET_RF_CENTER_FREQUENCY_MHZ 915.914
+#else
 #define MICRONET_RF_CENTER_FREQUENCY_MHZ 869.840
+#endif
 // Note that the actual deviation on Micronet devices is around 38kHz and not 34
 // However, CC1101 produces 38 kHz deviation when requested 34 : problem of HW, Driver or measurement tools ?
 #define MICRONET_RF_DEVIATION_KHZ    34

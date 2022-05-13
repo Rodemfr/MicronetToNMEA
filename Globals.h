@@ -40,6 +40,7 @@
 #include "NavigationData.h"
 #include "NavCompass.h"
 #include "RfDriver.h"
+#include "M8NDriver.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -63,6 +64,7 @@ extern NmeaDecoder gGnssDecoder;
 extern NmeaDecoder gNavDecoder;
 extern NavigationData gNavData;
 extern NavCompass gNavCompass;
+extern M8NDriver m8nDriver;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

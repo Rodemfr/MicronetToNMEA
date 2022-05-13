@@ -118,6 +118,11 @@ void setup()
 	// Let time for serial drivers to set-up
 	delay(250);
 
+#if (GNSS_UBLOXM8N == 1)
+	CONSOLE.println("Configuring UBlox M8N GNSS");
+	m8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
+#endif
+
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
 
@@ -194,7 +199,6 @@ void loop()
 
 void GNSS_CALLBACK()
 {
-	// This callback is called each time we received data from the NMEA GNSS
 	while (GNSS_SERIAL.available() > 0)
 	{
 		// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it

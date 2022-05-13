@@ -35,6 +35,11 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+// Select EU (868MHz) or not-EU (915MHz) Micronet frequency
+// 0 -> EU (868Mhz)
+// 1 -> non-EU (915Mhz)
+#define FREQUENCY_SYSTEM 0
+
 // Selects on which I2C bus is connected compass as per Wiring library definition
 #define NAVCOMPASS_I2C Wire1
 
@@ -49,11 +54,12 @@
 #define LED_PIN LED_BUILTIN
 
 // NMEA/GNSS UART pins
-#define GNSS_SERIAL   Serial1
-#define GNSS_BAUDRATE 38400
-#define GNSS_CALLBACK serialEvent1
-#define GNSS_RX_PIN   0
-#define GNSS_TX_PIN   1
+#define GNSS_UBLOXM8N  1
+#define GNSS_SERIAL    Serial1
+#define GNSS_BAUDRATE  9600
+#define GNSS_CALLBACK  serialEvent1
+#define GNSS_RX_PIN    0
+#define GNSS_TX_PIN    1
 
 // USB UART params
 #define USB_CONSOLE  Serial
