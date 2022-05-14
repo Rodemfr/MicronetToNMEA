@@ -29,6 +29,7 @@
 /***************************************************************************/
 
 #include "NmeaEncoder.h"
+#include "Globals.h"
 
 #include <Arduino.h>
 #include <stdio.h>
@@ -38,7 +39,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS 100
+#define MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS 500
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -179,6 +180,24 @@ bool NmeaEncoder::EncodeVHW(NavigationData *micronetData, char *sentence)
 		AddNmeaChecksum(sentence);
 
 		timeStamps.vhw = millis();
+	}
+
+	return update;
+}
+
+bool NmeaEncoder::EncodeHDG(NavigationData *micronetData, char *sentence)
+{
+	bool update = false;
+
+	update |= (micronetData->hdg_deg.timeStamp > timeStamps.hdg + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update &= micronetData->hdg_deg.valid;
+
+	if (update)
+	{
+		sprintf(sentence, "$INHDG,%.0f,,,,", micronetData->hdg_deg.value + gConfiguration.headingOffset_deg);
+		AddNmeaChecksum(sentence);
+
+		timeStamps.hdg = millis();
 	}
 
 	return update;
