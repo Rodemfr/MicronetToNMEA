@@ -70,9 +70,7 @@ void MenuAttachNetwork();
 void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
-void MenuDebugCompass();
 void MenuCalibrateRfFrequency();
-void MenuTestRFTx();
 void SaveCalibration();
 void LoadCalibration();
 
@@ -92,8 +90,6 @@ MenuEntry_t mainMenu[] =
 { "Scan surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 { "Calibrate RF frequency", MenuCalibrateRfFrequency },
 { "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
-{ "*DEBUG* Test compass", MenuDebugCompass },
-{ "*DEBUG* Test RF Tx", MenuTestRFTx },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -121,6 +117,11 @@ void setup()
 
 	// Let time for serial drivers to set-up
 	delay(250);
+
+#if (GNSS_UBLOXM8N == 1)
+	CONSOLE.println("Configuring UBlox M8N GNSS");
+	m8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
+#endif
 
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
@@ -198,7 +199,6 @@ void loop()
 
 void GNSS_CALLBACK()
 {
-	// This callback is called each time we received data from the NMEA GNSS
 	while (GNSS_SERIAL.available() > 0)
 	{
 		// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it
@@ -567,15 +567,28 @@ void MenuConvertToNmea()
 					if (txSlot.start_us != 0)
 					{
 						cycleCounter++;
-						if (cycleCounter &= 0x01)
+						switch (cycleCounter & 0x03)
 						{
-							payloadLength = gMicronetCodec.EncodeGnssMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData);
-						}
-						else
-						{
-							payloadLength = gMicronetCodec.EncodeNavMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData);
+						case 0:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
+							break;
+						case 1:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_HDG);
+							break;
+						case 2:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_HDG);
+							break;
+						case 3:
+							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
+									gConfiguration.deviceId, &gNavData,
+									DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_HDG);
+							break;
 						}
 						if (txSlot.payloadBytes < payloadLength)
 						{
@@ -812,60 +825,6 @@ void MenuCalibrateMagnetoMeter()
 	}
 }
 
-void MenuDebugCompass()
-{
-	bool exitLoop = false;
-	uint32_t pDisplayTime = 0;
-	uint32_t currentTime;
-	float mx, my, mz;
-	float ax, ay, az;
-
-	if (gConfiguration.navCompassAvailable == false)
-	{
-		CONSOLE.println("No navigation compass detected. Exiting menu ...");
-		return;
-	}
-
-	CONSOLE.println("Reading compass values ... ");
-
-	do
-	{
-		currentTime = millis();
-		if ((currentTime - pDisplayTime) > 250)
-		{
-			gNavCompass.GetMagneticField(&mx, &my, &mz);
-			gNavCompass.GetAcceleration(&ax, &ay, &az);
-			pDisplayTime = currentTime;
-
-			CONSOLE.print("Mag (");
-			CONSOLE.print(mx);
-			CONSOLE.print(" ");
-			CONSOLE.print(my);
-			CONSOLE.print(" ");
-			CONSOLE.print(mz);
-			CONSOLE.println(")");
-
-			CONSOLE.print("Acc (");
-			CONSOLE.print(ax);
-			CONSOLE.print(" ");
-			CONSOLE.print(ay);
-			CONSOLE.print(" ");
-			CONSOLE.print(az);
-			CONSOLE.println(")");
-		}
-
-		while (CONSOLE.available() > 0)
-		{
-			if (CONSOLE.read() == 0x1b)
-			{
-				CONSOLE.println("ESC key pressed, stopping scan.");
-				exitLoop = true;
-			}
-		}
-		yield();
-	} while (!exitLoop);
-}
-
 void MenuCalibrateRfFrequency()
 {
 #define FREQUENCY_SWEEP_RANGE_KHZ 300
@@ -991,37 +950,6 @@ void MenuCalibrateRfFrequency()
 	gRfReceiver.SetBandwidth(250);
 	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
 	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ);
-}
-
-void MenuTestRFTx()
-{
-	bool exitTestLoop = false;
-	MicronetMessage_t txMessage;
-
-	CONSOLE.println("");
-	CONSOLE.println("Testing RF transmission");
-	CONSOLE.println("Press ESC key at any time to stop and come back to menu.");
-	CONSOLE.println("");
-
-	do
-	{
-		CONSOLE.println("Tx!");
-		gMicronetCodec.EncodeSlotRequestMessage(&txMessage, 0x12345678, 0x12345678, 52);
-		gRfReceiver.TransmitMessage(&txMessage, micros() + 50000);
-
-		delay(1000);
-
-		while (CONSOLE.available() > 0)
-		{
-			if (CONSOLE.read() == 0x1b)
-			{
-				CONSOLE.println("ESC key pressed, stopping conversion.");
-				exitTestLoop = true;
-			}
-		}
-
-		yield();
-	} while (!exitTestLoop);
 }
 
 void SaveCalibration()

@@ -61,7 +61,7 @@ typedef struct
 	float xMagOffset;
 	float yMagOffset;
 	float zMagOffset;
-	float rfFrequencyOffset;
+	float rfFrequencyOffset_MHz;
 	uint8_t checksum;
 } ConfigBlock_t;
 #pragma pack()
@@ -133,7 +133,7 @@ void Configuration::LoadFromEeprom()
 			xMagOffset = configBlock.xMagOffset;
 			yMagOffset = configBlock.yMagOffset;
 			zMagOffset = configBlock.zMagOffset;
-			rfFrequencyOffset_MHz = configBlock.rfFrequencyOffset;
+			rfFrequencyOffset_MHz = configBlock.rfFrequencyOffset_MHz;
 		}
 	}
 }
@@ -162,7 +162,7 @@ void Configuration::SaveToEeprom()
 	configBlock.xMagOffset = xMagOffset;
 	configBlock.yMagOffset = yMagOffset;
 	configBlock.zMagOffset = zMagOffset;
-	configBlock.rfFrequencyOffset = rfFrequencyOffset_MHz;
+	configBlock.rfFrequencyOffset_MHz = rfFrequencyOffset_MHz;
 
 	for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
 	{

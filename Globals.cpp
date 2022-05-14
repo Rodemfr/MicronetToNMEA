@@ -60,6 +60,7 @@ NmeaDecoder gGnssDecoder;
 NmeaDecoder gNavDecoder;
 NavigationData gNavData;
 NavCompass gNavCompass;
+M8NDriver m8nDriver;
 
 /***************************************************************************/
 /*                              Functions                                  */
