@@ -55,11 +55,13 @@ Teensy 3.5 has been chosen as the core microcontroller of the MicronetToNMEA sys
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino compatible board. Practically, this might be a different story. Several people got into troubles trying to use ESP32 boards. While this is technically feasible, Arduino's library implementation between Teensy \& Esp32 board can be slightly different in some sensitive areas like interrupt handling. This makes porting complex.
 
+Some users successfully used MicronetToNMEA on Teensy 4.0 and 4.1 boards with minimal adaptations.
+
 Teensy boards can be ordered here : \url{https://www.pjrc.com/teensy/}
 
 \subsection{CC1101 board}
 
-CC1101 is absolutely mandatory to MicronetToNMEA. It is the IC which enable RF communication with Micronet/TackTick devices. CC1101 breakout boards are very cheap but the quality of design and components is often less than average. So do not expect to have the same distance performance than an original TackTick device. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna), even if the board is announced to support 434 \& 868 (the IC can, but the antenna filter can not). MicronetToNMEA needs a board designed for 868MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Here is an example of a suitable board: \href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101}
+CC1101 is absolutely mandatory to MicronetToNMEA. It is the IC which enable RF communication with Micronet/TackTick devices. CC1101 breakout boards are very cheap but the quality of design and components is often less than average. So do not expect to have the same distance performance than an original TackTick device. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna), even if the board is announced to support 434 \& 868 (the IC can, but the antenna filter can not). MicronetToNMEA needs a board designed for 868/915MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Here is an example of a suitable board: \href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101}
 
 These low-cost boards are often delivered without any documentation, especially pin-out description. In that case CC1101 datasheet might help : \href{https://www.ti.com/lit/ds/symlink/cc1101.pdf}{CC1101 datasheet}
 
@@ -69,7 +71,7 @@ You can add optional HW to MicronetToNMEA to enhance its capabilities.
 
 \subsection{NMEA0183 GNSS}
 
-If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point : it must output localization data on a RS232 link with using NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Be careful however that the model you order is not counterfeit and really has flash memory to save its configuration. Avoid too cheap offers from unknown HW sources.
+If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point : it must output localization data on a RS232 link with using NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Avoid too cheap offers from unknown HW sources, this might be counterfeit hardware.
 
 \subsection{LSM303DLH or LSM303DLHC navigation compass breakout board}
 
@@ -92,7 +94,7 @@ Teensyduino is an extension to Arduino IDE which add full support to all Teensy�
 
 \subsection{Sloeber (optional)}
 
-If you plan to do more than just compile MicronetToNMEA’s code, you probably need a more serious IDE. Sloeber is an Arduino compatible version of Eclipse. It provides many useful features, which will highly improve your productivity. It requires Arduino IDE and Teensyduino to be already installed.
+If you plan to do more than just compile MicronetToNMEA’s code, you probably need a more serious IDE. Sloeber is an Arduino compatible version of Eclipse. It provides many useful features which will highly improve your productivity. It requires Arduino IDE and Teensyduino to be already installed.
 
 \chapter{Compilation}
 
