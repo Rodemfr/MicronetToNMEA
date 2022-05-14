@@ -181,6 +181,12 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		USB\_BAUDRATE & Defines baud rate of USB serial converter\\
 		\hline
+		CONSOLE & Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT\\
+		\hline
+		NMEA\_OUT & Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN\\
+		\hline
+		NMEA\_IN & Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT\\
+		\hline
 \end{tabular}
 	\caption{Configuration switches in BoardConfig.h}
 \label{table:configswitches}
@@ -236,7 +242,7 @@ When Vin pin is connected to an external source of power, you must not connect a
 
 \section{Connecting CC1101}
 
-CC1101 uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101's VCC \& GND. MOSI(SI), MISO(SO), CS0 and GD0 must be connected as per your BoardConfig.h definitions. Note that GD2 isn't used by MicronetToNMEA and doen't need to be connected to Teensy. Figure \ref{figure:cc1101} shows how to connect CC1101 with the default configuration.s
+CC1101 uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101's VCC \& GND. MOSI(SI), MISO(SO), CS0 and GD0 must be connected as per your BoardConfig.h definitions. Note that GD2 isn't used by MicronetToNMEA and doen't need to be connected to Teensy. Figure \ref{figure:cc1101} shows how to connect CC1101 with the default configuration.
 
 \begin{figure}[h]
 	\centering
@@ -258,7 +264,7 @@ LSM303DLH(C) uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to C
 
 \section{Connecting GNSS}
 
-Unlike CC1101 or LSM303DLH(C), GNSS/GPS boards are often expecting 5V VCC as power. So you have to connect it directly to DC-DC Converter's output. You should check however that you GNSS board is not 3.3V powered, in which case you should use one of Teensy 3.3V pin.
+Unlike CC1101 or LSM303DLH(C), GNSS/GPS boards are often requiring 5V VCC as power. So you have to connect it directly to DC-DC Converter's output. You should check however that you GNSS board is not 3.3V powered, in which case you should use one of Teensy 3.3V pin.
 TX and RX pins must then be connected respectively on RX and TX of Teensy's UART. Noyte that Teensy 3.5 is 5V tolerant, so you connect GNSS even if it is using 5V output. Figure \ref{figure:gnss} shows how to connect GNSS for the default configuration.
 
 \begin{figure}[h]
@@ -268,9 +274,9 @@ TX and RX pins must then be connected respectively on RX and TX of Teensy's UART
 	\label{figure:gnss}
 \end{figure}
 
-MicronetToNMEA can connect to a wide variety of GNSS. You just have to configure the GNSS with the correct parameters before connecting it. GNSS has to output an NMEA compatible stream at the same bitrate than specified in BoardConfig.h (38400 bps by default). MicronetToNMEA can automatically configure the GNSS if it is a UBLOX Neo M8N. Just enable the option in BoardConfig.h.
+MicronetToNMEA can connect to a wide variety of GNSS. You just have to configure the GNSS with the correct parameters before connecting it. GNSS has to output an NMEA compatible stream at the same bitrate than specified in BoardConfig.h. MicronetToNMEA can automatically configure the GNSS if it is a UBLOX Neo M8N. Just enable GNSS\_UBLOXM8N option in BoardConfig.h.
 
-GNSS has to output the following sentences :
+GNSS should output the following sentences :
 \begin{itemize}
 	\item GGA : Position
 	\item RMC : Time
@@ -279,7 +285,7 @@ GNSS has to output the following sentences :
 
 \section{Connecting HC-06 modules}
 
-When MicronetToNMEA is configured to send its console and/or NMEA output to a standard UART, you can consider connecting a HC-06 Bluetooth transceiver to easily get wireless connectivity to your PC/Tablet. HC-06 is powered with 5V but can handle 3.3V signals. Only VCC, GND, RXD \& TXD need to be connected. Figure \ref{figure:hc06} shows how to connect HC-06 with the default configuration.
+When MicronetToNMEA is configured to send its console and/or NMEA output to a standard wired UART (i.e not USB), you can consider connecting a HC-06 Bluetooth transceiver to easily get wireless connectivity to your PC/Tablet. HC-06 is powered with 5V but can handle 3.3V signals. Only VCC, GND, RXD \& TXD need to be connected. Figure \ref{figure:hc06} shows how to connect HC-06 with the default configuration.
 
 \begin{figure}[h]
 	\centering
@@ -288,15 +294,21 @@ When MicronetToNMEA is configured to send its console and/or NMEA output to a st
 	\label{figure:hc06}
 \end{figure}
 
-As for the GNSS, MicronetToNMEA does not configure HC-06 itlsef. It is your responsability to configure HC-06 properly (i.e. with parameters matching BoardConfig.h) prior to connecting it to Teensy.
+As for the GNSS, MicronetToNMEA does not configure HC-06 itself. It is your responsibility to configure HC-06 properly (i.e. with parameters matching BoardConfig.h) prior to connecting it to Teensy.
 
 \section{Recommandations}
 
-\begin{itemize}
-	\item Not metal and/or carbon between devices
-	\item Far from electrical and metal parts
-	\item Calibrate MicronetToNMEA far from the boat
-\end{itemize}
+\subsection{RF performance}
+Micronet devices cannot legally exceed a handful of milliwatts of transmit power. As a consequence the reception range will hardly exceed 10-15m. It is important not to put metal objects or panels between your various devices. This would dramatically reduce reception range of MicronetToNMEA.
+You should also be careful if you are racing and using carbon sails. If the sails are between your wind vane and MicronetToNMEA, you will likely not receive wind data. Carbon disturbs RF transmissions.
+It is generally considered not to be a good idea to use wireless electronics when you have a carbon boat or carbon sails. Fiberglass doesn't attenuates the signal (only a little), so it is safe to attach your device inside a cabin in a GRP boat.
+
+\subsection{Magnetic compass disturbances}
+If your are using LSM303 to get magnetic heading, it is very important to put your MicronetToNMEA assembly far from other electrical devices, especially those carrying a bit of power. This can highly disturbs magnetic compass. As an example, a running 24" TV monitor can deviate the compass by 20° at 50cm and still a few degrees at 1m.
+Also, metal must be avoided. It deviates magnetic field. The bigger the piece of metal is the farthest you should put your device. In a boat you should avoid the keel, batteries and the inboard engine.
+
+\subsection{Magnetic compass calibration}
+An electronic compass must be properly calibrated to produce good values. The theory tells us that a perfect calibration would need to have your device attached in its final position and to spin your boat around the 3 axis. This is generally not something we want to do. To achieve a good calibration with less complex operations, the best is to calibrate MicronetToNMEA outside your boat, far from any metal or electronic device. You should also keep it as far as possible of its power supply. Once calibrated, get it back to your boat and fix it in a proper place. This should give correct results.
 
 \chapter{Usage}
 
