@@ -31,7 +31,7 @@ MicronetToNMEA is not waterproof and more generally not reliable. All electronic
 \section{Contributors}
 
 \begin{itemize}
-\item  Ronan Demoment : Main author
+\item Ronan Demoment : Main author
 \item Dietmar Warning : LSM303 drivers \& Bugfixes
 \item Contributors of YBW forum's Micronet thread : \href{https://forums.ybw.com/index.php?threads/raymarines-micronet.539500/}{Micronet Thread}
 \end{itemize}
@@ -71,7 +71,7 @@ You can add optional HW to MicronetToNMEA to enhance its capabilities.
 
 \subsection{NMEA0183 GNSS}
 
-If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point : it must output localization data on a RS232 link with using NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Avoid too cheap offers from unknown HW sources, this might be counterfeit hardware.
+If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point : it must output localization data on a RS232 link using NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Avoid too cheap offers from unknown HW sources, this might be counterfeit hardware.
 
 \subsection{LSM303DLH or LSM303DLHC navigation compass breakout board}
 
@@ -137,7 +137,7 @@ in the corresponding drop down menu
 
 Your project should be compiling now.
 
-Note that Sloeber can be somewhat picky with toolchain ort library paths. So don’t be surprised if you have to handle additional issues to compile with it. The effort is worth, code productivity with Eclipse is way beyond Arduino IDE.
+Note that Sloeber can be somewhat picky with toolchain or library paths. So don’t be surprised if you have to handle additional issues to compile with it. The effort is worth, code productivity with Eclipse is way beyond Arduino IDE.
 
 \section{Compile time configuration}
 
@@ -145,6 +145,8 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 
 \begin{table}[h]
 	\begin{tabular}{|l|p{12cm}|}
+		\hline
+		FREQUENCY\_SYSTEM & Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)\\
 		\hline
 		NAVCOMPASS\_I2C & Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)\\
 		\hline
@@ -162,9 +164,11 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		LED\_PIN & Defines the pin driving the LED, which is used for error signaling\\
 		\hline
+		GNSS\_UBLOXM8N & Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)\\
+		\hline
 		GNSS\_SERIAL & Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)\\
 		\hline
-		GNSS\_BAUDRATE & Defines on which serial port is connected the NMEA GNSS\\
+		GNSS\_BAUDRATE & Defines GNSS bitrate in baud\\
 		\hline
 		GNSS\_CALLBACK & Defines the name of the callback function called when new bytes arrive on the
 		configured serial port\\
@@ -188,7 +192,7 @@ Teensy board must be connected to other boards with the same scheme than you hav
 
 \section{Power supply}
 
-The first and most important connection to realize is the power supply. You have two options there, you can either :
+The first and most important connection to build is the power supply. You have two options there, you can either :
 
 \begin{itemize}
 	\item Power the system via USB
@@ -216,7 +220,7 @@ As an example, table \ref{table:boardconsumption} shows maximum current values f
 	\caption{Current consumption of typical boards}
 	\label{table:boardconsumption}
 \end{table}
-USB powering is especially useful when you plan to output NMEA through USB-serial. In this case, the connected PC/Tablet will provide power to the system and when MicronetToNMEA is not needed anymore, it will be automatically powered-off when you unplug the cable.
+USB powering is especially useful when you plan to output NMEA through USB-serial. In this case, the connected PC/Tablet will provide power to the system and when MicronetToNMEA is not needed anymore, just unplug the USB cable.
 
 \subsection{Power with an external DC source}
 While USB powering is easy to setup, it not a common source of power in a boat. It is more usual to get two wires with an unstable battery voltage between 11V and 15V. In that case, you will need a voltage regulator or a DC-DC converter which will be used to produce a stable 5V for the system. This 5V source can then be connected to the Vin pin of Teensy 3.5. The on-board regulator will then produce 3.3V from this input.
@@ -264,19 +268,18 @@ TX and RX pins must then be connected respectively on RX and TX of Teensy's UART
 	\label{figure:gnss}
 \end{figure}
 
-GNSS is not configured by MicronetToNMEA, it is your responsibility to configure the GNSS with the correct parameters before connecting it. GNSS has to output an NMEA compatible stream at the same bitrate than specified in BoardConfig.h (38400 bps by default). The UBlox Neo M8N used to develop MicronetToNMEA has been configured using UBlox u-center software on windows which can change the configuration and save in M8N's flash.
+MicronetToNMEA can connect to a wide variety of GNSS. You just have to configure the GNSS with the correct parameters before connecting it. GNSS has to output an NMEA compatible stream at the same bitrate than specified in BoardConfig.h (38400 bps by default). MicronetToNMEA can automatically configure the GNSS if it is a UBLOX Neo M8N. Just enable the option in BoardConfig.h.
 
 GNSS has to output the following sentences :
 \begin{itemize}
-	\item GGA : Time and position
+	\item GGA : Position
+	\item RMC : Time
 	\item VTG : Track and speed
 \end{itemize}
 
-Some users reported that the M8N GNSS they purchased had'nt the embedded flash to store configuration. It is unclear if they ordered cheap counterfeits or if the flash is optional. You should order a model which can save its configuration in non volatile memory to avoid having to patch MicronetToNMEA's code to configure the GNSS at startup.
-
 \section{Connecting HC-06 modules}
 
-When MicronetToNMEA is configured to send its console and/or NMEA output to a standard UART, you can consider connect a HC-06 Bluetooth transceiver to easily get wireless connectivity to your PC/Tablet. HC-06 is powered by 5V but can handle 3.3V signals. Only VCC, GND, RXD \& TXD need to be connected. Figure \ref{figure:hc06} shows how to connect HC-06 with the default configuration.
+When MicronetToNMEA is configured to send its console and/or NMEA output to a standard UART, you can consider connecting a HC-06 Bluetooth transceiver to easily get wireless connectivity to your PC/Tablet. HC-06 is powered with 5V but can handle 3.3V signals. Only VCC, GND, RXD \& TXD need to be connected. Figure \ref{figure:hc06} shows how to connect HC-06 with the default configuration.
 
 \begin{figure}[h]
 	\centering
