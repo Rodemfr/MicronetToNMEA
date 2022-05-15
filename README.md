@@ -2,7 +2,7 @@
 
 ## Description
 
-MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to a standard NMEA0183 stream easily useable by our laptop and tablet software. Additionnaly, it can also transmit NMEA navigation data from your PC to your Micronet network.
+MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to a standard NMEA0183 stream easily useable by your laptop or tablet software. Additionnaly, it can also transmit NMEA navigation data from your Tablet/PC to your Micronet network.
 
 The project requires the following hardware :
 - A boat with Raymarine Wireless system. (The boat is not strictly required)
@@ -85,7 +85,7 @@ Power up your Teensy/Arduino board through USB. Use a terminal software like [Te
 
 Power up your Micronet network.
 
-The first thing to do is to calibrate the RF center frequency to ensure a good range performance of the system : enter menu "Calibrate RF frequency" and follow instructions. At the end of operations, save the calibration when asked. 
+The first thing to do is to calibrate the RF frequency to ensure a good range performance of the system : enter menu "Calibrate RF frequency" and follow instructions. At the end of operations, save the calibration when asked. 
 
 Now, you need to attach MicronetToNMEA to your Micronet network, for this, you have to scan existing networks
 (menu "Scan Micronet networks"). It will list all the detected networks in your vincinity (20-30m range max), in decreasing
