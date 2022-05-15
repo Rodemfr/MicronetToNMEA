@@ -2,20 +2,21 @@
 
 ## Description
 
-MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to a standard NMEA0183 stream easily useable
-by our laptop and tablet software.
+MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to a standard NMEA0183 stream easily useable by our laptop and tablet software. Additionnaly, it can also transmit NMEA navigation data from your PC to your Micronet network.
 
 The project requires the following hardware :
 - A boat with Raymarine Wireless system. (The boat is not strictly required)
 - A Teensy 3.5 board. Any other 32-bit Arduino compatible board should also work with some adaptations of SW.
-- A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU. Take care to order a board with an antenna for 868MHz operations, not 433MHz.
+- A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU. Take care to order a board with an antenna for 868 or 915MHz operations, not 433MHz.
 
 Optionally, you can add :
 - A NMEA GPS/GNSS, connected through UART to add your position, time, date, SOG and COG to Micronet displays and to the NMEA output stream
+- A LSM303DLH(C), connected through I2C to add magnetic heading to both Micronet and NMEA streams
 
 The type of construction described here is fun and interesting to play with, but anywone with a little bit
 of experience at sea knows that it will not last long in the wet, salty and brutal environment of a sailing boat.
-MicronetToNMEA will abandon you just when you really need it.
+MicronetToNMEA will abandon you just when you really need it. No garantee can of course be given that this software
+will do what it has been designed for.
 If you want a robust, reliable and extensively tested Micronet device, you are at the wrong place. You should
 better go to your nearest Raymarine/Tacktick reseller. 
 
@@ -30,12 +31,12 @@ MicronetToNMEA is licensed under GPLv3. See LICENSE.txt file for more details.
 
 ## Compilation
 
-The source code includes project files for Sloeber (i.e. Eclipse for Arduino). Just import the project in Sloeber and compile it.
-If you prefer not to use Sloeber, you can create a new Arduino Sketch and import the all .h and .cpp inside. It will work.
+The source code compiles with [Arduino IDE](https://www.arduino.cc/en/software) extended by [Teensyduino](https://www.pjrc.com/teensy/td_download.html) software package. You just have to configure the right target (Teensy 3.5@120MHz) and to import the required libraries (SmartRC-CC1101-Driver-Lib and TeensyTimerTool). If you plan to develop/extend MicronetToNMEA, you probably should use a more professional IDE like [Sloeber](http://eclipse.baeyens.it/). It is way beyond Arduino IDE in term of productivity but is harder to set up.
 
 ## Acknowledgments
 
 * Thanks to the guys of YBW.com forum who started the work of investigating Micronet's protocol. The technical discussions around the protocol are in this thread : https://forums.ybw.com/index.php?threads/raymarines-micronet.539500/
+* Thanks to all the users who are giving feedback and reporting problems to help improving the software
 
 ## Setting up HW
 
@@ -52,7 +53,7 @@ GND    <-> GND
 3.3V   <-- 3.3V
 ```
 
-MicronetToNMEA can also collect sentences from an NMEA GPS/GNSS wich should be connected to UART 1 of the teensy board :
+MicronetToNMEA can also collect sentences from an NMEA GPS/GNSS connected to UART 1 of the Teensy board :
 
 ```
 GNSS     Teensy
@@ -62,21 +63,36 @@ GND  <-> GND
 3.3V <-- 3.3V
 ```
 
-Nothing is to be done on the SW side wether a GNSS is connected or not. If the GNSS is connected, it must however be configured to output a NMEA stream at 34800 baud. I use a Ublox NEO-M8N. Neo-M8N can be configured to output a NMEA stream at this baudrate by using U-Center software from U-Blox. If you order a U-Blox GNSS, check that your board has flash memory connected to the GPS to be able to save GNSS configuration once for all.
+Nothing is to be done on the SW side wether a GNSS is connected or not. If the GNSS is connected, it must be configured to output a NMEA stream at 34800 baud. I use a Ublox NEO-M8N. Neo-M8N can be configured to output a NMEA stream at this baudrate by using [U-Center software from U-Blox](https://www.u-blox.com/en/product/u-center) or by enabling a dedicated option at compilation which will enable automatic configuration code.
 
-If you want to use a different MCU board and/or pinout, you have to edit the related define statements at the beginning of the BoardConfig.h file.
+MicronetToNMEA can use a LSM303DLH(C) to provide magnetic heading on both Micronet and NMEA streams :
+
+```
+LSM303DLH(C)    Teensy
+SCL         <-- Pin 37  (SCL1)
+SDA         <-> Pin 38  (SDA1)
+GND         <-> GND
+3.3V        <-- 3.3V
+```
+
+Both LSM303DLH and LSM303DLHC can be used. MicronetToNMEA will automatically recognize it and select the appropriate driver.
+
+If you want to use a different MCU board and/or pinout, you have to edit the related define statements at the beginning of BoardConfig.h file.
 
 ## Quick Start & general guidance
 
-Power up your Teensy/Arduino board, you will reach a menu on the serial console.
+Power up your Teensy/Arduino board through USB. Use a terminal software like [Tera Term](http://www.teraterm.org/) to reach the menu on the serial console.
 
-Power up your Micornet network.
+Power up your Micronet network.
 
-As a first step, you need to attach MicronetToNMEA to your Micronet network, for this, you have to scan existing networks (menu 2). It will list
-all the detected networks in your vincinity (20-30m range max), in decreasing order of reception power. Yours is very likely at the top.
-Write down the identifier of your network and attach MicronetToNMEA to it with menu 3.
+The first thing to do is to calibrate the RF center frequency to ensure a good range performance of the system : enter menu "Calibrate RF frequency" and follow instructions. At the end of operations, save the calibration when asked. 
+
+Now, you need to attach MicronetToNMEA to your Micronet network, for this, you have to scan existing networks
+(menu "Scan Micronet networks"). It will list all the detected networks in your vincinity (20-30m range max), in decreasing
+order of reception power. Yours is very likely at the top.
+Write down the identifier of your network and attach MicronetToNMEA to it with menu "Attach converter to a network".
  
-You are now ready to convert your Micronet data to NMEA0183 with menu 4.
+You are now ready to convert your Micronet data to NMEA0183 with menu "Start NMEA conversion".
 
 That's it !
 
@@ -86,5 +102,8 @@ Some tips :
 - When in conversion mode, if you want to come back to the configuration menu, just press "ESC" key to leave the conversion mode
 - MicronetToNMEA listens to calibration values transiting on the network and will apply them to the converted values (wind speed factor, temperature offset, etc.). So if you change your sensor calibration from your Micronet display, MicronetToNMEA will memorize the new value if it is in range. /!\ Be careful that these calibration values are only intercepted in NMEA conversion mode /!\
 - Calibration values, as well as attached network ID are all saved in EEPROM so that you don't need to enter them again in the system at each power-up.
-- There is an additionnal menu 5 allowing to scan all micronet traffic around you. This is useful to understand how devices are speaking to each other.
+- There is a menu "Scan surrounding Micronet traffic" allowing to scan all micronet traffic around you. This is useful to understand how devices are speaking to each other.
   
+## User manual
+
+If you want more details on how to set-up and configure MicronetToNMEA, there is now a [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.pdf) underwork in the doc directory.
