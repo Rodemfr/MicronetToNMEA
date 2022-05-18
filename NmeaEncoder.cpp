@@ -39,7 +39,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS 500
+#define MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS 100
 
 /***************************************************************************/
 /*                             Local types                                 */
