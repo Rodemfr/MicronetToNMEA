@@ -10,7 +10,8 @@
 
 #include "Micronet.h"
 #include "MicronetMessageFifo.h"
-#include "ELECHOUSE_CC1101_SRC_DRV.h"
+
+#include <SPI.h>
 
 typedef enum {
 	RF_STATE_RX_IDLE = 0,
@@ -28,29 +29,36 @@ public:
 	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
 	void SetFrequencyOffset(float offsetMHz);
 	void SetFrequency(float freqMHz);
-	void SetDeviation(float freqKHz);
-	void SetBandwidth(float bwKHz);
-	void SetBaudrateOffset(float offset_baud);
-	void SetBaudrate(float baudrate_baud);
 	void GDO0Callback();
 	void RestartReception();
 	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
 
 private:
 	int gdo0Pin;
-	ELECHOUSE_CC1101 cc1101Driver;
+	int sckPin, mosiPin, misoPin, csPin;
+	bool spiInit;
+	SPISettings spiSettings;
 	MicronetMessageFifo *messageFifo;
 	RfDriverState_t rfState;
 	MicronetMessage_t messageToTransmit;
 	int messageBytesSent;
 	float frequencyOffset_mHz;
+	static RfDriver *rfDriver;
 
 	void GDO0RxCallback();
 	void GDO0TxCallback();
 	void GDO0LastTxCallback();
 	void TransmitCallback();
 	static void TimerHandler();
-	static RfDriver *rfDriver;
+
+	void SpiWriteReg(uint8_t addr, uint8_t value);
+	void SpiWriteBurstReg(uint8_t addr, uint8_t *buffer, uint8_t nbBytes);
+	void SpiStrobe(uint8_t strobe);
+	uint8_t SpiReadReg(uint8_t addr);
+	void SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t nbBytes);
+	uint8_t SpiReadStatus(uint8_t addr);
+
+	int GetRssi(void);
 };
 
 #endif /* RFDRIVER_H_ */
