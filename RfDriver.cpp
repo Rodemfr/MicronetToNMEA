@@ -7,8 +7,9 @@
 
 #include "RfDriver.h"
 #include "BoardConfig.h"
-#include <Arduino.h>
 
+#include <Arduino.h>
+#include <SPI.h>
 #include <TeensyTimerTool.h>
 
 #define WRITE_BURST     0x40 // CC1101 Burst write flag
@@ -44,9 +45,9 @@
 #define REG_MCSM0          0x18
 #define REG_FOCCFG         0x19
 #define REG_BSCFG          0x1a
-#define REG_AGCTRL2        0x1b
-#define REG_AGCRTL1        0x1c
-#define REG_AGCTRL0        0x1d
+#define REG_AGCCTRL2       0x1b
+#define REG_AGCCTRL1       0x1c
+#define REG_AGCCTRL0       0x1d
 #define REG_WOREVT1        0x1e
 #define REG_WOREVT0        0x1f
 #define REG_WORCTRL        0x20
@@ -65,7 +66,7 @@
 #define REG_TEST1          0x2d
 #define REG_TEST0          0x2e
 #define REG_PARTNUM        0x30
-#define REG_VESRION        0x31
+#define REG_VERSION        0x31
 #define REG_FREQEST        0x32
 #define REG_LQI            0x33
 #define REG_RSSI           0x34
@@ -78,12 +79,31 @@
 #define REG_RXBYTES        0x3b
 #define REG_RCCTRL1_STATUS 0x3c
 #define REG_RCCTRL0_STATUS 0x3d
+#define REG_PATABLE        0x3e
+#define REG_TXFIFO         0x3f
+#define REG_RXFIFO         0x3f
 
-#define REG_PATABLE      0x3E
-#define REG_TXFIFO       0x3F
-#define REG_RXFIFO       0x3F
+// Strobe registers
+#define SREG_SRES          0x30
+#define SREG_SFSTXON       0x31
+#define SREG_SXOFF         0x32
+#define SREG_SCAL          0x33
+#define SREG_SRX           0x34
+#define SREG_STX           0x35
+#define SREG_SIDLE         0x36
+#define SREG_SAFC          0x37
+#define SREG_SWOR          0x38
+#define SREG_SPWD          0x39
+#define SREG_SFRX          0x3A
+#define SREG_SFTX          0x3B
+#define SREG_SWORRST       0x3C
+#define SREG_SNOP          0x3D
 
-#define CC1101_XTAL_FREQ_MHZ 26.0f
+#define CC1101_XTAL_FREQ_MHZ       26.0f
+#define CC1101_DEFAULT_PACKET_SIZE 60
+
+uint8_t CC1101_PA_TABLE[8] =
+{ 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 using namespace TeensyTimerTool;
 
@@ -92,8 +112,9 @@ OneShotTimer timerInt;
 RfDriver *RfDriver::rfDriver;
 
 RfDriver::RfDriver() :
-		gdo0Pin(0), sckPin(0), mosiPin(0), misoPin(0), csPin(0), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(
-				0), frequencyOffset_mHz(0), spiInit(false), SPISettings(4000000, MSBFIRST, SPI_MODE0)
+		gdo0Pin(0), sckPin(0), mosiPin(0), misoPin(0), csPin(0), spiInit(false), spiSettings(
+				SPISettings(4000000, MSBFIRST, SPI_MODE0)), messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(0), frequencyOffset_mHz(
+				0)
 {
 }
 
@@ -101,7 +122,8 @@ RfDriver::~RfDriver()
 {
 }
 
-bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
+bool RfDriver::Init(int gdo0Pin, int sckPin, int misoPin, int mosiPin, int csPin, MicronetMessageFifo *messageFifo,
+		float frequencyOffset_mHz)
 {
 	this->frequencyOffset_mHz = frequencyOffset_mHz;
 	this->gdo0Pin = gdo0Pin;
@@ -113,6 +135,16 @@ bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo, float frequen
 		SPI.end();
 		spiInit = false;
 	}
+
+	this->sckPin = sckPin;
+	this->misoPin = misoPin;
+	this->mosiPin = mosiPin;
+	this->csPin = csPin;
+
+	SPI.setSCK(sckPin);
+	SPI.setMISO(misoPin);
+	SPI.setMOSI(mosiPin);
+	SPI.setCS(csPin);
 
 	// Init SPI pin & driver
 	this->csPin = csPin;
@@ -129,9 +161,7 @@ bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo, float frequen
 	spiInit = true;
 
 	// Check if CC1101 is present
-	if (SpiReadStatus(0x31) > 0)
-		return true;
-	else
+	if (SpiReadStatus(REG_VERSION) == 0)
 	{
 		SPI.end();
 		spiInit = false;
@@ -146,10 +176,10 @@ bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo, float frequen
 	SpiWriteReg(REG_IOCFG2, 0x0B);                 // GDO2 : synchronous serial clock (not used here)
 	SpiWriteReg(REG_PKTCTRL0, 0x00);               // Normal FIFO Mode + No CRC + fixed packet length
 	SpiWriteReg(REG_PKTCTRL1, 0x00);               // PQT = 0, Append status disabled
-	SpiWriteReg(REG_MDMCFG2, 0x02);                // DC filter + 2FSK + 16bit sync word
-	SpiWriteReg(REG_PKTLEN, FIFO_SIZE - 4);        // Set default packet size. Let some space for extra RSSI/LQI bytes
+	SpiWriteReg(REG_PKTLEN, CC1101_DEFAULT_PACKET_SIZE); // Set default packet size. Let some space for extra RSSI/LQI bytes
 	SpiWriteReg(REG_MDMCFG4, 0x65);                // 270MHz bandwidth + 76767baud@26MHz
 	SpiWriteReg(REG_MDMCFG3, 0x75);                // 76767baud@26MHz
+	SpiWriteReg(REG_MDMCFG2, 0x02);                // DC filter + 2FSK + 16bit sync word
 	SpiWriteReg(REG_MDMCFG1, 0x03);                // 300kHz channel spacing
 	SpiWriteReg(REG_MDMCFG0, 0x7a);                // 300kHz channel spacing
 	SpiWriteReg(REG_FREND0, 0x10);                 // PA table config
@@ -160,6 +190,26 @@ bool RfDriver::Init(int gdo0Pin, MicronetMessageFifo *messageFifo, float frequen
 	SpiWriteReg(REG_ADDR, 0x00);                   // Address for packet filtering (unused)
 	SpiWriteReg(REG_FSCTRL0, 0x00);                // 868-915MHz
 	SpiWriteReg(REG_FSCTRL1, 0x06);                // 868-915MHz
+	SpiWriteBurstReg(REG_PATABLE, CC1101_PA_TABLE, 8); // Max TX power
+    SpiWriteReg(REG_FREND1, 0x56);
+    SpiWriteReg(REG_MCSM0 , 0x18);
+    SpiWriteReg(REG_FOCCFG, 0x16);
+    SpiWriteReg(REG_BSCFG, 0x6C);
+    SpiWriteReg(REG_AGCCTRL2, 0x03);
+    SpiWriteReg(REG_AGCCTRL1, 0x40);
+    SpiWriteReg(REG_AGCCTRL0, 0x91);
+    SpiWriteReg(CC1101_FSCAL3,   0xE9);
+    SpiWriteReg(CC1101_FSCAL2,   0x2A);
+    SpiWriteReg(CC1101_FSCAL1,   0x00);
+    SpiWriteReg(CC1101_FSCAL0,   0x1F);
+    SpiWriteReg(CC1101_FSTEST,   0x59);
+    SpiWriteReg(CC1101_TEST2,    0x81);
+    SpiWriteReg(CC1101_TEST1,    0x35);
+    SpiWriteReg(CC1101_TEST0,    0x09);
+    SpiWriteReg(CC1101_PKTCTRL1, 0x04);
+    SpiWriteReg(CC1101_ADDR,     0x00);
+    SpiWriteReg(CC1101_PKTLEN,   0x00);
+
 
 	SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_mHz);
 
@@ -290,22 +340,22 @@ void RfDriver::GDO0TxCallback()
 
 void RfDriver::GDO0LastTxCallback()
 {
-	cc1101Driver.setSidle();
-	cc1101Driver.SpiStrobe(CC1101_SFTX);
+	SetIdle();
+	SpiStrobe(SREG_SFTX);
 	RestartReception();
 }
 
 void RfDriver::RestartReception()
 {
 	rfState = RF_STATE_RX_IDLE;
-	cc1101Driver.setSidle();
-	cc1101Driver.setSyncMode(2);
-	cc1101Driver.setLengthConfig(0);
-	cc1101Driver.setPacketLength(60);
-	cc1101Driver.SpiStrobe(CC1101_SFRX);
+	SetIdle();
+	SpiWriteReg(REG_MDMCFG2, 0x02);  // Enable sync word detection
+	SpiWriteReg(REG_PKTCTRL0, 0x00); // Fixed packet length
+	SpiWriteReg(REG_PKTLEN, CC1101_DEFAULT_PACKET_SIZE);
+	ResetRxFifo();
 	SpiWriteReg(REG_FIFOTHR, 0x03); // FIFO threshold = 16 bytes
 	SpiWriteReg(REG_IOCFG0, 0x01); // GDO0 : RX FIFO above threshold
-	cc1101Driver.SetRx();
+	SetRx();
 }
 
 void RfDriver::TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs)
@@ -330,11 +380,10 @@ void RfDriver::TimerHandler()
 void RfDriver::TransmitCallback()
 {
 	// Change CC1101 configuration for transmission
-	cc1101Driver.setSidle();
-	cc1101Driver.setPA(12);
-	cc1101Driver.setSyncMode(0);
-	cc1101Driver.setLengthConfig(2);
-	cc1101Driver.SpiStrobe(CC1101_SFTX);
+	SetIdle();
+	SpiWriteReg(REG_MDMCFG2, 0x00);  // Disable sync word detection
+	SpiWriteReg(REG_PKTCTRL0, 0x02); // Infinite packet length
+	ResetTxFifo();
 
 	// Fill FIFO with preamble + sync byte
 	int bytesInFifo = 0;
@@ -364,7 +413,7 @@ void RfDriver::TransmitCallback()
 	}
 
 	// Start transmission
-	cc1101Driver.SetTx();
+	SetTx();
 }
 
 void RfDriver::SpiWriteReg(uint8_t addr, uint8_t value)
@@ -469,4 +518,31 @@ int RfDriver::GetRssi(void)
 		rssi = (rssi / 2) - 74;
 
 	return rssi;
+}
+
+void RfDriver::SetIdle()
+{
+	SpiStrobe(SREG_SIDLE);
+}
+
+void RfDriver::SetRx()
+{
+	SpiStrobe(SREG_SIDLE);
+	SpiStrobe(SREG_SRX);
+}
+
+void RfDriver::SetTx()
+{
+	SpiStrobe(SREG_SIDLE);
+	SpiStrobe(SREG_STX);
+}
+
+void RfDriver::ResetRxFifo()
+{
+	SpiStrobe(SREG_SFRX);
+}
+
+void RfDriver::ResetTxFifo()
+{
+	SpiStrobe(SREG_SFTX);
 }

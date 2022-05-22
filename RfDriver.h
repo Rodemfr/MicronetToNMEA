@@ -26,7 +26,7 @@ public:
 	RfDriver();
 	virtual ~RfDriver();
 
-	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
+	bool Init(int gdo0_pin, int sckPin, int misoPin, int mosiPin, int csPin, MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
 	void SetFrequencyOffset(float offsetMHz);
 	void SetFrequency(float freqMHz);
 	void GDO0Callback();
@@ -58,7 +58,12 @@ private:
 	void SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t nbBytes);
 	uint8_t SpiReadStatus(uint8_t addr);
 
-	int GetRssi(void);
+	int GetRssi();
+	void SetIdle();
+	void SetRx();
+	void SetTx();
+	void ResetRxFifo();
+	void ResetTxFifo();
 };
 
 #endif /* RFDRIVER_H_ */

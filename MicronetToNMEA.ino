@@ -40,7 +40,6 @@
 #include "NmeaDecoder.h"
 #include "NavCompass.h"
 
-#include <SPI.h>
 #include <Wire.h>
 #include <ELECHOUSE_CC1101_SRC_DRV.h>
 
@@ -126,27 +125,20 @@ void setup()
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
 
-	// Set SPI pin configuration
-	SPI.setMOSI(MOSI_PIN);
-	SPI.setMISO(MISO_PIN);
-	SPI.setSCK(SCK_PIN);
-	SPI.setCS(CS0_PIN);
-	SPI.begin();
-
 	CONSOLE.print("Initializing CC1101 ... ");
 	// Check connection to CC1101
-	if (!gRfReceiver.Init(GDO0_PIN, &gRxMessageFifo, gConfiguration.rfFrequencyOffset_MHz))
+	if (!gRfReceiver.Init(GDO0_PIN, SCK_PIN, MISO_PIN, MOSI_PIN, CS0_PIN, &gRxMessageFifo, gConfiguration.rfFrequencyOffset_MHz))
 	{
-		CONSOLE.println("Failed");
-		CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
-		CONSOLE.println("Halted");
 
 		while (1)
 		{
+			CONSOLE.println("Failed");
+			CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
+			CONSOLE.println("Halted");
 			digitalWrite(LED_PIN, HIGH);
-			delay(500);
+			delay(1000);
 			digitalWrite(LED_PIN, LOW);
-			delay(500);
+			delay(1000);
 		}
 	}
 	CONSOLE.println("OK");
@@ -860,7 +852,6 @@ void MenuCalibrateRfFrequency()
 	CONSOLE.println("");
 
 	gRfReceiver.SetFrequencyOffset(0);
-	gRfReceiver.SetBandwidth(95);
 	gRfReceiver.SetFrequency(currentFreq_mHz);
 
 	updateFreq = false;
@@ -949,7 +940,6 @@ void MenuCalibrateRfFrequency()
 		yield();
 	} while (!exitTuneLoop);
 
-	gRfReceiver.SetBandwidth(250);
 	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
 	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ);
 }
