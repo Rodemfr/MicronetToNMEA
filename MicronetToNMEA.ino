@@ -172,6 +172,11 @@ void setup()
 
 void loop()
 {
+	while (1)
+	{
+		gRfReceiver.DebugPrintRegs();
+		delay(3000);
+	}
 	// If this is the first loop, we verify if we are already attached to a Micronet network. if yes,
 	// We directly jump to NMEA conversion mode.
 	if ((firstLoop) && (gConfiguration.networkId != 0))

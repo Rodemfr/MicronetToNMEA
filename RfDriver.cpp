@@ -198,18 +198,15 @@ bool RfDriver::Init(int gdo0Pin, int sckPin, int misoPin, int mosiPin, int csPin
     SpiWriteReg(REG_AGCCTRL2, 0x03);
     SpiWriteReg(REG_AGCCTRL1, 0x40);
     SpiWriteReg(REG_AGCCTRL0, 0x91);
-    SpiWriteReg(CC1101_FSCAL3,   0xE9);
-    SpiWriteReg(CC1101_FSCAL2,   0x2A);
-    SpiWriteReg(CC1101_FSCAL1,   0x00);
-    SpiWriteReg(CC1101_FSCAL0,   0x1F);
-    SpiWriteReg(CC1101_FSTEST,   0x59);
-    SpiWriteReg(CC1101_TEST2,    0x81);
-    SpiWriteReg(CC1101_TEST1,    0x35);
-    SpiWriteReg(CC1101_TEST0,    0x09);
-    SpiWriteReg(CC1101_PKTCTRL1, 0x04);
-    SpiWriteReg(CC1101_ADDR,     0x00);
-    SpiWriteReg(CC1101_PKTLEN,   0x00);
 
+    SpiWriteReg(REG_FSCAL3,   0xE9);
+    SpiWriteReg(REG_FSCAL2,   0x2A);
+    SpiWriteReg(REG_FSCAL1,   0x00);
+    SpiWriteReg(REG_FSCAL0,   0x1F);
+    SpiWriteReg(REG_FSTEST,   0x59);
+    SpiWriteReg(REG_TEST2,    0x81);
+    SpiWriteReg(REG_TEST1,    0x35);
+    SpiWriteReg(REG_TEST0,    0x09);
 
 	SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_mHz);
 
@@ -545,4 +542,18 @@ void RfDriver::ResetRxFifo()
 void RfDriver::ResetTxFifo()
 {
 	SpiStrobe(SREG_SFTX);
+}
+
+void RfDriver::DebugPrintRegs()
+{
+	CONSOLE.println("CC1101 Registers :");
+
+	for (int r = 0; r < REG_RCCTRL0_STATUS; r++)
+	{
+		CONSOLE.print("0x");
+		CONSOLE.print(r, HEX);
+		CONSOLE.print(" = ");
+		CONSOLE.println((char)SpiReadReg(r), HEX);
+	}
+
 }

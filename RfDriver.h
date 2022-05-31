@@ -33,6 +33,8 @@ public:
 	void RestartReception();
 	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
 
+	void DebugPrintRegs();
+
 private:
 	int gdo0Pin;
 	int sckPin, mosiPin, misoPin, csPin;
