@@ -40,14 +40,10 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 	timerInt.begin(TimerHandler);
 
 	cc1101Driver.Init();
-//	cc1101Driver.setModulation(0); // set modulation mode. 0 = 2-FSK, 1 = GFSK, 2 = ASK/OOK, 3 = 4-FSK, 4 = MSK.
 	cc1101Driver.setMHZ(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_mHz); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
 	cc1101Driver.setDeviation(MICRONET_RF_DEVIATION_KHZ); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
-	cc1101Driver.setChannel(0); // Set the Channelnumber from 0 to 255. Default is cahnnel 0.
-	cc1101Driver.setChsp(199.95); // The channel spacing is multiplied by the channel number CHAN and added to the base frequency in kHz. Value from 25.39 to 405.45. Default is 199.95 kHz.
-	cc1101Driver.setRxBW(250); // Set the Receive Bandwidth in kHz. Value from 58.03 to 812.50. Default is 812.50 kHz.
-	cc1101Driver.setDRate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f); // Set the Data Rate in kBaud. Value from 0.02 to 1621.83. Default is 99.97 kBaud!
-	cc1101Driver.setSyncMode(2); // Combined sync-word qualifier mode. 0 = No preamble/sync. 1 = 16 sync word bits detected. 2 = 16/16 sync word bits detected. 3 = 30/32 sync word bits detected. 4 = No preamble/sync, carrier-sense above threshold. 5 = 15/16 + carrier-sense above threshold. 6 = 16/16 + carrier-sense above threshold. 7 = 30/32 + carrier-sense above threshold.
+	cc1101Driver.setRate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
+	cc1101Driver.setBw(250);
 	cc1101Driver.setSyncWord(0x55, 0x99); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
 	cc1101Driver.setAdrChk(0); // Controls address check configuration of received packages. 0 = No address check. 1 = Address check, no broadcast. 2 = Address check and 0 (0x00) broadcast. 3 = Address check and 0 (0x00) and 255 (0xFF) broadcast.
 	cc1101Driver.setAddr(0); // Address used for packet filtration. Optional broadcast addresses are 0 (0x00) and 255 (0xFF).
@@ -57,9 +53,6 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 	cc1101Driver.setPacketLength(60); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
 	cc1101Driver.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.n
 	cc1101Driver.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
-	cc1101Driver.setDcFilterOff(0); // Disable digital DC blocking filter before demodulator. Only for data rates ≤ 250 kBaud The recommended IF frequency changes when the DC blocking is disabled. 1 = Disable (current optimized). 0 = Enable (better sensitivity).
-	cc1101Driver.setManchester(0); // Enables Manchester encoding/decoding. 0 = Disable. 1 = Enable.
-	cc1101Driver.setFEC(0); // Enable Forward Error Correction (FEC) with interleaving for packet payload (Only supported for fixed packet length mode. 0 = Disable. 1 = Enable.
 	cc1101Driver.setPQT(4); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
 	cc1101Driver.setAppendStatus(0); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
 
@@ -83,7 +76,7 @@ void RfDriver::SetDeviation(float freq_KHz)
 
 void RfDriver::SetBandwidth(float bw_KHz)
 {
-	cc1101Driver.setRxBW(bw_KHz);
+	cc1101Driver.setBw(bw_KHz);
 }
 
 void RfDriver::GDO0Callback()

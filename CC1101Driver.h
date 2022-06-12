@@ -118,10 +118,9 @@ public:
 	void Init(void);
 	byte SpiReadStatus(byte addr);
 	void setMHZ(float mhz);
-	void setChannel(byte chnl);
-	void setChsp(float f);
-	void setRxBW(float f);
-	void setDRate(float d);
+	void setSyncMode(uint8_t mode);
+	void setBw(float bw);
+	void setRate(float br);
 	void setDeviation(float d);
 	void SetTx(void);
 	void SetRx(void);
@@ -142,11 +141,6 @@ public:
 	void setCrc(bool v);
 	void setLengthConfig(byte v);
 	void setPacketLength(byte v);
-	void setDcFilterOff(bool v);
-	void setManchester(bool v);
-	void setSyncMode(byte v);
-	void setFEC(bool v);
-	void setPRE(byte v);
 	void setPQT(byte v);
 	void setCRC_AF(bool v);
 	void setAppendStatus(bool v);
@@ -160,7 +154,6 @@ private:
 	void Split_PKTCTRL0(void);
 	void Split_PKTCTRL1(void);
 	void Split_MDMCFG1(void);
-	void Split_MDMCFG2(void);
 	void Split_MDMCFG4(void);
 };
 

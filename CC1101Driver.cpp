@@ -27,17 +27,12 @@
 #define   BYTES_IN_RXFIFO   0x7F            //byte number in RXfifo
 
 byte modulation = 2;
-byte frend0;
-byte chan = 0;
 int pa = 12;
 byte last_pa;
 byte gdo_set = 0;
 bool spi = 0;
 float MHz = 433.92;
-byte m4RxBw = 0;
-byte m4DaRa;
 byte m2DCOFF;
-byte m2MODFM;
 byte m2MANCH;
 byte m2SYNCM;
 byte m1FEC;
@@ -565,157 +560,16 @@ void CC1101Driver::setPacketLength(byte v)
 {
 	SpiWriteReg(CC1101_PKTLEN, v);
 }
-/****************************************************************
- *FUNCTION NAME:Set DCFILT_OFF
- *FUNCTION     :Disable digital DC blocking filter before demodulator
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setDcFilterOff(bool v)
+
+void CC1101Driver::setBw(float bw)
 {
-	Split_MDMCFG2();
-	m2DCOFF = 0;
-	if (v == 1)
-	{
-		m2DCOFF = 128;
-	}
-	SpiWriteReg(CC1101_MDMCFG2, m2DCOFF + m2MODFM + m2MANCH + m2SYNCM);
-}
-/****************************************************************
- *FUNCTION NAME:Set MANCHESTER
- *FUNCTION     :Enables Manchester encoding/decoding
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setManchester(bool v)
-{
-	Split_MDMCFG2();
-	m2MANCH = 0;
-	if (v == 1)
-	{
-		m2MANCH = 8;
-	}
-	SpiWriteReg(CC1101_MDMCFG2, m2DCOFF + m2MODFM + m2MANCH + m2SYNCM);
-}
-/****************************************************************
- *FUNCTION NAME:Set SYNC_MODE
- *FUNCTION     :Combined sync-word qualifier mode
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setSyncMode(byte v)
-{
-	Split_MDMCFG2();
-	m2SYNCM = 0;
-	if (v > 7)
-	{
-		v = 7;
-	}
-	m2SYNCM = v;
-	SpiWriteReg(CC1101_MDMCFG2, m2DCOFF + m2MODFM + m2MANCH + m2SYNCM);
-}
-/****************************************************************
- *FUNCTION NAME:Set FEC
- *FUNCTION     :Enable Forward Error Correction (FEC)
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setFEC(bool v)
-{
-	Split_MDMCFG1();
-	m1FEC = 0;
-	if (v == 1)
-	{
-		m1FEC = 128;
-	}
-	SpiWriteReg(CC1101_MDMCFG1, m1FEC + m1PRE + m1CHSP);
-}
-/****************************************************************
- *FUNCTION NAME:Set PRE
- *FUNCTION     :Sets the minimum number of preamble bytes to be transmitted.
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setPRE(byte v)
-{
-	Split_MDMCFG1();
-	m1PRE = 0;
-	if (v > 7)
-	{
-		v = 7;
-	}
-	m1PRE = v * 16;
-	SpiWriteReg(CC1101_MDMCFG1, m1FEC + m1PRE + m1CHSP);
-}
-/****************************************************************
- *FUNCTION NAME:Set Channel
- *FUNCTION     :none
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setChannel(byte ch)
-{
-	chan = ch;
-	SpiWriteReg(CC1101_CHANNR, chan);
-}
-/****************************************************************
- *FUNCTION NAME:Set Channel spacing
- *FUNCTION     :none
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setChsp(float f)
-{
-	Split_MDMCFG1();
-	byte MDMCFG0 = 0;
-	m1CHSP = 0;
-	if (f > 405.456543)
-	{
-		f = 405.456543;
-	}
-	if (f < 25.390625)
-	{
-		f = 25.390625;
-	}
-	for (int i = 0; i < 5; i++)
-	{
-		if (f <= 50.682068)
-		{
-			f -= 25.390625;
-			f /= 0.0991825;
-			MDMCFG0 = f;
-			float s1 = (f - MDMCFG0) * 10;
-			if (s1 >= 5)
-			{
-				MDMCFG0++;
-			}
-			i = 5;
-		}
-		else
-		{
-			m1CHSP++;
-			f /= 2;
-		}
-	}
-	SpiWriteReg(19, m1CHSP + m1FEC + m1PRE);
-	SpiWriteReg(20, MDMCFG0);
-}
-/****************************************************************
- *FUNCTION NAME:Set Receive bandwidth
- *FUNCTION     :none
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setRxBW(float f)
-{
-	Split_MDMCFG4();
 	int s1 = 3;
 	int s2 = 3;
 	for (int i = 0; i < 3; i++)
 	{
-		if (f > 101.5625)
+		if (bw > 101.5625)
 		{
-			f /= 2;
+			bw /= 2;
 			s1--;
 		}
 		else
@@ -725,9 +579,9 @@ void CC1101Driver::setRxBW(float f)
 	}
 	for (int i = 0; i < 3; i++)
 	{
-		if (f > 58.1)
+		if (bw > 58.1)
 		{
-			f /= 1.25;
+			bw /= 1.25;
 			s2--;
 		}
 		else
@@ -737,19 +591,15 @@ void CC1101Driver::setRxBW(float f)
 	}
 	s1 *= 64;
 	s2 *= 16;
-	m4RxBw = s1 + s2;
-	SpiWriteReg(16, m4RxBw + m4DaRa);
+
+	uint8_t MDMCFG4 = SpiReadReg(CC1101_MDMCFG4) & 0x0f;
+	SpiWriteReg(CC1101_MDMCFG4, s1 + s2 + MDMCFG4);
 }
-/****************************************************************
- *FUNCTION NAME:Set Data Rate
- *FUNCTION     :none
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setDRate(float d)
+
+void CC1101Driver::setRate(float br)
 {
-	Split_MDMCFG4();
-	float c = d;
+	byte m4DaRa;
+	float c = br;
 	byte MDMCFG3 = 0;
 	if (c > 1621.83)
 	{
@@ -780,9 +630,12 @@ void CC1101Driver::setDRate(float d)
 			c = c / 2;
 		}
 	}
-	SpiWriteReg(16, m4RxBw + m4DaRa);
-	SpiWriteReg(17, MDMCFG3);
+
+	uint8_t MDMCFG4 = SpiReadReg(CC1101_MDMCFG4) & 0xf0;
+	SpiWriteReg(CC1101_MDMCFG4, MDMCFG4 + m4DaRa);
+	SpiWriteReg(CC1101_MDMCFG3, MDMCFG3);
 }
+
 /****************************************************************
  *FUNCTION NAME:Set Devitation
  *FUNCTION     :none
@@ -926,73 +779,9 @@ void CC1101Driver::Split_MDMCFG1(void)
 	}
 }
 
-/****************************************************************
- *FUNCTION NAME:Split MDMCFG2
- *FUNCTION     :none
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::Split_MDMCFG2(void)
+void CC1101Driver::setSyncMode(uint8_t mode)
 {
-	int calc = SpiReadStatus(18);
-	m2DCOFF = 0;
-	m2MODFM = 0;
-	m2MANCH = 0;
-	m2SYNCM = 0;
-	for (bool i = 0; i == 0;)
-	{
-		if (calc >= 128)
-		{
-			calc -= 128;
-			m2DCOFF += 128;
-		}
-		else if (calc >= 16)
-		{
-			calc -= 16;
-			m2MODFM += 16;
-		}
-		else if (calc >= 8)
-		{
-			calc -= 8;
-			m2MANCH += 8;
-		}
-		else
-		{
-			m2SYNCM = calc;
-			i = 1;
-		}
-	}
-}
-
-/****************************************************************
- *FUNCTION NAME:Split MDMCFG4
- *FUNCTION     :none
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::Split_MDMCFG4(void)
-{
-	int calc = SpiReadStatus(16);
-	m4RxBw = 0;
-	m4DaRa = 0;
-	for (bool i = 0; i == 0;)
-	{
-		if (calc >= 64)
-		{
-			calc -= 64;
-			m4RxBw += 64;
-		}
-		else if (calc >= 16)
-		{
-			calc -= 16;
-			m4RxBw += 16;
-		}
-		else
-		{
-			m4DaRa = calc;
-			i = 1;
-		}
-	}
+	SpiWriteReg(CC1101_MDMCFG2, mode);
 }
 
 /****************************************************************
@@ -1010,19 +799,16 @@ void CC1101Driver::RegConfigSettings(void)
 	SpiWriteReg(CC1101_IOCFG0, 0x06);
 	SpiWriteReg(CC1101_PKTCTRL0, 0x05);
 	SpiWriteReg(CC1101_MDMCFG3, 0xF8);
-	SpiWriteReg(CC1101_MDMCFG4, 11 + m4RxBw);
 
 	// 2-FSK
-	m2MODFM = 0x00;
-	frend0 = 0x10;
-	SpiWriteReg(CC1101_MDMCFG2, m2DCOFF + m2MODFM + m2MANCH + m2SYNCM);
+	setSyncMode(2);
 	SpiWriteReg(CC1101_FREND0, 0x10);
 
 	setMHZ(MHz);
 
 	SpiWriteReg(CC1101_MDMCFG1, 0x02);
 	SpiWriteReg(CC1101_MDMCFG0, 0xF8);
-	SpiWriteReg(CC1101_CHANNR, chan);
+	SpiWriteReg(CC1101_CHANNR, 0x00);
 	SpiWriteReg(CC1101_DEVIATN, 0x47);
 	SpiWriteReg(CC1101_FREND1, 0x56);
 	SpiWriteReg(CC1101_MCSM0, 0x18);
