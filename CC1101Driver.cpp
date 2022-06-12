@@ -33,7 +33,6 @@ int pa = 12;
 byte last_pa;
 byte gdo_set = 0;
 bool spi = 0;
-bool ccmode = 0;
 float MHz = 433.92;
 byte m4RxBw = 0;
 byte m4DaRa;
@@ -239,74 +238,6 @@ byte CC1101Driver::SpiReadStatus(byte addr)
 	digitalWrite(CS0_PIN, HIGH);
 
 	return value;
-}
-
-/****************************************************************
- *FUNCTION NAME:CCMode
- *FUNCTION     :Format of RX and TX data
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setCCMode(bool s)
-{
-	ccmode = s;
-	if (ccmode == 1)
-	{
-		SpiWriteReg(CC1101_IOCFG2, 0x0B);
-		SpiWriteReg(CC1101_IOCFG0, 0x06);
-		SpiWriteReg(CC1101_PKTCTRL0, 0x05);
-		SpiWriteReg(CC1101_MDMCFG3, 0xF8);
-		SpiWriteReg(CC1101_MDMCFG4, 11 + m4RxBw);
-	}
-	else
-	{
-		SpiWriteReg(CC1101_IOCFG2, 0x0D);
-		SpiWriteReg(CC1101_IOCFG0, 0x0D);
-		SpiWriteReg(CC1101_PKTCTRL0, 0x32);
-		SpiWriteReg(CC1101_MDMCFG3, 0x93);
-		SpiWriteReg(CC1101_MDMCFG4, 7 + m4RxBw);
-	}
-	setModulation(modulation);
-}
-/****************************************************************
- *FUNCTION NAME:Modulation
- *FUNCTION     :set CC1101 Modulation
- *INPUT        :none
- *OUTPUT       :none
- ****************************************************************/
-void CC1101Driver::setModulation(byte m)
-{
-	if (m > 4)
-	{
-		m = 4;
-	}
-	modulation = m;
-	Split_MDMCFG2();
-	switch (m)
-	{
-	case 0:
-		m2MODFM = 0x00;
-		frend0 = 0x10;
-		break; // 2-FSK
-	case 1:
-		m2MODFM = 0x10;
-		frend0 = 0x10;
-		break; // GFSK
-	case 2:
-		m2MODFM = 0x30;
-		frend0 = 0x11;
-		break; // ASK
-	case 3:
-		m2MODFM = 0x40;
-		frend0 = 0x10;
-		break; // 4-FSK
-	case 4:
-		m2MODFM = 0x70;
-		frend0 = 0x10;
-		break; // MSK
-	}
-	SpiWriteReg(CC1101_MDMCFG2, m2DCOFF + m2MODFM + m2MANCH + m2SYNCM);
-	SpiWriteReg(CC1101_FREND0, frend0);
 }
 
 /****************************************************************
@@ -1074,7 +1005,19 @@ void CC1101Driver::RegConfigSettings(void)
 {
 	SpiWriteReg(CC1101_FSCTRL1, 0x06);
 
-	setCCMode(ccmode);
+	// CC Mode
+	SpiWriteReg(CC1101_IOCFG2, 0x0B);
+	SpiWriteReg(CC1101_IOCFG0, 0x06);
+	SpiWriteReg(CC1101_PKTCTRL0, 0x05);
+	SpiWriteReg(CC1101_MDMCFG3, 0xF8);
+	SpiWriteReg(CC1101_MDMCFG4, 11 + m4RxBw);
+
+	// 2-FSK
+	m2MODFM = 0x00;
+	frend0 = 0x10;
+	SpiWriteReg(CC1101_MDMCFG2, m2DCOFF + m2MODFM + m2MANCH + m2SYNCM);
+	SpiWriteReg(CC1101_FREND0, 0x10);
+
 	setMHZ(MHz);
 
 	SpiWriteReg(CC1101_MDMCFG1, 0x02);

@@ -117,8 +117,6 @@ public:
 
 	void Init(void);
 	byte SpiReadStatus(byte addr);
-	void setCCMode(bool s);
-	void setModulation(byte m);
 	void setMHZ(float mhz);
 	void setChannel(byte chnl);
 	void setChsp(float f);
