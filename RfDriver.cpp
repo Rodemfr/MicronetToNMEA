@@ -28,7 +28,7 @@ RfDriver::~RfDriver()
 
 bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 {
-	if (!cc1101Driver.getCC1101())
+	if (!cc1101Driver.IsConnected())
 	{
 		return false;
 	}
@@ -40,21 +40,14 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 	timerInt.begin(TimerHandler);
 
 	cc1101Driver.Init();
-	cc1101Driver.setMHZ(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_mHz); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
-	cc1101Driver.setDeviation(MICRONET_RF_DEVIATION_KHZ); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
-	cc1101Driver.setRate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
-	cc1101Driver.setBw(250);
-	cc1101Driver.setSyncWord(0x55, 0x99); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
-	cc1101Driver.setAdrChk(0); // Controls address check configuration of received packages. 0 = No address check. 1 = Address check, no broadcast. 2 = Address check and 0 (0x00) broadcast. 3 = Address check and 0 (0x00) and 255 (0xFF) broadcast.
-	cc1101Driver.setAddr(0); // Address used for packet filtration. Optional broadcast addresses are 0 (0x00) and 255 (0xFF).
-	cc1101Driver.setWhiteData(0); // Turn data whitening on / off. 0 = Whitening off. 1 = Whitening on.
-	cc1101Driver.setPktFormat(0); // Format of RX and TX data. 0 = Normal mode, use FIFOs for RX and TX. 1 = Synchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins. 2 = Random TX mode; sends random data using PN9 generator. Used for test. Works as normal mode, setting 0 (00), in RX. 3 = Asynchronous serial mode, Data in on GDO0 and data out on either of the GDOx pins.
-	cc1101Driver.setLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
-	cc1101Driver.setPacketLength(60); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
-	cc1101Driver.setCrc(0); // 1 = CRC calculation in TX and CRC check in RX enabled. 0 = CRC disabled for TX and RX.n
-	cc1101Driver.setCRC_AF(0); // Enable automatic flush of RX FIFO when CRC is not OK. This requires that only one packet is in the RXIFIFO and that packet length is limited to the RX FIFO size.
-	cc1101Driver.setPQT(4); // Preamble quality estimator threshold. The preamble quality estimator increases an internal counter by one each time a bit is received that is different from the previous bit, and decreases the counter by 8 each time a bit is received that is the same as the last bit. A threshold of 4∙PQT for this counter is used to gate sync word detection. When PQT=0 a sync word is always accepted.
-	cc1101Driver.setAppendStatus(0); // When enabled, two status bytes will be appended to the payload of the packet. The status bytes contain RSSI and LQI values, as well as CRC OK.
+	cc1101Driver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_mHz); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
+	cc1101Driver.SetDeviation(MICRONET_RF_DEVIATION_KHZ); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
+	cc1101Driver.SetRate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
+	cc1101Driver.SetBw(250);
+	cc1101Driver.SetSyncWord(0x55, 0x99); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
+	cc1101Driver.SetLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
+	cc1101Driver.SetPacketLength(60); // Indicates the packet length when fixed packet length mode is enabled. If variable packet length mode is used, this value indicates the maximum packet length allowed.
+	cc1101Driver.SetPQT(4);
 
 	return true;
 }
@@ -66,17 +59,17 @@ void RfDriver::SetFrequencyOffset(float offset_MHz)
 
 void RfDriver::SetFrequency(float freq_MHz)
 {
-	cc1101Driver.setMHZ(freq_MHz + frequencyOffset_mHz);
+	cc1101Driver.SetFrequency(freq_MHz + frequencyOffset_mHz);
 }
 
 void RfDriver::SetDeviation(float freq_KHz)
  {
-	cc1101Driver.setDeviation(freq_KHz);
+	cc1101Driver.SetDeviation(freq_KHz);
  }
 
 void RfDriver::SetBandwidth(float bw_KHz)
 {
-	cc1101Driver.setBw(bw_KHz);
+	cc1101Driver.SetBw(bw_KHz);
 }
 
 void RfDriver::GDO0Callback()
@@ -107,7 +100,7 @@ void RfDriver::GDO0RxCallback()
 	// begin collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
 	// CC1101 to change packet size on the fly as soon as we will have identified the length field
 	// How many bytes are already in the FIFO ?
-	nbBytes = cc1101Driver.SpiReadStatus(CC1101_RXBYTES);
+	nbBytes = cc1101Driver.GetRxFifoLevel();
 	// Check for FIFO overflow
 	if (nbBytes & 0x80)
 	{
@@ -127,7 +120,7 @@ void RfDriver::GDO0RxCallback()
 	if (nbBytes > 0)
 	{
 		// Yes : read them
-		cc1101Driver.SpiReadBurstReg(CC1101_RXFIFO, message.data + dataOffset, nbBytes);
+		cc1101Driver.ReadRxFifo(message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 		// Check if we have reached the packet length field
 		if ((rfState == RF_STATE_RX_IDLE) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
@@ -139,7 +132,7 @@ void RfDriver::GDO0RxCallback()
 			{
 				packetLength = message.data[MICRONET_LEN_OFFSET_1] + 2;
 				// Update CC1101's packet length register
-				cc1101Driver.setPacketLength(packetLength);
+				cc1101Driver.SetPacketLength(packetLength);
 			}
 			else
 			{
@@ -162,7 +155,7 @@ void RfDriver::GDO0RxCallback()
 	RestartReception();
 	// Fill message structure
 	message.len = packetLength;
-	message.rssi = cc1101Driver.getRssi();
+	message.rssi = cc1101Driver.GetRssi();
 	message.startTime_us = startTime_us;
 	message.endTime_us = endTime_us;
 	messageFifo->Push(message);
@@ -174,34 +167,34 @@ void RfDriver::GDO0TxCallback()
 
 	while ((bytesInFifo < 62) && (messageBytesSent < messageToTransmit.len))
 	{
-		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[messageBytesSent++]);
+		cc1101Driver.WriteTxFifo(messageToTransmit.data[messageBytesSent++]);
 		bytesInFifo++;
 	}
 
 	if (messageBytesSent >= messageToTransmit.len)
 	{
 		rfState = RF_STATE_TX_LAST_TRANSMIT;
-		cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x05);
+		cc1101Driver.DeAssertOnTxFifoEmpty();
 	}
 }
 
 void RfDriver::GDO0LastTxCallback()
 {
-	cc1101Driver.setSidle();
-	cc1101Driver.SpiStrobe(CC1101_SFTX);
+	cc1101Driver.SetSidle();
+	cc1101Driver.FlushTxFifo();
 	RestartReception();
 }
 
 void RfDriver::RestartReception()
 {
 	rfState = RF_STATE_RX_IDLE;
-	cc1101Driver.setSidle();
-	cc1101Driver.setSyncMode(2);
-	cc1101Driver.setLengthConfig(0);
-	cc1101Driver.setPacketLength(60);
-	cc1101Driver.SpiStrobe(CC1101_SFRX);
-	cc1101Driver.SpiWriteReg(CC1101_FIFOTHR, 0x03);
-	cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x01);
+	cc1101Driver.SetSidle();
+	cc1101Driver.SetSyncMode(2);
+	cc1101Driver.SetLengthConfig(0);
+	cc1101Driver.SetPacketLength(60);
+	cc1101Driver.FlushRxFifo();
+	cc1101Driver.SetFifoThreshold(CC1101_RXFIFOTHR_16);
+	cc1101Driver.TriggerOnRxFifoThreshold();
 	cc1101Driver.SetRx();
 }
 
@@ -227,34 +220,34 @@ void RfDriver::TimerHandler()
 void RfDriver::TransmitCallback()
 {
 	// Change CC1101 configuration for transmission
-	cc1101Driver.setSidle();
-	cc1101Driver.setSyncMode(0);
-	cc1101Driver.setLengthConfig(2);
-	cc1101Driver.SpiStrobe(CC1101_SFTX);
+	cc1101Driver.SetSidle();
+	cc1101Driver.SetSyncMode(0);
+	cc1101Driver.SetLengthConfig(2);
+	cc1101Driver.FlushTxFifo();
 
 	// Fill FIFO with preamble + sync byte
 	int bytesInFifo = 0;
 	for (bytesInFifo = 0; bytesInFifo < MICRONET_RF_PREAMBLE_LENGTH; bytesInFifo++)
-		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, 0x55);
-	cc1101Driver.SpiWriteReg(CC1101_TXFIFO, MICRONET_RF_SYNC_BYTE);
+		cc1101Driver.WriteTxFifo(0x55);
+	cc1101Driver.WriteTxFifo(MICRONET_RF_SYNC_BYTE);
 
 	messageBytesSent = 0;
 	while ((bytesInFifo < 62) && (messageBytesSent < messageToTransmit.len))
 	{
-		cc1101Driver.SpiWriteReg(CC1101_TXFIFO, messageToTransmit.data[messageBytesSent++]);
+		cc1101Driver.WriteTxFifo(messageToTransmit.data[messageBytesSent++]);
 		bytesInFifo++;
 	}
 
 	if (messageBytesSent < messageToTransmit.len)
 	{
 		rfState = RF_STATE_TX_TRANSMITTING;
-		cc1101Driver.SpiWriteReg(CC1101_FIFOTHR, 0x0b);
-		cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x43);
+		cc1101Driver.SetFifoThreshold(CC1101_TXFIFOTHR_17);
+		cc1101Driver.TriggerOnTxFifoLow();
 	}
 	else
 	{
 		rfState = RF_STATE_TX_LAST_TRANSMIT;
-		cc1101Driver.SpiWriteReg(CC1101_IOCFG0, 0x05);
+		cc1101Driver.DeAssertOnTxFifoEmpty();
 	}
 
 	// Start transmission

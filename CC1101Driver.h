@@ -108,6 +108,9 @@
 #define CC1101_TXFIFO       0x3F
 #define CC1101_RXFIFO       0x3F
 
+#define CC1101_RXFIFOTHR_16 0x03
+#define CC1101_TXFIFOTHR_17 0x0B
+
 //************************************* class **************************************************//
 class CC1101Driver
 {
@@ -116,45 +119,43 @@ public:
 	~CC1101Driver();
 
 	void Init(void);
-	byte SpiReadStatus(byte addr);
-	void setMHZ(float mhz);
-	void setSyncMode(uint8_t mode);
-	void setBw(float bw);
-	void setRate(float br);
-	void setDeviation(float d);
+	void SetFrequency(float freq_mhz);
+	void SetSyncMode(uint8_t mode);
+	void SetBw(float bw);
+	void SetRate(float br);
+	void SetDeviation(float d);
 	void SetTx(void);
 	void SetRx(void);
-	int getRssi(void);
-	byte getLqi(void);
-	void setSidle(void);
+	int GetRssi(void);
+	byte GetLqi(void);
+	void SetSidle(void);
+	bool IsConnected(void);
+	void SetSyncWord(byte sh, byte sl);
+	void SetPQT(uint8_t pqt);
+	void SetLengthConfig(byte v);
+	void SetPacketLength(byte v);
+	int GetRxFifoLevel();
+	void ReadRxFifo(uint8_t *buffer, int nbBytes);
+	void WriteTxFifo(uint8_t data);
+	void DeAssertOnTxFifoEmpty();
+	void TriggerOnTxFifoLow();
+	void TriggerOnRxFifoThreshold();
+	void SetFifoThreshold(uint8_t fifoThreshold);
+	void FlushRxFifo();
+	void FlushTxFifo();
+
+private:
+	float rfFreq_mHz;
+
+	void Reset(void);
+	void SetStaticConfig(void);
+	void Calibrate(void);
+	byte SpiReadStatus(byte addr);
 	void SpiStrobe(byte strobe);
 	void SpiWriteReg(byte addr, byte value);
 	void SpiWriteBurstReg(byte addr, byte *buffer, byte num);
 	byte SpiReadReg(byte addr);
 	void SpiReadBurstReg(byte addr, byte *buffer, byte num);
-	void setClb(byte b, byte s, byte e);
-	bool getCC1101(void);
-	void setSyncWord(byte sh, byte sl);
-	void setAddr(byte v);
-	void setWhiteData(bool v);
-	void setPktFormat(byte v);
-	void setCrc(bool v);
-	void setLengthConfig(byte v);
-	void setPacketLength(byte v);
-	void setPQT(byte v);
-	void setCRC_AF(bool v);
-	void setAppendStatus(bool v);
-	void setAdrChk(byte v);
-	bool CheckRxFifo(int t);
-
-private:
-	void Reset(void);
-	void RegConfigSettings(void);
-	void Calibrate(void);
-	void Split_PKTCTRL0(void);
-	void Split_PKTCTRL1(void);
-	void Split_MDMCFG1(void);
-	void Split_MDMCFG4(void);
 };
 
 #endif
