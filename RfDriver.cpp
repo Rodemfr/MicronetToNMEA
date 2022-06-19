@@ -174,7 +174,7 @@ void RfDriver::GDO0TxCallback()
 	if (messageBytesSent >= messageToTransmit.len)
 	{
 		rfState = RF_STATE_TX_LAST_TRANSMIT;
-		cc1101Driver.DeAssertOnTxFifoEmpty();
+		cc1101Driver.DeIrqOnTxFifoEmpty();
 	}
 }
 
@@ -194,7 +194,7 @@ void RfDriver::RestartReception()
 	cc1101Driver.SetPacketLength(60);
 	cc1101Driver.FlushRxFifo();
 	cc1101Driver.SetFifoThreshold(CC1101_RXFIFOTHR_16);
-	cc1101Driver.TriggerOnRxFifoThreshold();
+	cc1101Driver.IrqOnRxFifoThreshold();
 	cc1101Driver.SetRx();
 }
 
@@ -242,12 +242,12 @@ void RfDriver::TransmitCallback()
 	{
 		rfState = RF_STATE_TX_TRANSMITTING;
 		cc1101Driver.SetFifoThreshold(CC1101_TXFIFOTHR_17);
-		cc1101Driver.TriggerOnTxFifoLow();
+		cc1101Driver.IrqOnTxFifoLow();
 	}
 	else
 	{
 		rfState = RF_STATE_TX_LAST_TRANSMIT;
-		cc1101Driver.DeAssertOnTxFifoEmpty();
+		cc1101Driver.DeIrqOnTxFifoEmpty();
 	}
 
 	// Start transmission

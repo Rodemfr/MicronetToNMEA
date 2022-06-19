@@ -137,9 +137,9 @@ public:
 	int GetRxFifoLevel();
 	void ReadRxFifo(uint8_t *buffer, int nbBytes);
 	void WriteTxFifo(uint8_t data);
-	void DeAssertOnTxFifoEmpty();
-	void TriggerOnTxFifoLow();
-	void TriggerOnRxFifoThreshold();
+	void DeIrqOnTxFifoEmpty();
+	void IrqOnTxFifoLow();
+	void IrqOnRxFifoThreshold();
 	void SetFifoThreshold(uint8_t fifoThreshold);
 	void FlushRxFifo();
 	void FlushTxFifo();

@@ -323,17 +323,17 @@ void CC1101Driver::WriteTxFifo(uint8_t data)
 	SpiWriteReg(CC1101_TXFIFO, data);
 }
 
-void CC1101Driver::DeAssertOnTxFifoEmpty()
+void CC1101Driver::DeIrqOnTxFifoEmpty()
 {
 	SpiWriteReg(CC1101_IOCFG0, 0x05);
 }
 
-void CC1101Driver::TriggerOnTxFifoLow()
+void CC1101Driver::IrqOnTxFifoLow()
 {
 	SpiWriteReg(CC1101_IOCFG0, 0x43);
 }
 
-void CC1101Driver::TriggerOnRxFifoThreshold()
+void CC1101Driver::IrqOnRxFifoThreshold()
 {
 	SpiWriteReg(CC1101_IOCFG0, 0x01);
 }
