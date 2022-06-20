@@ -35,13 +35,9 @@
 #define   READ_BURST        0xC0
 #define   BYTES_IN_RXFIFO   0x7F
 
-byte clb1[2] =
-{ 24, 28 };
-byte clb2[2] =
-{ 31, 38 };
-byte clb3[2] =
+byte freqOffset868[2] =
 { 65, 76 };
-byte clb4[2] =
+byte freqOffset915[2] =
 { 77, 79 };
 
 uint8_t PA_TABLE[8]
@@ -225,43 +221,9 @@ void CC1101Driver::SetFrequency(float freq_mhz)
 void CC1101Driver::Calibrate(void)
 {
 
-	if (rfFreq_mHz >= 300 && rfFreq_mHz <= 348)
+	if (rfFreq_mHz >= 779 && rfFreq_mHz <= 899.99)
 	{
-		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 300, 348, clb1[0], clb1[1]));
-		if (rfFreq_mHz < 322.88)
-		{
-			SpiWriteReg(CC1101_TEST0, 0x0B);
-		}
-		else
-		{
-			SpiWriteReg(CC1101_TEST0, 0x09);
-			int s = SpiReadStatus(CC1101_FSCAL2);
-			if (s < 32)
-			{
-				SpiWriteReg(CC1101_FSCAL2, s + 32);
-			}
-		}
-	}
-	else if (rfFreq_mHz >= 378 && rfFreq_mHz <= 464)
-	{
-		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 378, 464, clb2[0], clb2[1]));
-		if (rfFreq_mHz < 430.5)
-		{
-			SpiWriteReg(CC1101_TEST0, 0x0B);
-		}
-		else
-		{
-			SpiWriteReg(CC1101_TEST0, 0x09);
-			int s = SpiReadStatus(CC1101_FSCAL2);
-			if (s < 32)
-			{
-				SpiWriteReg(CC1101_FSCAL2, s + 32);
-			}
-		}
-	}
-	else if (rfFreq_mHz >= 779 && rfFreq_mHz <= 899.99)
-	{
-		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 779, 899, clb3[0], clb3[1]));
+		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 779, 899, freqOffset868[0], freqOffset868[1]));
 		if (rfFreq_mHz < 861)
 		{
 			SpiWriteReg(CC1101_TEST0, 0x0B);
@@ -278,7 +240,7 @@ void CC1101Driver::Calibrate(void)
 	}
 	else if (rfFreq_mHz >= 900 && rfFreq_mHz <= 928)
 	{
-		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 900, 928, clb4[0], clb4[1]));
+		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]));
 		SpiWriteReg(CC1101_TEST0, 0x09);
 		int s = SpiReadStatus(CC1101_FSCAL2);
 		if (s < 32)
