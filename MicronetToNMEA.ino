@@ -42,7 +42,6 @@
 
 #include <SPI.h>
 #include <Wire.h>
-#include <ELECHOUSE_CC1101_SRC_DRV.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -126,16 +125,9 @@ void setup()
 	// Setup main menu
 	gMenuManager.SetMenu(mainMenu);
 
-	// Set SPI pin configuration
-	SPI.setMOSI(MOSI_PIN);
-	SPI.setMISO(MISO_PIN);
-	SPI.setSCK(SCK_PIN);
-	SPI.setCS(CS0_PIN);
-	SPI.begin();
-
 	CONSOLE.print("Initializing CC1101 ... ");
 	// Check connection to CC1101
-	if (!gRfReceiver.Init(GDO0_PIN, &gRxMessageFifo, gConfiguration.rfFrequencyOffset_MHz))
+	if (!gRfReceiver.Init(&gRxMessageFifo, gConfiguration.rfFrequencyOffset_MHz))
 	{
 		CONSOLE.println("Failed");
 		CONSOLE.println("Aborting execution : Verify connection to CC1101 board");

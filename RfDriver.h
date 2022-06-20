@@ -10,7 +10,7 @@
 
 #include "Micronet.h"
 #include "MicronetMessageFifo.h"
-#include "ELECHOUSE_CC1101_SRC_DRV.h"
+#include "CC1101Driver.h"
 
 typedef enum {
 	RF_STATE_RX_IDLE = 0,
@@ -25,7 +25,7 @@ public:
 	RfDriver();
 	virtual ~RfDriver();
 
-	bool Init(int gdo0_pin, MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
+	bool Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
 	void SetFrequencyOffset(float offsetMHz);
 	void SetFrequency(float freqMHz);
 	void SetDeviation(float freqKHz);
@@ -37,8 +37,7 @@ public:
 	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
 
 private:
-	int gdo0Pin;
-	ELECHOUSE_CC1101 cc1101Driver;
+	CC1101Driver cc1101Driver;
 	MicronetMessageFifo *messageFifo;
 	RfDriverState_t rfState;
 	MicronetMessage_t messageToTransmit;
