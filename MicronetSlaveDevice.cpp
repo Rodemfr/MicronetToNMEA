@@ -28,14 +28,11 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "MicronetSlaveDevice.h"
 #include "Globals.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
-/***************************************************************************/
-
-/***************************************************************************/
-/*                                Macros                                   */
 /***************************************************************************/
 
 /***************************************************************************/
@@ -50,22 +47,62 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-RfDriver gRfReceiver;               // CC1101 Driver object
-MenuManager gMenuManager;           // Menu manager object
-MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
-Configuration gConfiguration;
-NmeaEncoder gNmeaEncoder;
-NmeaDecoder gGnssDecoder;
-NmeaDecoder gNavDecoder;
-NavigationData gNavData;
-NavCompass gNavCompass;
-M8NDriver m8nDriver;
-MicronetSlaveDevice gMicronetDevice1;
-MicronetSlaveDevice gMicronetDevice2;
-MicronetSlaveDevice gMicronetDevice3;
-MicronetSlaveDevice gMicronetDevice4;
-
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
+
+MicronetSlaveDevice::MicronetSlaveDevice() :
+		deviceId(0), dataFields(0), networkId(0)
+{
+}
+
+MicronetSlaveDevice::~MicronetSlaveDevice()
+{
+}
+
+void MicronetSlaveDevice::SetDeviceId(uint32_t deviceId)
+{
+	this->deviceId = deviceId;
+}
+
+void MicronetSlaveDevice::SetNetworkId(uint32_t networkId)
+{
+	this->networkId = networkId;
+}
+
+void MicronetSlaveDevice::SetDataFields(uint32_t dataFields)
+{
+	this->dataFields = dataFields;
+}
+
+void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message)
+{
+	TxSlotDesc_t txSlot;
+	uint32_t payloadLength;
+	MicronetMessage_t txMessage;
+
+	if ((micronetCodec.GetNetworkId(message) == networkId) && (micronetCodec.VerifyHeaderCrc(message)))
+	{
+		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_REQUEST_DATA)
+		{
+			txSlot = micronetCodec.GetSyncTransmissionSlot(message, deviceId);
+			if (txSlot.start_us != 0)
+			{
+				payloadLength = micronetCodec.EncodeDataMessage(&txMessage, networkId, deviceId, &gNavData,
+						dataFields);
+				if (txSlot.payloadBytes < payloadLength)
+				{
+					txSlot = micronetCodec.GetAsyncTransmissionSlot(message);
+					micronetCodec.EncodeSlotUpdateMessage(&txMessage, networkId, deviceId, payloadLength);
+				}
+			}
+			else
+			{
+				txSlot = micronetCodec.GetAsyncTransmissionSlot(message);
+				micronetCodec.EncodeSlotRequestMessage(&txMessage, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
+			}
+
+			gRfReceiver.TransmitMessage(&txMessage, txSlot.start_us);
+		}
+	}
+}

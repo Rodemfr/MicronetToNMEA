@@ -389,6 +389,50 @@ void MicronetCodec::CalculateTrueWind(NavigationData *dataSet)
 	}
 }
 
+uint8_t MicronetCodec::GetDataMessageLength(uint32_t dataFields)
+{
+	int offset = 0;
+
+	if (dataFields & DATA_FIELD_TIME)
+	{
+		offset += 6;
+	}
+	if (dataFields & DATA_FIELD_DATE)
+	{
+		offset += 7;
+	}
+	if (dataFields & DATA_FIELD_SOGCOG)
+	{
+		offset += 8;
+	}
+	if (dataFields & DATA_FIELD_POSITION)
+	{
+		offset += 11;
+	}
+	if (dataFields & DATA_FIELD_XTE)
+	{
+		offset += 6;
+	}
+	if (dataFields & DATA_FIELD_DTW)
+	{
+		offset += 8;
+	}
+	if (dataFields & DATA_FIELD_BTW)
+	{
+		offset += 12;
+	}
+	if (dataFields & DATA_FIELD_VMGWP)
+	{
+		offset += 6;
+	}
+	if (dataFields & DATA_FIELD_HDG)
+	{
+		offset += 6;
+	}
+
+	return offset;
+}
+
 uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId,
 		NavigationData *navData, uint32_t dataFields)
 {

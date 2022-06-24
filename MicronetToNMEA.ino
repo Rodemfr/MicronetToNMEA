@@ -117,6 +117,23 @@ void setup()
 	// Let time for serial drivers to set-up
 	delay(250);
 
+	// Configure the four virtual slave devices. Each device will send a specific subset of data fields.
+	// This avoids having long Micronet messages while keeping a refresh frequency of 1Hz for all fields.
+	// Long messages are often missed by other devices because of baudrate deviations between
+	// MicronetToNMEA's CC1101 and Tacktick's CC1000
+	gMicronetDevice1.SetNetworkId(gConfiguration.networkId);
+	gMicronetDevice1.SetDeviceId(gConfiguration.deviceId);
+	gMicronetDevice1.SetDataFields(DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
+	gMicronetDevice2.SetNetworkId(gConfiguration.networkId);
+	gMicronetDevice2.SetDeviceId(gConfiguration.deviceId + 1);
+	gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION);
+	gMicronetDevice3.SetNetworkId(gConfiguration.networkId);
+	gMicronetDevice3.SetDeviceId(gConfiguration.deviceId + 2);
+	gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW);
+	gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
+	gMicronetDevice4.SetDeviceId(gConfiguration.deviceId + 3);
+	gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP);
+
 #if (GNSS_UBLOXM8N == 1)
 	CONSOLE.println("Configuring UBlox M8N GNSS");
 	m8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
@@ -517,6 +534,10 @@ void MenuAttachNetwork()
 		CONSOLE.print("Now attached to NetworkID ");
 		CONSOLE.println(newNetworkId, HEX);
 		gConfiguration.SaveToEeprom();
+		gMicronetDevice1.SetNetworkId(gConfiguration.networkId);
+		gMicronetDevice2.SetNetworkId(gConfiguration.networkId);
+		gMicronetDevice3.SetNetworkId(gConfiguration.networkId);
+		gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
 	}
 }
 
@@ -550,78 +571,29 @@ void MenuConvertToNmea()
 	{
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if ((gMicronetCodec.GetNetworkId(rxMessage) == gConfiguration.networkId)
-					&& (gMicronetCodec.VerifyHeaderCrc(rxMessage)))
-			{
-				if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
-				{
-					txSlot = gMicronetCodec.GetSyncTransmissionSlot(rxMessage, gConfiguration.deviceId);
-					if (txSlot.start_us != 0)
-					{
-						cycleCounter++;
-						switch (cycleCounter & 0x03)
-						{
-						case 0:
-							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData,
-									DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
-							break;
-						case 1:
-							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData,
-									DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_HDG);
-							break;
-						case 2:
-							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData,
-									DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_HDG);
-							break;
-						case 3:
-							payloadLength = gMicronetCodec.EncodeDataMessage(&txMessage, gConfiguration.networkId,
-									gConfiguration.deviceId, &gNavData,
-									DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_HDG);
-							break;
-						}
-						if (txSlot.payloadBytes < payloadLength)
-						{
-							txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-							gMicronetCodec.EncodeSlotUpdateMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
-									payloadLength);
-						}
-					}
-					else
-					{
-						txSlot = gMicronetCodec.GetAsyncTransmissionSlot(rxMessage);
-						gMicronetCodec.EncodeSlotRequestMessage(&txMessage, gConfiguration.networkId, gConfiguration.deviceId,
-								52);
-					}
-					gRfReceiver.TransmitMessage(&txMessage, txSlot.start_us);
+			gMicronetDevice1.ProcessMessage(rxMessage);
 
-					if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNmeaEncoder.EncodeHDG(&gNavData, nmeaSentence))
-						NMEA_OUT.print(nmeaSentence);
-					if (gNavData.calibrationUpdated)
-					{
-						gNavData.calibrationUpdated = false;
-						SaveCalibration();
-					}
-				}
-				else
-				{
-					gMicronetCodec.DecodeDataMessage(rxMessage, &gNavData);
-				}
+			if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
+			if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
+			if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
+			if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
+			if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
+			if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
+			if (gNmeaEncoder.EncodeHDG(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
+
+			if (gNavData.calibrationUpdated)
+			{
+				gNavData.calibrationUpdated = false;
+				SaveCalibration();
 			}
+			gMicronetCodec.DecodeDataMessage(rxMessage, &gNavData);
 			gRxMessageFifo.DeleteMessage();
 		}
 

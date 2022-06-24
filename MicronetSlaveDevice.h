@@ -24,48 +24,45 @@
  ***************************************************************************
  */
 
+#ifndef MICRONETSLAVEDEVICE_H_
+#define MICRONETSLAVEDEVICE_H_
+
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "Globals.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
+#include <Arduino.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                                Macros                                   */
+/*                                Types                                    */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                             Local types                                 */
+/*                               Classes                                   */
 /***************************************************************************/
 
-/***************************************************************************/
-/*                           Local prototypes                              */
-/***************************************************************************/
+class MicronetSlaveDevice
+{
+public:
+	MicronetSlaveDevice();
+	virtual ~MicronetSlaveDevice();
 
-/***************************************************************************/
-/*                               Globals                                   */
-/***************************************************************************/
+	void SetDeviceId(uint32_t deviceId);
+	void SetNetworkId(uint32_t networkId);
+	void SetDataFields(uint32_t dataMask);
+	void ProcessMessage(MicronetMessage_t *message);
 
-RfDriver gRfReceiver;               // CC1101 Driver object
-MenuManager gMenuManager;           // Menu manager object
-MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
-Configuration gConfiguration;
-NmeaEncoder gNmeaEncoder;
-NmeaDecoder gGnssDecoder;
-NmeaDecoder gNavDecoder;
-NavigationData gNavData;
-NavCompass gNavCompass;
-M8NDriver m8nDriver;
-MicronetSlaveDevice gMicronetDevice1;
-MicronetSlaveDevice gMicronetDevice2;
-MicronetSlaveDevice gMicronetDevice3;
-MicronetSlaveDevice gMicronetDevice4;
+private:
+	uint32_t deviceId;
+	uint32_t networkId;
+	uint32_t dataFields;
+	MicronetCodec micronetCodec;
+};
 
-/***************************************************************************/
-/*                              Functions                                  */
-/***************************************************************************/
+#endif /* MICRONETSLAVEDEVICE_H_ */
