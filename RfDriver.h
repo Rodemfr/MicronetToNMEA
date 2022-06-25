@@ -12,6 +12,8 @@
 #include "MicronetMessageFifo.h"
 #include "CC1101Driver.h"
 
+#define TRANSMIT_LIST_SIZE 16
+
 typedef enum {
 	RF_STATE_RX_IDLE = 0,
 	RF_STATE_RX_RECEIVING,
@@ -34,16 +36,20 @@ public:
 	void SetBaudrate(float baudrate_baud);
 	void GDO0Callback();
 	void RestartReception();
-	void TransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
+	void LoadTransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
+	void Transmit();
 
 private:
 	CC1101Driver cc1101Driver;
 	MicronetMessageFifo *messageFifo;
 	RfDriverState_t rfState;
-	MicronetMessage_t messageToTransmit;
+	MicronetMessage_t transmitList[TRANSMIT_LIST_SIZE];
+	int nextTransmitIndex;
 	int messageBytesSent;
 	float frequencyOffset_mHz;
 
+	int GetNextTransmitIndex();
+	int GetFreeTransmitSlot();
 	void GDO0RxCallback();
 	void GDO0TxCallback();
 	void GDO0LastTxCallback();

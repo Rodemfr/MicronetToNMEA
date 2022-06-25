@@ -572,6 +572,10 @@ void MenuConvertToNmea()
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
 			gMicronetDevice1.ProcessMessage(rxMessage);
+			gMicronetDevice2.ProcessMessage(rxMessage);
+			gMicronetDevice3.ProcessMessage(rxMessage);
+			gMicronetDevice4.ProcessMessage(rxMessage);
+			gRfReceiver.Transmit();
 
 			if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
 				NMEA_OUT.print(nmeaSentence);

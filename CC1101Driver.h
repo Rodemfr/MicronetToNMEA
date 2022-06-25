@@ -146,6 +146,7 @@ public:
 	void SetLengthConfig(byte v);
 	void SetPacketLength(byte v);
 	int GetRxFifoLevel();
+	int GetTxFifoLevel();
 	void ReadRxFifo(uint8_t *buffer, int nbBytes);
 	void WriteTxFifo(uint8_t data);
 	void DeIrqOnTxFifoEmpty();

@@ -285,6 +285,11 @@ int CC1101Driver::GetRxFifoLevel()
 	return SpiReadStatus(CC1101_RXBYTES);
 }
 
+int CC1101Driver::GetTxFifoLevel()
+{
+	return SpiReadStatus(CC1101_TXBYTES);
+}
+
 void CC1101Driver::ReadRxFifo(uint8_t *buffer, int nbBytes)
 {
 	SpiReadBurstReg(CC1101_RXFIFO, buffer, nbBytes);
