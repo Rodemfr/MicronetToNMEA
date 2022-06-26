@@ -192,20 +192,22 @@ void RfDriver::GDO0LastTxCallback()
 {
 	cc1101Driver.SetSidle();
 	cc1101Driver.FlushTxFifo();
-	RestartReception();
-	Transmit();
+	if (Transmit())
+	{
+		RestartReception();
+	}
 }
 
 void RfDriver::RestartReception()
 {
 	rfState = RF_STATE_RX_IDLE;
 	cc1101Driver.SetSidle();
+	cc1101Driver.FlushRxFifo();
+	cc1101Driver.IrqOnRxFifoThreshold();
+	cc1101Driver.SetFifoThreshold(CC1101_RXFIFOTHR_16);
 	cc1101Driver.SetSyncMode(2);
 	cc1101Driver.SetLengthConfig(0);
 	cc1101Driver.SetPacketLength(60);
-	cc1101Driver.FlushRxFifo();
-	cc1101Driver.SetFifoThreshold(CC1101_RXFIFOTHR_16);
-	cc1101Driver.IrqOnRxFifoThreshold();
 	cc1101Driver.SetRx();
 }
 
@@ -221,7 +223,7 @@ void RfDriver::LoadTransmitMessage(MicronetMessage_t *message, uint32_t transmit
 	}
 }
 
-void RfDriver::Transmit()
+bool RfDriver::Transmit()
 {
 	int transmitIndex = GetNextTransmitIndex();
 
@@ -231,9 +233,15 @@ void RfDriver::Transmit()
 		int32_t transmitDelay = transmitList[transmitIndex].startTime_us - micros();
 		if (transmitDelay <= 0)
 		{
-			return;
+			return true;
 		}
 		timerInt.trigger(transmitDelay);
+
+		return false;
+	}
+	else
+	{
+		return true;
 	}
 }
 

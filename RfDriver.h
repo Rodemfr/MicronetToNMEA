@@ -37,7 +37,7 @@ public:
 	void GDO0Callback();
 	void RestartReception();
 	void LoadTransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
-	void Transmit();
+	bool Transmit();
 
 private:
 	CC1101Driver cc1101Driver;
