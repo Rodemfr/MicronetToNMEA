@@ -36,8 +36,9 @@ public:
 	void SetBaudrate(float baudrate_baud);
 	void GDO0Callback();
 	void RestartReception();
-	void LoadTransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
-	bool Transmit();
+	void ResetTransmitFifo();
+	void PushTxMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
+	bool StartTransmission();
 
 private:
 	CC1101Driver cc1101Driver;

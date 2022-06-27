@@ -102,7 +102,7 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message)
 				micronetCodec.EncodeSlotRequestMessage(&txMessage, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
 			}
 
-			gRfReceiver.LoadTransmitMessage(&txMessage, txSlot.start_us);
+			gRfReceiver.PushTxMessage(&txMessage, txSlot.start_us);
 		}
 	}
 }

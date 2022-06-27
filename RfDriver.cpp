@@ -168,8 +168,6 @@ void RfDriver::GDO0TxCallback()
 
 	if (nextTransmitIndex < 0)
 	{
-		cc1101Driver.SetSidle();
-		cc1101Driver.FlushTxFifo();
 		RestartReception();
 	}
 
@@ -190,12 +188,8 @@ void RfDriver::GDO0TxCallback()
 
 void RfDriver::GDO0LastTxCallback()
 {
-	cc1101Driver.SetSidle();
-	cc1101Driver.FlushTxFifo();
-	if (Transmit())
-	{
-		RestartReception();
-	}
+	RestartReception();
+	StartTransmission();
 }
 
 void RfDriver::RestartReception()
@@ -211,7 +205,16 @@ void RfDriver::RestartReception()
 	cc1101Driver.SetRx();
 }
 
-void RfDriver::LoadTransmitMessage(MicronetMessage_t *message, uint32_t transmitTimeUs)
+void RfDriver::ResetTransmitFifo()
+{
+	nextTransmitIndex = -1;
+	for (int i = 0; i < TRANSMIT_LIST_SIZE; i++)
+	{
+		transmitList[i].startTime_us = 0;
+	}
+}
+
+void RfDriver::PushTxMessage(MicronetMessage_t *message, uint32_t transmitTimeUs)
 {
 	int transmitIndex = GetFreeTransmitSlot();
 
@@ -223,38 +226,40 @@ void RfDriver::LoadTransmitMessage(MicronetMessage_t *message, uint32_t transmit
 	}
 }
 
-bool RfDriver::Transmit()
+bool RfDriver::StartTransmission()
 {
 	int transmitIndex = GetNextTransmitIndex();
 
 	if (transmitIndex >= 0)
 	{
-		nextTransmitIndex = transmitIndex;
 		int32_t transmitDelay = transmitList[transmitIndex].startTime_us - micros();
 		if (transmitDelay <= 0)
 		{
+			nextTransmitIndex = -1;
 			return true;
 		}
+		nextTransmitIndex = transmitIndex;
 		timerInt.trigger(transmitDelay);
 
 		return false;
 	}
 	else
 	{
+		nextTransmitIndex = -1;
 		return true;
 	}
 }
 
 int RfDriver::GetNextTransmitIndex()
 {
-	uint32_t minTime = 0x8fffffff;
+	uint32_t minTime = 0xffffffff;
 	int minIndex = -1;
 
 	for (int i = 0; i < TRANSMIT_LIST_SIZE; i++)
 	{
 		if (transmitList[i].startTime_us != 0)
 		{
-			if (transmitList[i].startTime_us < minTime)
+			if (transmitList[i].startTime_us <= minTime)
 			{
 				minTime = transmitList[i].startTime_us;
 				minIndex = i;
@@ -288,6 +293,12 @@ void RfDriver::TimerHandler()
 
 void RfDriver::TransmitCallback()
 {
+	if (nextTransmitIndex < 0)
+	{
+		RestartReception();
+		return;
+	}
+
 	// Change CC1101 configuration for transmission
 	cc1101Driver.SetSidle();
 	cc1101Driver.SetSyncMode(0);
