@@ -214,20 +214,29 @@ void RfDriver::ResetTransmitFifo()
 	}
 }
 
-void RfDriver::PushTxMessage(MicronetMessage_t *message, uint32_t transmitTimeUs)
+void RfDriver::Transmit(MicronetMessage_t *message, uint32_t transmitTimeUs)
 {
+	noInterrupts();
 	int transmitIndex = GetFreeTransmitSlot();
 
 	if (transmitIndex >= 0)
 	{
-		transmitList[transmitIndex].len = message->len;
 		transmitList[transmitIndex].startTime_us = transmitTimeUs;
+		transmitList[transmitIndex].len = message->len;
 		memcpy(transmitList[transmitIndex].data, message->data, message->len);
 	}
+	interrupts();
+
+	StartTransmission();
 }
 
-bool RfDriver::StartTransmission()
+void RfDriver::StartTransmission()
 {
+	if (nextTransmitIndex >= 0)
+	{
+		return;
+	}
+
 	int transmitIndex = GetNextTransmitIndex();
 
 	if (transmitIndex >= 0)
@@ -235,18 +244,17 @@ bool RfDriver::StartTransmission()
 		int32_t transmitDelay = transmitList[transmitIndex].startTime_us - micros();
 		if (transmitDelay <= 0)
 		{
-			nextTransmitIndex = -1;
-			return true;
+			transmitList[transmitIndex].startTime_us = 0;
+			return;
 		}
 		nextTransmitIndex = transmitIndex;
 		timerInt.trigger(transmitDelay);
 
-		return false;
+		return;
 	}
 	else
 	{
-		nextTransmitIndex = -1;
-		return true;
+		return;
 	}
 }
 

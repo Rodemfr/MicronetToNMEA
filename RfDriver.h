@@ -37,8 +37,7 @@ public:
 	void GDO0Callback();
 	void RestartReception();
 	void ResetTransmitFifo();
-	void PushTxMessage(MicronetMessage_t *message, uint32_t transmitTimeUs);
-	bool StartTransmission();
+	void Transmit(MicronetMessage_t *message, uint32_t transmitTimeUs);
 
 private:
 	CC1101Driver cc1101Driver;
@@ -49,6 +48,7 @@ private:
 	int messageBytesSent;
 	float frequencyOffset_mHz;
 
+	void StartTransmission();
 	int GetNextTransmitIndex();
 	int GetFreeTransmitSlot();
 	void GDO0RxCallback();
