@@ -189,7 +189,7 @@ void RfDriver::GDO0TxCallback()
 void RfDriver::GDO0LastTxCallback()
 {
 	RestartReception();
-	StartTransmission();
+	ScheduleTransmit();
 }
 
 void RfDriver::RestartReception()
@@ -227,19 +227,14 @@ void RfDriver::Transmit(MicronetMessage_t *message, uint32_t transmitTimeUs)
 	}
 	interrupts();
 
-	StartTransmission();
+	ScheduleTransmit();
 }
 
-void RfDriver::StartTransmission()
+void RfDriver::ScheduleTransmit()
 {
-	if (nextTransmitIndex >= 0)
-	{
-		return;
-	}
-
 	int transmitIndex = GetNextTransmitIndex();
 
-	if (transmitIndex >= 0)
+	if ((transmitIndex >= 0) && (transmitIndex != nextTransmitIndex))
 	{
 		int32_t transmitDelay = transmitList[transmitIndex].startTime_us - micros();
 		if (transmitDelay <= 0)
@@ -247,6 +242,7 @@ void RfDriver::StartTransmission()
 			transmitList[transmitIndex].startTime_us = 0;
 			return;
 		}
+		timerInt.stop();
 		nextTransmitIndex = transmitIndex;
 		timerInt.trigger(transmitDelay);
 

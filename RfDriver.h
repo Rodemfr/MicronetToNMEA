@@ -48,7 +48,7 @@ private:
 	int messageBytesSent;
 	float frequencyOffset_mHz;
 
-	void StartTransmission();
+	void ScheduleTransmit();
 	int GetNextTransmitIndex();
 	int GetFreeTransmitSlot();
 	void GDO0RxCallback();
