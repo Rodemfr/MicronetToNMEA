@@ -398,8 +398,9 @@ PI Parameter ID
 PL Parameter Length ? Seems to be the number of bytes on wich VA is coded.
 
 SQ Sequence number - Incremented by one at each new configuration. Reset to zero at each power-up of the system.
-                     Not sure of the usage since I don't see how several configuration messages could possibly have
-                     their order changed on the network. Maybe by usage of repeaters? 
+                     This number is used to avoid wrting sevral times the same value into EEPROM in case command
+                     would be repeated by master because of a not responding device. This allows extending EEPROM
+                     life time. 
 
 ************************************
 *** Message 0x07 (Ack Parameter) ***
