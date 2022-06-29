@@ -592,8 +592,6 @@ void MenuConvertToNmea()
 
 		while (GNSS_SERIAL.available() > 0)
 		{
-			// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it
-			// to repeat it later to the console output.
 			gGnssDecoder.PushChar(GNSS_SERIAL.read(), &gNavData);
 		}
 
