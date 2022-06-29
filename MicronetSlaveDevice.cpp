@@ -52,7 +52,7 @@
 /***************************************************************************/
 
 MicronetSlaveDevice::MicronetSlaveDevice() :
-		deviceId(0), dataFields(0), networkId(0)
+		deviceId(0), dataFields(0), networkId(0), latestSignalStrength(0)
 {
 }
 
@@ -85,22 +85,23 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	{
 		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 		{
+			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
 			txSlot = micronetCodec.GetSyncTransmissionSlot(message, deviceId);
 			if (txSlot.start_us != 0)
 			{
 				// TODO : include NavigationData into MicronetCodec
-				payloadLength = micronetCodec.EncodeDataMessage(&txMessage, networkId, deviceId, &gNavData,
+				payloadLength = micronetCodec.EncodeDataMessage(&txMessage, latestSignalStrength, networkId, deviceId, &gNavData,
 						dataFields);
 				if (txSlot.payloadBytes < payloadLength)
 				{
 					txSlot = micronetCodec.GetAsyncTransmissionSlot(message);
-					micronetCodec.EncodeSlotUpdateMessage(&txMessage, networkId, deviceId, payloadLength);
+					micronetCodec.EncodeSlotUpdateMessage(&txMessage, latestSignalStrength, networkId, deviceId, payloadLength);
 				}
 			}
 			else
 			{
 				txSlot = micronetCodec.GetAsyncTransmissionSlot(message);
-				micronetCodec.EncodeSlotRequestMessage(&txMessage, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
+				micronetCodec.EncodeSlotRequestMessage(&txMessage, latestSignalStrength, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
 			}
 
 			txMessage.startTime_us = txSlot.start_us;

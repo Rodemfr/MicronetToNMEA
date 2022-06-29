@@ -89,7 +89,7 @@ public:
 	uint32_t GetDeviceId(MicronetMessage_t *message);
 	uint8_t GetMessageId(MicronetMessage_t *message);
 	uint8_t GetSource(MicronetMessage_t *message);
-	uint8_t GetDestination(MicronetMessage_t *message);
+	uint8_t GetSignalStrength(MicronetMessage_t *message);
 	uint8_t GetHeaderCrc(MicronetMessage_t *message);
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
@@ -97,11 +97,12 @@ public:
 	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap_t *networkMap);
 	TxSlotDesc_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
 	TxSlotDesc_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
+	uint8_t CalculateSignalStrength(MicronetMessage_t *message);
 	uint8_t GetDataMessageLength(uint32_t dataFields);
-	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, NavigationData *navData, uint32_t dataFields);
-	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
-	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
-	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId);
+	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, NavigationData *navData, uint32_t dataFields);
+	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
+	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
+	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 
 private:
 	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);

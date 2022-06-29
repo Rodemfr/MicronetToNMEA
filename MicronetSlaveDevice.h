@@ -64,6 +64,7 @@ private:
 	uint32_t networkId;
 	uint32_t dataFields;
 	MicronetCodec micronetCodec;
+	uint8_t latestSignalStrength;
 };
 
 #endif /* MICRONETSLAVEDEVICE_H_ */

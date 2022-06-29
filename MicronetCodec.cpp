@@ -104,7 +104,7 @@ uint8_t MicronetCodec::GetSource(MicronetMessage_t *message)
 	return message->data[MICRONET_SO_OFFSET];
 }
 
-uint8_t MicronetCodec::GetDestination(MicronetMessage_t *message)
+uint8_t MicronetCodec::GetSignalStrength(MicronetMessage_t *message)
 {
 	return message->data[MICRONET_DE_OFFSET];
 }
@@ -433,7 +433,7 @@ uint8_t MicronetCodec::GetDataMessageLength(uint32_t dataFields)
 	return offset;
 }
 
-uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId,
+uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
 		NavigationData *navData, uint32_t dataFields)
 {
 	int offset = 0;
@@ -451,7 +451,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint32_t ne
 	// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_SEND_DATA;
 	message->data[offset++] = 0x01;
-	message->data[offset++] = 0x09;
+	message->data[offset++] = signalStrength;
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
@@ -504,7 +504,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint32_t ne
 	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
-uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId,
+uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
 		uint8_t payloadLength)
 {
 	int offset = 0;
@@ -522,7 +522,7 @@ uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint3
 	// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_UPDATE_SLOT;
 	message->data[offset++] = 0x09;
-	message->data[offset++] = 0x01;
+	message->data[offset++] = signalStrength;
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
@@ -545,7 +545,7 @@ uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint3
 	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
-uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId,
+uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
 		uint8_t payloadLength)
 {
 	int offset = 0;
@@ -563,7 +563,7 @@ uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint
 	// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_REQUEST_SLOT;
 	message->data[offset++] = 0x09;
-	message->data[offset++] = 0x01;
+	message->data[offset++] = signalStrength;
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
@@ -587,7 +587,7 @@ uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint
 	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
-uint8_t MicronetCodec::EncodeResetMessage(MicronetMessage_t *message, uint32_t networkId, uint32_t deviceId)
+uint8_t MicronetCodec::EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId)
 {
 	int offset = 0;
 
@@ -604,7 +604,7 @@ uint8_t MicronetCodec::EncodeResetMessage(MicronetMessage_t *message, uint32_t n
 	// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_SET_PARAMETER;
 	message->data[offset++] = 0x09;
-	message->data[offset++] = 0x09;
+	message->data[offset++] = signalStrength;
 	// Header CRC
 	message->data[offset++] = 0x00;
 	// Message size
@@ -983,4 +983,30 @@ TxSlotDesc_t MicronetCodec::GetAsyncTransmissionSlot(MicronetMessage_t *message)
 
 	return
 	{	0, message->endTime_us + slotDelay_us + GUARD_TIME_IN_US + ASYNC_WINDOW_OFFSET, 0, 40};
+}
+
+uint8_t MicronetCodec::CalculateSignalStrength(MicronetMessage_t *message)
+{
+	int16_t rssi = message->rssi;
+
+	if (rssi < -95)
+		return 0;
+	else if (rssi < 90)
+		return 1;
+	else if (rssi < 85)
+		return 2;
+	else if (rssi < 80)
+		return 3;
+	else if (rssi < 75)
+		return 4;
+	else if (rssi < 70)
+		return 5;
+	else if (rssi < 65)
+		return 6;
+	else if (rssi < 60)
+		return 7;
+	else if (rssi < 55)
+		return 8;
+	else
+		return 9;
 }
