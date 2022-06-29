@@ -535,10 +535,8 @@ void MenuConvertToNmea()
 {
 	bool exitNmeaLoop = false;
 	char nmeaSentence[256];
-	MicronetMessage_t *rxMessage;
-	MicronetMessage_t txMessage;
-	TxSlotDesc_t txSlot;
-	uint8_t payloadLength;
+	MicronetMessage_t *rxMessage, *txMessage;
+	MicronetMessageFifo txMessageFifo;
 	uint32_t lastHeadingTime = millis();
 	float heading;
 	int cycleCounter = 0;
@@ -561,10 +559,11 @@ void MenuConvertToNmea()
 	{
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			gMicronetDevice1.ProcessMessage(rxMessage);
-			gMicronetDevice2.ProcessMessage(rxMessage);
-			gMicronetDevice3.ProcessMessage(rxMessage);
-			gMicronetDevice4.ProcessMessage(rxMessage);
+			gMicronetDevice1.ProcessMessage(rxMessage, &txMessageFifo);
+			gMicronetDevice2.ProcessMessage(rxMessage, &txMessageFifo);
+			gMicronetDevice3.ProcessMessage(rxMessage, &txMessageFifo);
+			gMicronetDevice4.ProcessMessage(rxMessage, &txMessageFifo);
+			gRfReceiver.Transmit(&txMessageFifo);
 
 			if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
 				NMEA_OUT.print(nmeaSentence);

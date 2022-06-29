@@ -205,23 +205,25 @@ void RfDriver::RestartReception()
 	cc1101Driver.SetRx();
 }
 
-void RfDriver::ResetTransmitFifo()
+void RfDriver::Transmit(MicronetMessageFifo *txMessageFifo)
 {
-	nextTransmitIndex = -1;
-	for (int i = 0; i < TRANSMIT_LIST_SIZE; i++)
+	MicronetMessage_t *txMessage;
+	while((txMessage = txMessageFifo->Peek()) != nullptr)
 	{
-		transmitList[i].startTime_us = 0;
+		Transmit(txMessage);
+		txMessageFifo->DeleteMessage();
 	}
+
 }
 
-void RfDriver::Transmit(MicronetMessage_t *message, uint32_t transmitTimeUs)
+void RfDriver::Transmit(MicronetMessage_t *message)
 {
 	noInterrupts();
 	int transmitIndex = GetFreeTransmitSlot();
 
 	if (transmitIndex >= 0)
 	{
-		transmitList[transmitIndex].startTime_us = transmitTimeUs;
+		transmitList[transmitIndex].startTime_us = message->startTime_us;
 		transmitList[transmitIndex].len = message->len;
 		memcpy(transmitList[transmitIndex].data, message->data, message->len);
 	}

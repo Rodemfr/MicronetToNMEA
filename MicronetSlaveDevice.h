@@ -33,6 +33,7 @@
 
 #include "Micronet.h"
 #include "MicronetCodec.h"
+#include "MicronetMessageFifo.h"
 #include <Arduino.h>
 
 /***************************************************************************/
@@ -56,7 +57,7 @@ public:
 	void SetDeviceId(uint32_t deviceId);
 	void SetNetworkId(uint32_t networkId);
 	void SetDataFields(uint32_t dataMask);
-	void ProcessMessage(MicronetMessage_t *message);
+	void ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo);
 
 private:
 	uint32_t deviceId;

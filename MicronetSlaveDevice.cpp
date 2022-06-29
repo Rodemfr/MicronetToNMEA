@@ -75,7 +75,7 @@ void MicronetSlaveDevice::SetDataFields(uint32_t dataFields)
 	this->dataFields = dataFields;
 }
 
-void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message)
+void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo)
 {
 	TxSlotDesc_t txSlot;
 	uint32_t payloadLength;
@@ -88,6 +88,7 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message)
 			txSlot = micronetCodec.GetSyncTransmissionSlot(message, deviceId);
 			if (txSlot.start_us != 0)
 			{
+				// TODO : include NavigationData into MicronetCodec
 				payloadLength = micronetCodec.EncodeDataMessage(&txMessage, networkId, deviceId, &gNavData,
 						dataFields);
 				if (txSlot.payloadBytes < payloadLength)
@@ -102,7 +103,8 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message)
 				micronetCodec.EncodeSlotRequestMessage(&txMessage, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
 			}
 
-			gRfReceiver.Transmit(&txMessage, txSlot.start_us);
+			txMessage.startTime_us = txSlot.start_us;
+			messageFifo->Push(txMessage);
 		}
 	}
 }
