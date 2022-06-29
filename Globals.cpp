@@ -60,7 +60,7 @@ NmeaDecoder gGnssDecoder;
 NmeaDecoder gNavDecoder;
 NavigationData gNavData;
 NavCompass gNavCompass;
-M8NDriver m8nDriver;
+M8NDriver gM8nDriver;
 MicronetSlaveDevice gMicronetDevice1;
 MicronetSlaveDevice gMicronetDevice2;
 MicronetSlaveDevice gMicronetDevice3;

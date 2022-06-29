@@ -65,7 +65,7 @@ extern NmeaDecoder gGnssDecoder;
 extern NmeaDecoder gNavDecoder;
 extern NavigationData gNavData;
 extern NavCompass gNavCompass;
-extern M8NDriver m8nDriver;
+extern M8NDriver gM8nDriver;
 extern MicronetSlaveDevice gMicronetDevice1;
 extern MicronetSlaveDevice gMicronetDevice2;
 extern MicronetSlaveDevice gMicronetDevice3;

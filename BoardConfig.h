@@ -53,28 +53,27 @@
 // ERROR LED pin
 #define LED_PIN LED_BUILTIN
 
-// NMEA/GNSS UART pins
-#define GNSS_UBLOXM8N  1
+// NMEA GNSS UART pins
+#define GNSS_UBLOXM8N  1       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
 #define GNSS_SERIAL    Serial1
 #define GNSS_BAUDRATE  9600
-#define GNSS_CALLBACK  serialEvent1
 #define GNSS_RX_PIN    0
 #define GNSS_TX_PIN    1
 
 // USB UART params
-#define USB_CONSOLE  Serial
+#define USB_NMEA     Serial
 #define USB_BAUDRATE 115200
 
 // Wired UART params
-#define WIRED_SERIAL   Serial5
+#define WIRED_NMEA     Serial5
 #define WIRED_BAUDRATE 115200
 #define WIRED_RX_PIN   34
 #define WIRED_TX_PIN   33
 
 // The console to use for menu and NMEA output
-#define CONSOLE  USB_CONSOLE
-#define NMEA_OUT USB_CONSOLE
-#define NMEA_IN  USB_CONSOLE
+#define CONSOLE  USB_NMEA
+#define NMEA_OUT USB_NMEA
+#define NMEA_IN  USB_NMEA
 
 /***************************************************************************/
 /*                                Types                                    */

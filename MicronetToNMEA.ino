@@ -102,7 +102,7 @@ void setup()
 	LoadCalibration();
 
 	// Init USB serial link
-	USB_CONSOLE.begin(USB_BAUDRATE);
+	USB_NMEA.begin(USB_BAUDRATE);
 
 	// Init GNSS NMEA serial link
 	GNSS_SERIAL.setRX(GNSS_RX_PIN);
@@ -110,9 +110,9 @@ void setup()
 	GNSS_SERIAL.begin(GNSS_BAUDRATE);
 
 	// Init wired serial link
-	WIRED_SERIAL.setRX(WIRED_RX_PIN);
-	WIRED_SERIAL.setTX(WIRED_TX_PIN);
-	WIRED_SERIAL.begin(WIRED_BAUDRATE);
+	WIRED_NMEA.setRX(WIRED_RX_PIN);
+	WIRED_NMEA.setTX(WIRED_TX_PIN);
+	WIRED_NMEA.begin(WIRED_BAUDRATE);
 
 	// Let time for serial drivers to set-up
 	delay(250);
@@ -136,7 +136,7 @@ void setup()
 
 #if (GNSS_UBLOXM8N == 1)
 	CONSOLE.println("Configuring UBlox M8N GNSS");
-	m8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
+	gM8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
 #endif
 
 	// Setup main menu
@@ -204,16 +204,6 @@ void loop()
 	}
 
 	firstLoop = false;
-}
-
-void GNSS_CALLBACK()
-{
-	while (GNSS_SERIAL.available() > 0)
-	{
-		// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it
-		// to repeat it later to the console output.
-		gGnssDecoder.PushChar(GNSS_SERIAL.read(), &gNavData);
-	}
 }
 
 void RfIsr()
@@ -598,6 +588,13 @@ void MenuConvertToNmea()
 			}
 			gMicronetCodec.DecodeDataMessage(rxMessage, &gNavData);
 			gRxMessageFifo.DeleteMessage();
+		}
+
+		while (GNSS_SERIAL.available() > 0)
+		{
+			// Send the data to the decoder. The decoder does not actually decode the NMEA stream, it just stores it
+			// to repeat it later to the console output.
+			gGnssDecoder.PushChar(GNSS_SERIAL.read(), &gNavData);
 		}
 
 		int nbGnssSentences = gGnssDecoder.GetNbSentences();
