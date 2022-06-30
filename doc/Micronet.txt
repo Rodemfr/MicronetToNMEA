@@ -410,9 +410,26 @@ SQ Sequence number - Incremented by one at each new configuration. Reset to zero
 *** Message 0x0A (Ping) ***
 ***************************
 
+This message is used by network's master to probe devices connected to the network.
+It will also be used to remove from network devices which are not detected for several ON/OFF cycles.
+
+Example :
+|83 03 77 37|83|03 77 37|0A|09|00|7B|0C|0C|
+|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|
+|             MESSAGE HEADER              |
+
 *******************************
 *** Message 0x0B (Ack Ping) ***
 *******************************
+
+This message is used by slave devices as a response to 0x0A message from master. 
+The value sent as payload is not identified. It looks like some property flags.
+
+Example :
+
+|83 03 77 37|01|0B C0 22|0B|01|09|37|0E|0E|00|00|
+|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|CS|
+|             MESSAGE HEADER              |  ?  |
 
 *************************
 *** Message 0x18 (??) ***
