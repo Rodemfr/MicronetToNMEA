@@ -11,7 +11,7 @@ Raymarine/TackTick reseller.
 *** Radio specification ***
 ***************************
 
-Carrier frequency : 869.835MHz in Europe. Measured on my own TackTick network. I don't know is this frequency might change
+Carrier frequency : 869.840MHz in Europe. Measured on my own TackTick network. I don't know is this frequency might change
                     in some circumstance.
 Modulation : 2-FSK
 Deviation : +-38kHz
@@ -28,7 +28,7 @@ When a Micronet device wants to talk to another device, it sends a "Micronet mes
 A Micronet message is formatted as follows :
 
 |83 03 77 37|02|03 90 87|02|01|07|5A|18|18|xx xx xx xx ...
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|   
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|   
 |             MESSAGE HEADER              |    PAYLOAD ...
 
 NID = Network ID, is equal to the Device ID of the network main display. Each device is associated to a unique network
@@ -54,9 +54,9 @@ MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to k
      0x0a ?
      0x0b ?
 
-SO = Source - Unclear if this byte really plays a role or not. Interpretation probably wrong.
+DF = Device Flags - Unclear if this byte really plays a role or not. Interpretation probably wrong.
      0x01 Measurement/non display device
-     0x09 Display device
+     0x08 Display device
 
 SS = Signal Strength - Indicator of signal strength as seen by slave device. Value ranges from 0 (weakest signal) to
                        9 (strongest signal). It is probably measured when receiving 0x01 message from master. 
@@ -161,7 +161,7 @@ know where to transmit their messages, without colliding with other devices.
 Here is the format (with an example) :
 
 |83 03 77 37|83|03 77 37|01|09|00|72|28|28|83 03 77 37|1C|02 03 90 87|0C|01 0B C0 22|26|81 03 70 82|0E|83 03 77 37|0E|00 00|52|
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS|    DID1   |PL|    DID2   |PL|    DID3   |PL|    DID4   |PL|    DID5   |PL| ??? |CS|
+|    NUID   |DT|  DID   |MI|DF|SS|CS|LE|CS|    DID1   |PL|    DID2   |PL|    DID3   |PL|    DID4   |PL|    DID5   |PL| ??? |CS|
 |             MESSAGE HEADER              |                                 REQUESTED DEVICES                                 |
 
 DIDn - Device we request data from. Note that the sender is giving its own address, letting me think that the message could be
@@ -186,32 +186,32 @@ Message examples :
 
 Message from wind transducer
 |83 03 77 37|02|03 90 87|02|01|09|5C|18|18|04 05 05 00 2C 3A|04 06 05 FF FB 09|	
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| AWS |FC|FL|FI|FP| AWA |FC|
+|    NUID   |DT|  DID   |MI|DF|SS|CS|LE|CS|FL|FI|FP| AWS |CS|FL|FI|FP| AWA |CS|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |
 
 Message sent by an analog wind display
 |83 03 77 37|83|03 77 37|02|09|00|73|1A|1A|05 21 05 00 00 09 34|05 22 05 00 64 09 99|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|FL|FI|FP| AWS |??|CS|FL|FI|FP| AWA |??|CS|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a dual display
 |83 03 77 37|81|03 70 82|02|09|00|B5|1A|1A|05|21|05|00 00|09|34|05 22 05 00 33|09|68|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|FL|FI|FP| AWS |??|CS|FL|FI|FP| AWA |??|CS|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
 
 Message sent by a hull transmitter
 |83 03 77 37|01|0B C0 22|02|01|09|2E|49|49|04|04|05|13 89|A9|04|1B|05|00 89|AD|05|21|05|00 00|06|31|05|22|05|FF F5|06|26|04|01|05|00 BB|C5|0A|02|05|00 00 00 95|00 00 00 1C|C2|03|03|05|25|30|04|05|03|00 00|0C|04|06|03|FF F5|01|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| DPT |FC|FL|FI|FP| VCC |FC|FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|FL|FI|FP| SPD |FC|FL|FI|FP|   TRIP    |    LOG    |FC|FL|FI|FP|T |FC|FL|FI|FP| AWS |FC|FL|FI|FP| AWA |FC|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|FL|FI|FP| DPT |CS|FL|FI|FP| VCC |CS|FL|FI|FP| AWS |??|CS|FL|FI|FP| AWA |??|CS|FL|FI|FP| SPD |CS|FL|FI|FP|   TRIP    |    LOG    |CS|FL|FI|FP|T |CS|FL|FI|FP| AWS |CS|FL|FI|FP| AWA |CS|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |       FIELD3       |       FIELD4       |     FIELD5      |              FIELD6               |    FIELD7    |      FIELD8     |     FIELD9      |
 
 Observed Field formats :
 
 |01|02|03|04|05|06|07|08|09|10|11|12|
-|03|FI|FP|VA|FC| -> value on a 8bit integer
-|04|FI|FP| VAL |FC| -> value on a 16bit integer
-|05|FI|FP| VAL |FP|FC| -> value on a 16bit integer followed by an unidentified byte
-|06|FI|FP| VAL1| VAL2|FC| -> values on two 16bit integer followed by an unidentified byte
-|0a|FI|FP|    VAL1   |    VAL2   |FC| -> two values both on a 32bit integer
+|03|FI|FP|VA|CS| -> value on a 8bit integer
+|04|FI|FP| VAL |CS| -> value on a 16bit integer
+|05|FI|FP| VAL |FP|CS| -> value on a 16bit integer followed by an unidentified byte
+|06|FI|FP| VAL1| VAL2|CS| -> values on two 16bit integer followed by an unidentified byte
+|0a|FI|FP|    VAL1   |    VAL2   |CS| -> two values both on a 32bit integer
 
 FL = Field Length - (FL + 2) is the total length of the field, including CRC, allowing to skip in case the format/ID would be unknown to the display
      0x03 Total field description is on 5 bytes, including CRC. Value is on a 8bit integer.
@@ -222,44 +222,44 @@ FL = Field Length - (FL + 2) is the total length of the field, including CRC, al
 FI = Field ID
      0x01 SPD
           |01|02|03|04|05|06|
-          |04|01|FP| VAL |FC|
+          |04|01|FP| VAL |CS|
           VAL = Speed * 100 (KT)
      0x02 TRIP + LOG
           |01|02|03|04|05|06|07|08|09|10|11|12|
-          |0a|02|FP|    VAL1   |    VAL2   |FC|
+          |0a|02|FP|    VAL1   |    VAL2   |CS|
           VAL1 = Trip * 100 (NM)
           VAL2 = Log *10 (NM) 
      0x03 T*2(degC)
           |01|02|03|04|05|
-          |03|03|FP|VA|FC|
+          |03|03|FP|VA|CS|
           VA = T * 2 (?C)
      0x04 DPT
           |01|02|03|04|05|06|
-          |04|04|FP| VAL |FC|
+          |04|04|FP| VAL |CS|
           VAL = Depth * 10 (ft)
           A value of 5001(500.1ft) is given by the hull transmitter when depth is not available.
      0x05 AWS
           |01|02|03|04|05|06|
-          |04|05|FP| VAL |FC|
+          |04|05|FP| VAL |CS|
           VAL = ApparentWindSpeed * 10 (kt)
      0x06 AWA(DEG) :
           |01|02|03|04|05|06|
-          |04|06|FP| VAL |FC|
+          |04|06|FP| VAL |CS|
           VAL = ApparentWindAngle (deg)
           Values are between -180 and 180
      0x07 HDG(DEG)
           |01|02|03|04|05|06|
-          |04|07|FP| VAL |FC|
+          |04|07|FP| VAL |CS|
           VAL = MagHeading (deg)
           Values are between 0 and 360
      0x08 SOG/COG
           |01|02|03|04|05|06|07|08|
-          |06|08|FP|VAL1 |VAL2 |FC|
+          |06|08|FP|VAL1 |VAL2 |CS|
           VAL1 = SOG * 10 (KT)
           VAL2 = COG (Deg)
      0x09 LAT/LON
           |01|02|03|04|05|06|07|08|09|10|11|
-          |09|09|FP|LA| LAM |LO| LOM |DI|FC|
+          |09|09|FP|LA| LAM |LO| LOM |DI|CS|
           LA = latitude in degrees (integer part)
           LAM = minutes of latitude * 1000
           LO = longitude in degrees (integer part)
@@ -268,44 +268,51 @@ FI = Field ID
                        0x00/0x02 -> West/East
      0x0A BTW
           |01|02|03|04|05|06|07|08|09|10|11|12|
-          |0a|0a|FP| VAL |??|??|??|??|??|??|FC|
+          |0a|0a|FP| VAL |??|??|??|??|??|??|CS|
           VAL = BTW (Deg)
           Values are between 0 and 360
      0x0B XTE
           |01|02|03|04|05|06|
-          |04|0b|FP| VAL |FC|
+          |04|0b|FP| VAL |CS|
           VAL = Deviation (NM)
           Positive deviation are right deviation, negative are left
      0x0C TIME
           |01|02|03|04|05|06|
-          |04|0c|FP|HH|MM|FC|
+          |04|0c|FP|HH|MM|CS|
           HH = Hours (24h format)
           MM = Minutes
      0x0D Date
           |01|02|03|04|05|06|07|
-          |05|0d|FP|DD|MM|YY|FC|
+          |05|0d|FP|DD|MM|YY|CS|
           DD = Day of month
           MM = Month (01 = January)
           YY = Year (from 2000)
+     0x10 Device Info
+          |01|02|03|04|05|06|07|08|
+          |06|1f|FP|MI|MA|BL|SS|CS|
+          MI = Minor version of SW
+          MA = Major version of SW
+          BL = Battery Level
+          SS = Signal Strength (0..9)
      0x12 VMG-WP
           |01|02|03|04|05|06|
-          |04|12|FP| VAL |FC|
+          |04|12|FP| VAL |CS|
           VAL = Speed * 100 (KT)
      0x1b VCC
           |01|02|03|04|05|06|
-          |04|1b|FP| VAL |FC|
+          |04|1b|FP| VAL |CS|
           VAL = Voltage * 10 (V)
      0x1F DTW
           |01|02|03|04|05|06|07|08|
-          |06|1f|FP|    VAL    |FC|
+          |06|1f|FP|    VAL    |CS|
           VAL = Distance * 100 (NM)
      0x21 AWS - Seems the be same value than 0x05, but with an unidentified extra byte ? 0x21 is used by non wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
-          |04|05|FP| VAL |??|FC|
+          |04|05|FP| VAL |??|CS|
           VAL = ApparentWindSpeed * 10 (kt)
      0x22 AWA - Seems the be same value than 0x06, but with an unidentified extra byte ? 0x22 is used by non wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
-          |04|05|FP| VAL |??|FC|
+          |04|05|FP| VAL |??|CS|
           VAL = ApparentWindAngle (deg)
           Values are between -180 and 180
 
@@ -313,7 +320,7 @@ FP = Field Property ??
      0x05 Seems to be the value used when the data comes from the measuring sensor
      0x03 Seems to be the value used when the data comes from a repeater (i.e. the main display or hull transmitter)
 
-FC = Field checksum. Sum of all bytes of the field.
+CS = Field checksum. Sum of all bytes of the field.
 
 ******************************************
 *** Message 0x03 (Request Sync Window) ***
@@ -322,7 +329,7 @@ FC = Field checksum. Sum of all bytes of the field.
 When a device is not listed in the synchronous data schedule. It can request a sync transmission window to the master device with this message.
 
 |01 0A 8B 60|01|0B 8B 60|03|01|09|FA|0F|0F|00 1A|1A|
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS| PL  |PC|
+|    NUID   |DT|  DID   |MI|DF|SS|CS|LE|CS| PL  |PC|
 
 PL - Maximum payload length of a message using this slot
 
@@ -336,7 +343,7 @@ When a device wants to change the size of its maximum payload in its synchronous
 be updated at next cycle. 
 
 |83 03 77 37|01 0B C0 22|05|01|09|31|0E|0E|3D|3D|
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS|NL|PC|
+|    NUID   |DT|  DID   |MI|DF|SS|CS|LE|CS|NL|PC|
 
 NL - New payload length
 
@@ -350,17 +357,17 @@ this message is sent by a display when a parameter changed. This is typically us
 
 Example : Wind direction calibration +10 deg
 |83 03 77 37|83|03 77 37|06|09|09|80|13|13|FF|07|02|0A 00|04 16|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|PI|PL| VA  |SQ|CS|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|??|PI|PL| VA  |SQ|CS|
 |             MESSAGE HEADER              |     CORRECTION     |
 
 Example : Wind Speed Calibration +7%
 |83 03 77 37|83|03 77 37|06|09|00|77|12|12|FF 06 01 07 0B 18|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|PI|PL|VA|SQ|CS|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|??|PI|PL|VA|SQ|CS|
 |             MESSAGE HEADER              |    CORRECTION   |
 
 Example : Speed filtering level MED
 |83 03 77 37|81|03 70 82|06|09|09|C2|12|12|FF|04|01|20|0E|32|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|PI|PL|VA|SQ|CS|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|??|PI|PL|VA|SQ|CS|
 |             MESSAGE HEADER              |    CORRECTION   |
 
 PI Parameter ID
@@ -415,7 +422,7 @@ It will also be used to remove from network devices which are not detected for s
 
 Example :
 |83 03 77 37|83|03 77 37|0A|09|00|7B|0C|0C|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|
 |             MESSAGE HEADER              |
 
 *******************************
@@ -428,7 +435,7 @@ The value sent as payload is not identified. It looks like some property flags.
 Example :
 
 |83 03 77 37|01|0B C0 22|0B|01|09|37|0E|0E|00|00|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|CS|
+|    NID    |DT|  DID   |MI|DF|SS|CS|LE|CS|??|CS|
 |             MESSAGE HEADER              |  ?  |
 
 *************************

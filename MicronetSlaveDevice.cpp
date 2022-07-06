@@ -85,6 +85,8 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	{
 		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_REQUEST_DATA)
 		{
+			micronetCodec.GetNetworkMap(message, &networkMap);
+
 			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
 			txSlot = micronetCodec.GetSyncTransmissionSlot(message, deviceId);
 			if (txSlot.start_us != 0)

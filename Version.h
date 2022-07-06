@@ -24,48 +24,27 @@
  ***************************************************************************
  */
 
-#ifndef MICRONETSLAVEDEVICE_H_
-#define MICRONETSLAVEDEVICE_H_
+#ifndef VERSION_H_
+#define VERSION_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "Micronet.h"
-#include "MicronetCodec.h"
-#include "MicronetMessageFifo.h"
-#include <Arduino.h>
-
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
+
+// MicronetToNMEA SW version
+#define MNET2NMEA_SW_MINOR_VERSION 2
+#define MNET2NMEA_SW_MAJOR_VERSION 32
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                               Classes                                   */
+/*                              Prototypes                                 */
 /***************************************************************************/
 
-class MicronetSlaveDevice
-{
-public:
-	MicronetSlaveDevice();
-	virtual ~MicronetSlaveDevice();
-
-	void SetDeviceId(uint32_t deviceId);
-	void SetNetworkId(uint32_t networkId);
-	void SetDataFields(uint32_t dataMask);
-	void ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo);
-
-private:
-	MicronetCodec micronetCodec;
-	MicronetCodec::NetworkMap networkMap;
-	uint32_t deviceId;
-	uint32_t networkId;
-	uint32_t dataFields;
-	uint8_t latestSignalStrength;
-};
-
-#endif /* MICRONETSLAVEDEVICE_H_ */
+#endif /* VERSION_H_ */
