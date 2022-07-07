@@ -48,16 +48,16 @@
 
 #define MAX_DEVICES_PER_NETWORK 32
 
-#define DATA_FIELD_TIME     0x00000001
-#define DATA_FIELD_DATE     0x00000002
-#define DATA_FIELD_SOGCOG   0x00000004
-#define DATA_FIELD_POSITION 0x00000008
-#define DATA_FIELD_XTE      0x00000010
-#define DATA_FIELD_DTW      0x00000020
-#define DATA_FIELD_BTW      0x00000040
-#define DATA_FIELD_VMGWP    0x00000080
-#define DATA_FIELD_HDG      0x00000100
-#define DATA_FIELD_DEV_INFO 0x00000200
+#define DATA_FIELD_TIME      0x00000001
+#define DATA_FIELD_DATE      0x00000002
+#define DATA_FIELD_SOGCOG    0x00000004
+#define DATA_FIELD_POSITION  0x00000008
+#define DATA_FIELD_XTE       0x00000010
+#define DATA_FIELD_DTW       0x00000020
+#define DATA_FIELD_BTW       0x00000040
+#define DATA_FIELD_VMGWP     0x00000080
+#define DATA_FIELD_HDG       0x00000100
+#define DATA_FIELD_NODE_INFO 0x00000200
 
 /***************************************************************************/
 /*                                Types                                    */

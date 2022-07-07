@@ -497,9 +497,9 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	{
 		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
 	}
-	if ((dataFields & DATA_FIELD_DEV_INFO))
+	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
-		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_DEVINFO, MNET2NMEA_SW_MINOR_VERSION,
+		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, MNET2NMEA_SW_MINOR_VERSION,
 				MNET2NMEA_SW_MAJOR_VERSION, 0x03, signalStrength);
 	}
 
