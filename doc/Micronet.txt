@@ -150,7 +150,7 @@ device list.
 Knowing all of this, here is an example cycle of a network composed of devices A, B, C, D, E. A being the master.
 
 |--------------|-----------------------------------|--------|------------|--------------------------------------------|
-|Master Request|            Sync Windows           |        |Async Window|                Ack Windows                 |
+|   Initial    |            Synchronous            |        |Asynchronous|                Acknowledge                 |
 |--------------|--------|--------|--------|--------|--------|------------|--------|--------|--------|--------|--------|
 | A:0x01(BCDE) | B:0x02 | C:0x02 | D:0x02 | E:0x02 | 5400us |   C:0x06   | E:0x07 | D:0x07 | C:0x07 | B:0x07 | A:0x07 | 
 |--------------|--------|--------|--------|--------|--------|------------|--------|--------|--------|--------|--------|
@@ -158,6 +158,7 @@ Knowing all of this, here is an example cycle of a network composed of devices A
 **************************************
 *** Message 0x01 (Master Resquest) ***
 **************************************
+Tansmission window : Initial
 
 This message is sent by the master device to initiate a communication cycle on the network. Slave devices use this
 message to know how and when they can talk on the radio.
@@ -182,6 +183,7 @@ CS - Checksum
 ********************************
 *** Message 0x02 (Send Data) ***
 ********************************
+Tansmission window : Synchronous
 
 This message is used to send data from one device to other network devices. It is a response to "Master Request"
 message sent by the main display to collect data from all sensors. It sends a variable number of fields depending on
@@ -298,8 +300,8 @@ FI = Field ID
           |06|1f|FP|MI|MA|SB|SS|CS|
           MI = Minor version of SW
           MA = Major version of SW
-          SB = Sun & Battery Level.
-                 High nibble is sun level (0..3)
+          SB = Charge & Battery Level.
+                 High nibble is charge level (0..3)
                  Low nibble is battery level (0..3) 
           SS = Signal Strength (0..9)
      0x12 VMG-WP
@@ -335,6 +337,7 @@ CS = Field checksum. Sum of all bytes of the field.
 ******************************************
 *** Message 0x03 (Request Sync Window) ***
 ******************************************
+Tansmission window : Asynchronous
 
 When a device is not listed in the synchronous data schedule. It can request a sync transmission window to the master
 device with this message.
@@ -350,6 +353,7 @@ CS - Checksum of the entire payload
 *****************************************
 *** Message 0x05 (Resize Sync Window) ***
 *****************************************
+Tansmission window : Asynchronous
 
 When a device wants to change the size of its maximum payload in its synchronous window, it can use this command. The
 payload size will be updated at next cycle. 
@@ -365,6 +369,7 @@ CS - Checksum of the entire payload
 ************************************
 *** Message 0x06 (Set Parameter) ***
 ************************************
+Tansmission window : Asynchronous
 
 This message is sent by a display when a parameter changed. This is typically used when user changes a configuration
 parameter.
@@ -376,16 +381,13 @@ Example : Wind direction calibration +10 deg
 
 Example : Wind Speed Calibration +7%
 |             MESSAGE HEADER              |    CORRECTION   |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CSPAPI|PL|VA|VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
 |83 03 77 37|83 03 77 37|06|09|00|77|12|12|FF 06 01 07 0B 18|
 
 Example : Speed filtering level MED
 |             MESSAGE HEADER              |    CORRECTION   |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CSPAPI|PL|VA|VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
 |83 03 77 37|81 03 70 82|06|09|09|C2|12|12|FF|04|01|20|0E|32|
-
-PA Page - This bytes seems to select a page of parameters you want to access. Pretty unsure definition.
-            0xFF - Nav & Sensors page
 
 PL Parameter Length - Number of bytes on wich VA is coded.
 
@@ -393,6 +395,9 @@ VE Version - Incremented by one at each new value sent to other devices. Reset t
              This number is used to avoid writing several times the same value into EEPROM. This can happen when a
 			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
 			 EEPROM life time.
+
+PA Page - This bytes seems to select a page of parameters you want to access. Pretty unsure definition.
+            0xFF - Nav & Sensors page
 
 PI Parameter ID - Id of the parameter to be changed in the page
 
@@ -432,6 +437,7 @@ PI Parameter ID - Id of the parameter to be changed in the page
 ************************************
 *** Message 0x07 (Ack Parameter) ***
 ************************************
+Tansmission window : Acknowledge
 
 This message is sent by a slave device to acknowledge a "Set Parameter" command sent on the asynchronous window. It is
 used by master device to detect collision on asynchronous window and to repeat "Set Parameter" command if required.
@@ -445,6 +451,7 @@ Example :
 ***************************
 *** Message 0x0A (Ping) ***
 ***************************
+Tansmission window : Asynchronous
 
 This message is used by network's master to probe devices connected to the network.
 It is also used to remove from network devices which have not been detected for several ON/OFF cycles.
@@ -457,6 +464,7 @@ Example :
 *******************************
 *** Message 0x0B (Ack Ping) ***
 *******************************
+Tansmission window : Acknowledge
 
 This message is used by slave devices as a response to 0x0A message from master. 
 The value sent as payload is not identified. It looks like some status or property flags.
