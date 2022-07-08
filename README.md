@@ -13,7 +13,7 @@ Optionally, you can add :
 - A NMEA GPS/GNSS, connected through UART to add your position, time, date, SOG and COG to Micronet displays and to the NMEA output stream
 - A LSM303DLH(C), connected through I2C to add magnetic heading to both Micronet and NMEA streams
 
-The type of construction described here is fun and interesting to play with, but anywone with a little bit
+The type of construction described here is fun and interesting to play with, but anyone with a little bit
 of experience at sea knows that it will not last long in the wet, salty and brutal environment of a sailing boat.
 MicronetToNMEA will abandon you just when you really need it. No garantee can of course be given that this software
 will do what it has been designed for.
@@ -23,7 +23,8 @@ better go to your nearest Raymarine/Tacktick reseller.
 ## Author & Contributors
 
 * **Ronan Demoment** - [Rodemfr](https://github.com/Rodemfr) - Main author 
-* **Dietmar Warning** - [dwarning](https://github.com/dwarning) - LSM303 Compass and bugfixes 
+* **Dietmar Warning** - [dwarning](https://github.com/dwarning) - LSM303 Compass and bugfixes
+* **[j-lang](https://github.com/j-lang)** - UBLOX M8N Initialization code
 
 ## License
 
@@ -31,7 +32,7 @@ MicronetToNMEA is licensed under GPLv3. See LICENSE.txt file for more details.
 
 ## Compilation
 
-The source code compiles with [Arduino IDE](https://www.arduino.cc/en/software) extended by [Teensyduino](https://www.pjrc.com/teensy/td_download.html) software package. You just have to configure the right target (Teensy 3.5@120MHz) and to import the required libraries (SmartRC-CC1101-Driver-Lib and TeensyTimerTool). If you plan to develop/extend MicronetToNMEA, you probably should use a more professional IDE like [Sloeber](http://eclipse.baeyens.it/). It is way beyond Arduino IDE in term of productivity but is harder to set up.
+The source code compiles with [Arduino IDE](https://www.arduino.cc/en/software) extended by [Teensyduino](https://www.pjrc.com/teensy/td_download.html) software package. You just have to configure the right target (Teensy 3.5@120MHz) and to import the required libraries (TeensyTimerTool). If you plan to develop/extend MicronetToNMEA, you probably should use a more professional IDE like [Sloeber](http://eclipse.baeyens.it/). It is way beyond Arduino IDE in term of productivity but is harder to set up.
 
 ## Acknowledgments
 
@@ -81,7 +82,7 @@ If you want to use a different MCU board and/or pinout, you have to edit the rel
 
 ## Quick Start & general guidance
 
-Power up your Teensy/Arduino board through USB. Use a terminal software like [Tera Term](http://www.teraterm.org/) to reach the menu on the serial console.
+Power up your Teensy/Arduino board through USB. Use a terminal software like [Tera Term](http://www.teraterm.org/) to reach the menu on the serial console. Baudrate is meaningless on a USB bridge.
 
 Power up your Micronet network.
 
@@ -99,7 +100,7 @@ That's it !
 Some tips :
 
 - Once you have attached MicronetToNMEA to a Micronet network, it will automatically enter in NMEA conversion mode at each power-up. You don't need a connect a console to it.
-- When in conversion mode, if you want to come back to the configuration menu, just press "ESC" key to leave the conversion mode
+- When in conversion mode, if you want to come back to the configuration menu in the console, just press "ESC" key to leave the conversion mode
 - MicronetToNMEA listens to calibration values transiting on the network and will apply them to the converted values (wind speed factor, temperature offset, etc.). So if you change your sensor calibration from your Micronet display, MicronetToNMEA will memorize the new value if it is in range. /!\ Be careful that these calibration values are only intercepted in NMEA conversion mode /!\
 - Calibration values, as well as attached network ID are all saved in EEPROM so that you don't need to enter them again in the system at each power-up.
 - There is a menu "Scan surrounding Micronet traffic" allowing to scan all micronet traffic around you. This is useful to understand how devices are speaking to each other.
