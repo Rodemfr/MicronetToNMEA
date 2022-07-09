@@ -174,12 +174,12 @@ void setup()
 		gConfiguration.navCompassAvailable = true;
 	}
 
+	// Start listening
+	gRfReceiver.RestartReception();
+
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
 	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, RISING);
-
-	// Start listening
-	gRfReceiver.RestartReception();
 
 	// Display serial menu
 	gMenuManager.PrintMenu();

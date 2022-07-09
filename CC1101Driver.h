@@ -160,6 +160,7 @@ public:
 private:
 	float rfFreq_mHz;
 	SPISettings spiSettings;
+	uint32_t lastCSHigh;
 
 	void Reset(void);
 	void SetStaticConfig(void);
@@ -170,7 +171,6 @@ private:
 	void SpiWriteBurstReg(byte addr, byte *buffer, byte num);
 	byte SpiReadReg(byte addr);
 	void SpiReadBurstReg(byte addr, byte *buffer, byte num);
-	void Wait1us();
 };
 
 #endif

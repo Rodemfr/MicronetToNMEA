@@ -122,10 +122,15 @@ void RfDriver::GDO0RxCallback()
 	startTime_us -= nbBytes * BYTE_LENGTH_IN_US;
 
 	// Are there new bytes in the FIFO ?
-	while ((nbBytes > 0) && ((dataOffset < packetLength) || (packetLength < 0)))
+	while ((dataOffset < packetLength) || (packetLength < 0))
 	{
 		// Yes : read them
-		// FIXME : in case of dirty readings from SPI, we can overflow buffer here
+		if (dataOffset + nbBytes > MICRONET_MAX_MESSAGE_LENGTH)
+		{
+			// Received data size exceeds max message size, something must have gone wrong : restart listening
+			RestartReception();
+			return;
+		}
 		cc1101Driver.ReadRxFifo(message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 		// Check if we have reached the packet length field
@@ -138,8 +143,6 @@ void RfDriver::GDO0RxCallback()
 					&& ((message.data[MICRONET_LEN_OFFSET_1] + 2) >= MICRONET_PAYLOAD_OFFSET))
 			{
 				packetLength = message.data[MICRONET_LEN_OFFSET_1] + 2;
-				// Update CC1101's packet length register
-				cc1101Driver.SetPacketLength(packetLength);
 			}
 			else
 			{
@@ -151,9 +154,6 @@ void RfDriver::GDO0RxCallback()
 
 		nbBytes = cc1101Driver.GetRxFifoLevel();
 	}
-
-	if (dataOffset < packetLength)
-		return;
 
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	RestartReception();
@@ -203,8 +203,7 @@ void RfDriver::RestartReception()
 	cc1101Driver.SetFifoThreshold(CC1101_RXFIFOTHR_16);
 	cc1101Driver.IrqOnRxFifoThreshold();
 	cc1101Driver.SetSyncMode(2);
-	cc1101Driver.SetLengthConfig(0);
-	cc1101Driver.SetPacketLength(60);
+	cc1101Driver.SetLengthConfig(2);
 	cc1101Driver.SetRx();
 }
 
