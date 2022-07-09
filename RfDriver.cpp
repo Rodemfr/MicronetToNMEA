@@ -18,7 +18,7 @@ OneShotTimer timerInt;
 RfDriver *RfDriver::rfDriver;
 
 RfDriver::RfDriver() :
-		messageFifo(nullptr), rfState(RF_STATE_RX_IDLE), messageBytesSent(0), frequencyOffset_mHz(0), nextTransmitIndex(-1)
+		messageFifo(nullptr), rfState(RF_STATE_RX_HEADER), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_mHz(0)
 {
 	memset(transmitList, 0, sizeof(transmitList));
 }
@@ -95,37 +95,43 @@ void RfDriver::GDO0RxCallback()
 	static int dataOffset;
 	static int packetLength;
 	static uint32_t startTime_us;
-	int nbBytes;
+	uint8_t nbBytes;
 
-	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
-	// begin collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
-	// CC1101 to change packet size on the fly as soon as we will have identified the length field
-	// How many bytes are already in the FIFO ?
-	nbBytes = cc1101Driver.GetRxFifoLevel();
-	// Check for FIFO overflow
-	if (nbBytes & 0x80)
-	{
-		// Yes : ignore current packet and restart CC1101 reception for the next packet
-		RestartReception();
-		return;
-	}
-
-	if (rfState == RF_STATE_RX_IDLE)
+	if (rfState == RF_STATE_RX_HEADER)
 	{
 		// This is a new message
 		startTime_us = micros() - PREAMBLE_LENGTH_IN_US;
 		packetLength = -1;
 		dataOffset = 0;
 	}
+
+	// When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
+	// begin collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
+	// CC1101 to change packet size on the fly as soon as we will have identified the length field
+	// How many bytes are already in the FIFO ?
+	nbBytes = cc1101Driver.GetRxFifoLevel();
+
+	// Check for FIFO overflow
+	if (nbBytes > 64)
+	{
+		// Yes : ignore current packet and restart CC1101 reception for the next packet
+		RestartReception();
+		return;
+	}
+
+	startTime_us -= nbBytes * BYTE_LENGTH_IN_US;
+
 	// Are there new bytes in the FIFO ?
-	if (nbBytes > 0)
+	while ((nbBytes > 0) && ((dataOffset < packetLength) || (packetLength < 0)))
 	{
 		// Yes : read them
+		// FIXME : in case of dirty readings from SPI, we can overflow buffer here
 		cc1101Driver.ReadRxFifo(message.data + dataOffset, nbBytes);
 		dataOffset += nbBytes;
 		// Check if we have reached the packet length field
-		if ((rfState == RF_STATE_RX_IDLE) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
+		if ((rfState == RF_STATE_RX_HEADER) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
 		{
+			rfState = RF_STATE_RX_PAYLOAD;
 			// Yes : check that this is a valid length
 			if ((message.data[MICRONET_LEN_OFFSET_1] == message.data[MICRONET_LEN_OFFSET_2])
 					&& (message.data[MICRONET_LEN_OFFSET_1] < MICRONET_MAX_MESSAGE_LENGTH - 3)
@@ -142,23 +148,20 @@ void RfDriver::GDO0RxCallback()
 				return;
 			}
 		}
-		// Continue reading as long as entire packet has not been received
+
+		nbBytes = cc1101Driver.GetRxFifoLevel();
 	}
 
 	if (dataOffset < packetLength)
-	{
-		rfState = RF_STATE_RX_RECEIVING;
 		return;
-	}
 
-	uint32_t endTime_us = micros();
 	// Restart CC1101 reception as soon as possible not to miss the next packet
 	RestartReception();
 	// Fill message structure
 	message.len = packetLength;
 	message.rssi = cc1101Driver.GetRssi();
 	message.startTime_us = startTime_us;
-	message.endTime_us = endTime_us;
+	message.endTime_us = startTime_us + PREAMBLE_LENGTH_IN_US + packetLength * BYTE_LENGTH_IN_US;
 	messageFifo->Push(message);
 }
 
@@ -194,11 +197,11 @@ void RfDriver::GDO0LastTxCallback()
 
 void RfDriver::RestartReception()
 {
-	rfState = RF_STATE_RX_IDLE;
 	cc1101Driver.SetSidle();
 	cc1101Driver.FlushRxFifo();
-	cc1101Driver.IrqOnRxFifoThreshold();
+	rfState = RF_STATE_RX_HEADER;
 	cc1101Driver.SetFifoThreshold(CC1101_RXFIFOTHR_16);
+	cc1101Driver.IrqOnRxFifoThreshold();
 	cc1101Driver.SetSyncMode(2);
 	cc1101Driver.SetLengthConfig(0);
 	cc1101Driver.SetPacketLength(60);
@@ -208,7 +211,7 @@ void RfDriver::RestartReception()
 void RfDriver::Transmit(MicronetMessageFifo *txMessageFifo)
 {
 	MicronetMessage_t *txMessage;
-	while((txMessage = txMessageFifo->Peek()) != nullptr)
+	while ((txMessage = txMessageFifo->Peek()) != nullptr)
 	{
 		Transmit(txMessage);
 		txMessageFifo->DeleteMessage();
@@ -305,13 +308,13 @@ void RfDriver::TransmitCallback()
 		return;
 	}
 
-	// Change CC1101 configuration for transmission
+// Change CC1101 configuration for transmission
 	cc1101Driver.SetSidle();
 	cc1101Driver.SetSyncMode(0);
 	cc1101Driver.SetLengthConfig(2);
 	cc1101Driver.FlushTxFifo();
 
-	// Fill FIFO with preamble + sync byte
+// Fill FIFO with preamble + sync byte
 	int bytesInFifo = 0;
 	for (bytesInFifo = 0; bytesInFifo < MICRONET_RF_PREAMBLE_LENGTH; bytesInFifo++)
 		cc1101Driver.WriteTxFifo(0x55);
@@ -338,6 +341,6 @@ void RfDriver::TransmitCallback()
 		cc1101Driver.DeIrqOnTxFifoEmpty();
 	}
 
-	// Start transmission
+// Start transmission
 	cc1101Driver.SetTx();
 }

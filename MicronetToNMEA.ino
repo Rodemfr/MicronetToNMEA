@@ -535,11 +535,10 @@ void MenuConvertToNmea()
 {
 	bool exitNmeaLoop = false;
 	char nmeaSentence[256];
-	MicronetMessage_t *rxMessage, *txMessage;
+	MicronetMessage_t *rxMessage;
 	MicronetMessageFifo txMessageFifo;
 	uint32_t lastHeadingTime = millis();
 	float heading;
-	int cycleCounter = 0;
 
 	if (gConfiguration.networkId == 0)
 	{
