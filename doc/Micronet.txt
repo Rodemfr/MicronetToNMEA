@@ -11,12 +11,12 @@ Raymarine/TackTick reseller.
 *** Radio specification ***
 ***************************
 
-Carrier frequency : 869.835MHz in Europe. Measured on my own TackTick network. I don't know is this frequency might change
-                    in some circumstance.
+Carrier frequency : 869.840MHz in Europe
+                    915.915MHz elsewhere
 Modulation : 2-FSK
 Deviation : +-38kHz
 Sync word after preamble : 0x5599
-Bit rate : 76800Hz
+Bit rate : 76800 baud
 
 All data after the sync word is the Micronet message described below.
 
@@ -25,18 +25,21 @@ All data after the sync word is the Micronet message described below.
 ***************************************
 
 When a Micronet device wants to talk to another device, it sends a "Micronet message" on the radio.
-A Micronet message is formatted as follows :
+A Micronet message is made of a header which always has the same structure for every message, and a payload which
+content depends on the type of message.
 
-|83 03 77 37|02|03 90 87|02|01|07|5A|18|18|xx xx xx xx ...
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|   
-|             MESSAGE HEADER              |    PAYLOAD ...
+|             MESSAGE HEADER              |    PAYLOAD     |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|   
+|83 03 77 37|02 03 90 87|02|01|07|5A|18|18|xx xx xx xx ... |
 
-NID = Network ID, is equal to the Device ID of the network main display. Each device is associated to a unique network
+Unless explicitly specified, all values are stored Big Endian in messages (MSB first).
+
+NID = Network ID (4 bytes). This is a unique number which identifies the network the message is addressed to.
+      It is equal to the Device ID of the network main device. Each device is associated to a unique network
       and will only consider a message if it is addressed to this network.
 
-DT + DID = Device ID (4 bytes) - Unique number identifying the device sending the message. The first byte "DT" defines
-           the device type.
-     DT - Device Type
+DID = Device ID (4 bytes) - Unique number identifying the device sending the message. The MSB of DID (0x02 in the
+      above example) describes the device type :
           0x01 Hull Transmitter
           0x02 Wind Transducer
           0x03 NMEA Converter
@@ -48,46 +51,47 @@ DT + DID = Device ID (4 bytes) - Unique number identifying the device sending th
 
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to know how to decode payload.
      0x01 Master Request
-     0x02 Send Sync Data
+     0x02 Send Data
      0x06 Set Parameter
-     0x07 Acknowledge parameter
-     0x0a ?
-     0x0b ?
+     0x07 Ack parameter
+     0x0a Ping
+     0x0b Ack Ping
 
-SO = Source - Unclear if this byte really plays a role or not. Interpretation probably wrong.
-     0x01 Measurement/non display device
-     0x09 Display device
+DF = Device Flags - Unclear if this byte really plays a role or not. It seems to give information on emitting
+     device status/properties. It seems to be defined as a set of bit flags. Interpretation probably wrong.
+       0x01 Measurement device
+       0x08 Display (or master ?) device
 
 SS = Signal Strength - Indicator of signal strength as seen by slave device. Value ranges from 0 (weakest signal) to
-                       9 (strongest signal). It is probably measured when receiving 0x01 message from master. 
+                       9 (strongest signal). It is measured by slave device when receiving 0x01 message from master. 
      0 Weakest signal
      9 Strongest signal
 
-CS = Check sum of all bytes from previous CS or from beginning of message
+CS = Check sum of all bytes from previous CS or from beginning of message.
 
-LE = (Length - 2) of the complete message in bytes, including payload. Value having its own checksum (i.e. copy) for robustness
+LE = (Length - 2) of the complete message in bytes, including payload. Value having its own checksum (i.e. copy) for
+     robustness.
 
 ****************************
 *** Network organization ***
 ****************************
 
-A Micronet network is made of one Master device and several slaves. The master is the device which has been powered
-first, so it can be a different device if you have several displays. Only the master device is allowed to initiate
-RF communication. Master always use message 0x01 (Master request) to initiate radio communications. Slave devices
-then answer relatively to the Master request message, in a predetermined manner to avoid RF collisions.
+A Micronet network is made of one master device and several slaves. The master is the device which has been powered
+first, so it can be a different device at each power-up if you have several displays. Only the master device is
+allowed to initiate RF communication. Master always use message 0x01 (Master request) to initiate radio communications.
+Slave devices then answer relatively to the "Master Request" message, in a predetermined manner to avoid RF collisions.
 
 "Master request" is sent by master every second and defines precisely when a slave device can talk on the network.
-"Master request" gives the list of every device known by the Master and the maximum payload that it can pass in a
-message (See detailed description of Master Request below). Once Master request message is terminated, slave devices
-can then talk on the network.
+"Master request" gives the list of every device known by the Master, how and when they can send their messages (See
+detailed description of Master Request below).
 
-Each slave device has a "transmission window" and made of :
-   - a 2000us "guard time" during which nothing should be transmitted. Its role is to separate slaves transmissions
-     and to avoid overlap in case of poor timing precision. This practically means that a device must wait 2ms after
-     the start of the window before starting RF transmission.
+Each slave device has a "transmission window" made of :
+   - a 2000us "guard time" during which nothing should be transmitted. Its role is to give time for slave devices to
+     process the previous message. It also gives "space" on the line to cop-up with non precise transmission starts.
+	 This practically means that a device must wait 2ms after the start of the window before starting RF transmission.
    - Preamble + sync word : 15 bytes set at 0x55 (preamble) followed by 0x5599 (sync word). The total duration of this
      part is 1771us
-   - Message data : (14 + PL) bytes of Micornet message data
+   - Message data : (14 + PL) bytes of message data
    - Transmission window is rounded to the upper 244us
 
 |-----------------------------------------------------------------------------|
@@ -96,43 +100,44 @@ Each slave device has a "transmission window" and made of :
 |      2000us      |       1771us      |  (14 + PL) * 104us  |    0-244us     |
 
 Slave devices must answer in the same order than defined in "Master request" message. PL parameter is also provided
-by Master request message for each slave device. A slave device knows the start of its transmission window by
-calculating window sizes of the preceding slave windows. The first window starts just at the end of "Master Request"
-message. If a device is listed with a payload of zero, then it has no transmission window at all (no guard time,
-preamble or header).
+by Master request message for each slave device, allowing calculation of each window. A slave device knows the start
+of its transmission window by calculating window sizes of the preceding slave devices. The first window starts just
+at the end of "Master Request" message. If a device is listed with a payload of zero, then it has no transmission
+window at all (no guard time, preamble or header).
 
-Theses slave transmission windows are called "synchronous" windows. Their role is to allow a slave device to
+Theses slave transmission windows are called "synchronous windows". Their role is to allow a slave device to
 periodically send its measured data to the various displays of the network. For example, this is where a wind
-transducer will send wind data every second. The sync window is reserved for message 0x02 (Send Sync Data).
+transducer will send wind data every second. The sync window is generally used by message 0x02 (Send Data).
 
 There is however another way for a slave device to talk on a network. If a device is not listed in "Master Request"
-message or if it needs to send something else than its periodical data, it can use the so called "asynchronous"
-window. This transmission window is a special one, located after the last syncronous window and which can be used
-by any device, including master itself.
+device list or if it needs to send something else than its periodical data, it can use the so called "asynchronous
+window". This transmission window is a special one, located after the last synchronous window and which can be used
+by any device, including devices not yet attached to network.
 
 Typical usages of this window are :
-   - For a new device to request an attachement to a network (message 0x03)
+   - For a new device to request an attachment to a network (message 0x03)
    - For an existing slave device to request a window size change (message 0x05)
    - For the Master to verify presence of slave devices in the network (message 0x0a)
-   - For a display to transmit a user parameter change to other decives (message 0x06)
+   - For a display to transmit a user parameter change to other devices (message 0x06)
    - Etc.
    
-The structure of the asynchronous window is the following :
+The structure of the asynchronous window is :
 
 |-----------------------------------------------------------------------------|
 |    Guard time    | preamble | 0x5599 |   Micronet message  | 244us rounding |
 |-----------------------------------------------------------------------------|
 |      2000us      |       1771us      |  (14 + 17) * 104us  |    0-244us     |
 
-Note that asynchronous commands can not exceed a payload of 17 bytes. Asynchronous window starts 5400us after
-the end of the last synchronous window. Since asynchronous commands are subject to collision (any device can
-potentially talk in this window), they generally require an acknowledge from the other devices. As an example, a
-display device could send a parameter update message (0x06) which requires all other devices to acknowledge it
-with message 0x07. In that case other devices will use response windows located after the asynchronous slot.
-If other devices do not acknowledge, then it means that a collision likely occured on asynchronous window and
-that message must be sent again during a later network cycle.
+Note that asynchronous commands can not exceed a payload of 17 bytes. Asynchronous window starts 5400us after the end of
+the last synchronous window. Since asynchronous commands are subject to collisions (any device can potentially talk in
+this window), they generally require an acknowledge from the other devices. As an example, a display device could send a
+ parameter update message (0x06) which requires all other devices to acknowledge it with message 0x07. In that case
+ other devices will use other transmission windows located after the asynchronous slot. These windows are called "Ack
+ windows". If other devices do not acknowledge, then it means that a collision likely occurred on asynchronous window
+ and that message must be sent again during a later network cycle. If a device do not acknowledge a asynchronous message
+ several times, it may be detached from network by master.
 
-These response windows have the following structure :
+These Ack windows have the following structure :
 
 |-----------------------------------------------------------------------------|
 |    Guard time    | preamble | 0x5599 |   Micronet message  | 244us rounding |
@@ -142,124 +147,127 @@ These response windows have the following structure :
 They are located just after each others. And devices will response in reverse order compared to "Master Request"
 device list.
 
-Knowing all of this, here is the chronology of a network composed of devices A, B, C, D, E. A being the master.
+Knowing all of this, here is an example cycle of a network composed of devices A, B, C, D, E. A being the master.
 
-|-----------------|----------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
-| A : 0x01 (BCDE) | B : 0x02 | C : 0x02 | D : 0x02 | E : 0x02 |  5400us  | Async window | Ack E | Ack D | Ack C | Ack B | Ack A | 
-|-----------------|----------|----------|----------|----------|----------|--------------|-------|-------|-------|-------|-------|
+|--------------|-----------------------------------|--------|------------|--------------------------------------------|
+|   Initial    |            Synchronous            |        |Asynchronous|                Acknowledge                 |
+|--------------|--------|--------|--------|--------|--------|------------|--------|--------|--------|--------|--------|
+| A:0x01(BCDE) | B:0x02 | C:0x02 | D:0x02 | E:0x02 | 5400us |   C:0x06   | E:0x07 | D:0x07 | C:0x07 | B:0x07 | A:0x07 | 
+|--------------|--------|--------|--------|--------|--------|------------|--------|--------|--------|--------|--------|
 
 **************************************
-*** Message 0x01 (Master resquest) ***
+*** Message 0x01 (Master Resquest) ***
 **************************************
+Tansmission window : Initial
 
-This message is sent by the master device to request slave devices to communicate their measured data.
+This message is sent by the master device to initiate a communication cycle on the network. Slave devices use this
+message to know how and when they can talk on the radio.
 
-This message also provides the "PL" value for each device which gives the maximum number of bytes expected in the payload
-of the "Send Sync Data" message. This way, we have a complete temporal map of the data exchange, allowing slaves to
-know where to transmit their messages, without colliding with other devices.
+This message lists all slave devices known by the master and provides the "PL" value for each of them. PL is the maximum
+number of bytes expected in the payload of the "Send Data" message. This way, we have a complete temporal map of the
+data exchange, allowing slaves to know where to transmit their messages, without colliding with other devices.
 
 Here is the format (with an example) :
 
-|83 03 77 37|83|03 77 37|01|09|00|72|28|28|83 03 77 37|1C|02 03 90 87|0C|01 0B C0 22|26|81 03 70 82|0E|83 03 77 37|0E|00 00|52|
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS|    DID1   |PL|    DID2   |PL|    DID3   |PL|    DID4   |PL|    DID5   |PL| ??? |CS|
 |             MESSAGE HEADER              |                                 REQUESTED DEVICES                                 |
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS|    DID1   |PL|    DID2   |PL|    DID3   |PL|    DID4   |PL|    DID5   |PL| ??? |CS|
+|83 03 77 37|83 03 77 37|01|09|00|72|28|28|83 03 77 37|1C|02 03 90 87|0C|01 0B C0 22|26|81 03 70 82|0E|83 03 77 37|0E|00 00|52|
 
-DIDn - Device we request data from. Note that the sender is giving its own address, letting me think that the message could be
-       better interpreted as a way of telling who is part of the network.
+DIDn - Devices IDs of devices attached to the network.
        
 PL - Maximum payload length of the message expected from the mentioned device. Note that a payload of zero bytes means
      that there is no window at all for this device.
 
 CS - Checksum
 
-*************************************
-*** Message 0x02 (Send Sync Data) ***
-*************************************
+********************************
+*** Message 0x02 (Send Data) ***
+********************************
+Tansmission window : Synchronous
 
-This message is used to send data from one device to dispay(s). It is a response to "Master request" message sent by the main
-display to collect data from all sensors. It sends a variable number of fields depending on the Device Type and its available
-sensors.
-Each field is coded the same way but with variable size and type. The number of fields can be dynamically discovered during
-decoding by comparing each field position to the complete message size.
+This message is used to send data from one device to other network devices. It is a response to "Master Request"
+message sent by the main display to collect data from all sensors. It sends a variable number of fields depending on
+the Device Type and its available sensors. Each field is coded the same way but with variable size and type.
 
 Message examples :
 
 Message from wind transducer
-|83 03 77 37|02|03 90 87|02|01|09|5C|18|18|04 05 05 00 2C 3A|04 06 05 FF FB 09|	
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| AWS |FC|FL|FI|FP| AWA |FC|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS|FL|FI|FP| AWS |CS|FL|FI|FP| AWA |CS|
+|83 03 77 37|02 03 90 87|02|01|09|5C|18|18|04 05 05 00 2C 3A|04 06 05 FF FB 09|	
 
 Message sent by an analog wind display
-|83 03 77 37|83|03 77 37|02|09|00|73|1A|1A|05 21 05 00 00 09 34|05 22 05 00 64 09 99|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|FL|FI|FP| AWS |??|CS|FL|FI|FP| AWA |??|CS|
+|83 03 77 37|83 03 77 37|02|09|00|73|1A|1A|05 21 05 00 00 09 34|05 22 05 00 64 09 99|
 
 Message sent by a dual display
-|83 03 77 37|81|03 70 82|02|09|00|B5|1A|1A|05|21|05|00 00|09|34|05 22 05 00 33|09|68|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|
 |             MESSAGE HEADER              |       FIELD1       |       FIELD2       |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|FL|FI|FP| AWS |??|CS|FL|FI|FP| AWA |??|CS|
+|83 03 77 37|81 03 70 82|02|09|00|B5|1A|1A|05|21|05|00 00|09|34|05 22 05 00 33|09|68|
 
 Message sent by a hull transmitter
-|83 03 77 37|01|0B C0 22|02|01|09|2E|49|49|04|04|05|13 89|A9|04|1B|05|00 89|AD|05|21|05|00 00|06|31|05|22|05|FF F5|06|26|04|01|05|00 BB|C5|0A|02|05|00 00 00 95|00 00 00 1C|C2|03|03|05|25|30|04|05|03|00 00|0C|04|06|03|FF F5|01|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|FL|FI|FP| DPT |FC|FL|FI|FP| VCC |FC|FL|FI|FP| AWS |??|FC|FL|FI|FP| AWA |??|FC|FL|FI|FP| SPD |FC|FL|FI|FP|   TRIP    |    LOG    |FC|FL|FI|FP|T |FC|FL|FI|FP| AWS |FC|FL|FI|FP| AWA |FC|
 |             MESSAGE HEADER              |      FIELD1     |      FIELD2     |       FIELD3       |       FIELD4       |     FIELD5      |              FIELD6               |    FIELD7    |      FIELD8     |     FIELD9      |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|FL|FI|FP| DPT |CS|FL|FI|FP| VCC |CS|FL|FI|FP| AWS |??|CS|FL|FI|FP| AWA |??|CS|FL|FI|FP| SPD |CS|FL|FI|FP|   TRIP    |    LOG    |CS|FL|FI|FP|T |CS|FL|FI|FP| AWS |CS|FL|FI|FP| AWA |CS|
+|83 03 77 37|01 0B C0 22|02|01|09|2E|49|49|04|04|05|13 89|A9|04|1B|05|00 89|AD|05|21|05|00 00|06|31|05|22|05|FF F5|06|26|04|01|05|00 BB|C5|0A|02|05|00 00 00 95|00 00 00 1C|C2|03|03|05|25|30|04|05|03|00 00|0C|04|06|03|FF F5|01|
 
 Observed Field formats :
 
 |01|02|03|04|05|06|07|08|09|10|11|12|
-|03|FI|FP|VA|FC| -> value on a 8bit integer
-|04|FI|FP| VAL |FC| -> value on a 16bit integer
-|05|FI|FP| VAL |FP|FC| -> value on a 16bit integer followed by an unidentified byte
-|06|FI|FP| VAL1| VAL2|FC| -> values on two 16bit integer followed by an unidentified byte
-|0a|FI|FP|    VAL1   |    VAL2   |FC| -> two values both on a 32bit integer
+|03|FI|FP|VA|CS| -> value on a 8bit integer
+|04|FI|FP| VAL |CS| -> value on a 16bit integer
+|05|FI|FP| VAL |??|CS| -> value on a 16bit integer followed by an unidentified byte
+|06|FI|FP| VAL1| VAL2|CS| -> values on two 16bit integers
+|0a|FI|FP|    VAL1   |    VAL2   |CS| -> two values both on a 32bit integer
 
-FL = Field Length - (FL + 2) is the total length of the field, including CRC, allowing to skip in case the format/ID would be unknown to the display
-     0x03 Total field description is on 5 bytes, including CRC. Value is on a 8bit integer.
-     0x04 Total field description is on 6 bytes, including CRC. Value is on a 16bit integer.
-     0x05 Total field description is on 7 bytes, including CRC. In this case there is an extra byte after the 16bit integer value which is unidentified yet.
-     0x0a Total field description is on 12 bytes, including CRC. Two values are encoded on a 32bit integer each.
+FL = Field Length - (FL + 2) is the total length of the field, including CRC, allowing to skip in case the format/ID
+     would be unknown to the decoding device.
+       0x03 Total field description is on 5 bytes, including CRC. Value is 8bit.
+       0x04 Total field description is on 6 bytes, including CRC. Value is 16bit.
+       0x05 Total field description is on 7 bytes, including CRC. Value is 24bit.
+       0x0a Total field description is on 12 bytes, including CRC. Value is on 64bit.
 
 FI = Field ID
      0x01 SPD
           |01|02|03|04|05|06|
-          |04|01|FP| VAL |FC|
+          |04|01|FP| VAL |CS|
           VAL = Speed * 100 (KT)
      0x02 TRIP + LOG
           |01|02|03|04|05|06|07|08|09|10|11|12|
-          |0a|02|FP|    VAL1   |    VAL2   |FC|
+          |0a|02|FP|    VAL1   |    VAL2   |CS|
           VAL1 = Trip * 100 (NM)
           VAL2 = Log *10 (NM) 
      0x03 T*2(degC)
           |01|02|03|04|05|
-          |03|03|FP|VA|FC|
-          VA = T * 2 (?C)
+          |03|03|FP|VA|CS|
+          VA = T * 2 (C)
      0x04 DPT
           |01|02|03|04|05|06|
-          |04|04|FP| VAL |FC|
+          |04|04|FP| VAL |CS|
           VAL = Depth * 10 (ft)
-          A value of 5001(500.1ft) is given by the hull transmitter when depth is not available.
+          A value of 5001 (500.1ft) means depth is not available for any reason (e.g. too deep)
      0x05 AWS
           |01|02|03|04|05|06|
-          |04|05|FP| VAL |FC|
+          |04|05|FP| VAL |CS|
           VAL = ApparentWindSpeed * 10 (kt)
      0x06 AWA(DEG) :
           |01|02|03|04|05|06|
-          |04|06|FP| VAL |FC|
+          |04|06|FP| VAL |CS|
           VAL = ApparentWindAngle (deg)
           Values are between -180 and 180
      0x07 HDG(DEG)
           |01|02|03|04|05|06|
-          |04|07|FP| VAL |FC|
+          |04|07|FP| VAL |CS|
           VAL = MagHeading (deg)
           Values are between 0 and 360
      0x08 SOG/COG
           |01|02|03|04|05|06|07|08|
-          |06|08|FP|VAL1 |VAL2 |FC|
+          |06|08|FP|VAL1 |VAL2 |CS|
           VAL1 = SOG * 10 (KT)
           VAL2 = COG (Deg)
      0x09 LAT/LON
           |01|02|03|04|05|06|07|08|09|10|11|
-          |09|09|FP|LA| LAM |LO| LOM |DI|FC|
+          |09|09|FP|LA| LAM |LO| LOM |DI|CS|
           LA = latitude in degrees (integer part)
           LAM = minutes of latitude * 1000
           LO = longitude in degrees (integer part)
@@ -268,44 +276,55 @@ FI = Field ID
                        0x00/0x02 -> West/East
      0x0A BTW
           |01|02|03|04|05|06|07|08|09|10|11|12|
-          |0a|0a|FP| VAL |??|??|??|??|??|??|FC|
+          |0a|0a|FP| VAL |??|??|??|??|??|??|CS|
           VAL = BTW (Deg)
           Values are between 0 and 360
      0x0B XTE
           |01|02|03|04|05|06|
-          |04|0b|FP| VAL |FC|
+          |04|0b|FP| VAL |CS|
           VAL = Deviation (NM)
-          Positive deviation are right deviation, negative are left
+          Positive deviation is right deviation, negative is left
      0x0C TIME
           |01|02|03|04|05|06|
-          |04|0c|FP|HH|MM|FC|
+          |04|0c|FP|HH|MM|CS|
           HH = Hours (24h format)
           MM = Minutes
      0x0D Date
           |01|02|03|04|05|06|07|
-          |05|0d|FP|DD|MM|YY|FC|
+          |05|0d|FP|DD|MM|YY|CS|
           DD = Day of month
           MM = Month (01 = January)
           YY = Year (from 2000)
+     0x10 Device Info
+          |01|02|03|04|05|06|07|08|
+          |06|1f|FP|MI|MA|SB|SS|CS|
+          MI = Minor version of SW
+          MA = Major version of SW
+          SB = Charge & Battery Level.
+                 High nibble is charge level (0..3)
+                 Low nibble is battery level (0..3) 
+          SS = Signal Strength (0..9)
      0x12 VMG-WP
           |01|02|03|04|05|06|
-          |04|12|FP| VAL |FC|
+          |04|12|FP| VAL |CS|
           VAL = Speed * 100 (KT)
      0x1b VCC
           |01|02|03|04|05|06|
-          |04|1b|FP| VAL |FC|
+          |04|1b|FP| VAL |CS|
           VAL = Voltage * 10 (V)
      0x1F DTW
           |01|02|03|04|05|06|07|08|
-          |06|1f|FP|    VAL    |FC|
+          |06|1f|FP|    VAL    |CS|
           VAL = Distance * 100 (NM)
-     0x21 AWS - Seems the be same value than 0x05, but with an unidentified extra byte ? 0x21 is used by non wind-transducer devices to repeat the value.
+     0x21 AWS - Seems the be same value than 0x05, but with an unidentified extra byte ? 0x21 is used by non
+	            wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
-          |04|05|FP| VAL |??|FC|
+          |04|05|FP| VAL |??|CS|
           VAL = ApparentWindSpeed * 10 (kt)
-     0x22 AWA - Seems the be same value than 0x06, but with an unidentified extra byte ? 0x22 is used by non wind-transducer devices to repeat the value.
+     0x22 AWA - Seems the be same value than 0x06, but with an unidentified extra byte ? 0x22 is used by non
+	            wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
-          |04|05|FP| VAL |??|FC|
+          |04|05|FP| VAL |??|CS|
           VAL = ApparentWindAngle (deg)
           Values are between -180 and 180
 
@@ -313,123 +332,148 @@ FP = Field Property ??
      0x05 Seems to be the value used when the data comes from the measuring sensor
      0x03 Seems to be the value used when the data comes from a repeater (i.e. the main display or hull transmitter)
 
-FC = Field checksum. Sum of all bytes of the field.
+CS = Field checksum. Sum of all bytes of the field.
 
 ******************************************
 *** Message 0x03 (Request Sync Window) ***
 ******************************************
+Tansmission window : Asynchronous
 
-When a device is not listed in the synchronous data schedule. It can request a sync transmission window to the master device with this message.
+When a device is not listed in the synchronous data schedule. It can request a sync transmission window to the master
+device with this message.
 
+|             MESSAGE HEADER              |  SIZE  |
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS| PL  |CS|
 |01 0A 8B 60|01|0B 8B 60|03|01|09|FA|0F|0F|00 1A|1A|
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS| PL  |PC|
 
 PL - Maximum payload length of a message using this slot
 
-PC - Checksum of the entire payload
+CS - Checksum of the entire payload
 
 *****************************************
 *** Message 0x05 (Resize Sync Window) ***
 *****************************************
+Tansmission window : Asynchronous
 
-When a device wants to change the size of its maximum payload in its synchronous window, it can use this command. The payload size will
-be updated at next cycle. 
+When a device wants to change the size of its maximum payload in its synchronous window, it can use this command. The
+payload size will be updated at next cycle. 
 
+|             MESSAGE HEADER              |SIZE |
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS|NL|CS|
 |83 03 77 37|01 0B C0 22|05|01|09|31|0E|0E|3D|3D|
-|    NUID   |DT|  DID   |MI|SO|SS|CS|LE|CS|NL|PC|
 
 NL - New payload length
 
-PC - Checksum of the entire payload
+CS - Checksum of the entire payload
 
 ************************************
 *** Message 0x06 (Set Parameter) ***
 ************************************
+Tansmission window : Asynchronous
 
-this message is sent by a display when a parameter changed. This is typically used when user changes a configuration parameter.
+This message is sent by a display when a parameter changed. This is typically used when user changes a configuration
+parameter.
 
 Example : Wind direction calibration +10 deg
-|83 03 77 37|83|03 77 37|06|09|09|80|13|13|FF|07|02|0A 00|04 16|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|PI|PL| VA  |SQ|CS|
 |             MESSAGE HEADER              |     CORRECTION     |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL| VA  |VE|CS|
+|83 03 77 37|83 03 77 37|06|09|09|80|13|13|FF|07|02|0A 00|04 16|
 
 Example : Wind Speed Calibration +7%
-|83 03 77 37|83|03 77 37|06|09|00|77|12|12|FF 06 01 07 0B 18|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|PI|PL|VA|SQ|CS|
 |             MESSAGE HEADER              |    CORRECTION   |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
+|83 03 77 37|83 03 77 37|06|09|00|77|12|12|FF 06 01 07 0B 18|
 
 Example : Speed filtering level MED
-|83 03 77 37|81|03 70 82|06|09|09|C2|12|12|FF|04|01|20|0E|32|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|PI|PL|VA|SQ|CS|
 |             MESSAGE HEADER              |    CORRECTION   |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
+|83 03 77 37|81 03 70 82|06|09|09|C2|12|12|FF|04|01|20|0E|32|
 
-PI Parameter ID
-   0x00 Water speed factor
+PL Parameter Length - Number of bytes on wich VA is coded.
+
+VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
+             This number is used to avoid writing several times the same value into EEPROM. This can happen when a
+			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
+			 EEPROM life time.
+
+PA Page - This bytes seems to select a page of parameters you want to access. Pretty unsure definition.
+            0xFF - Nav & Sensors page
+
+PI Parameter ID - Id of the parameter to be changed in the page
+
+    PA   PI
+   0xFF 0x00 Water speed factor
       VA = 8bit unsigned integer. Value is 0x32 + speed correction in % (e.g. 0x30<=>-2%, 0x37<=>+5%)
-   0x02 Water temperature offset
+   0xFF 0x02 Water temperature offset
       VA = 8bit signed integer. Value is temperature offset * 2, coded in Celsius
-   0x03 Distance from depth transducer to waterline or keel
-      VA = 8bit signed integer of the offset in ft*10. If the value is positive, it is the distance to waterline. If negative, to the keel.
-   0x04 Speed filtering level
+   0xFF 0x03 Distance from depth transducer to waterline or keel
+      VA = 8bit signed integer of the offset in ft*10. If the value is positive, it is the distance to waterline. If
+	  negative, to the keel.
+   0xFF 0x04 Speed filtering level
       VA = 0x00 : AUTO
       VA = 0x10 : SLOW
       VA = 0x20 : MED
       VA = 0x30 : FAST
-   0x05 Wind Speed or Compass heading filtering level
+   0xFF 0x05 Wind Speed or Compass heading filtering level
       VA = 0x00 : AUTO (Wind Speed)
       VA = 0x01 : SLOW (Wind Speed)
       VA = 0x02 : MED (Wind Speed)
       VA = 0x03 : FAST (Wind Speed)
-      VA = 0x00 : AUTO (Heading) - I see the same code for both Wind and Compass here ? How does the device distinguish ?
+      VA = 0x00 : AUTO (Heading)
       VA = 0x10 : SLOW (Heading)
       VA = 0x20 : MED (Heading)
       VA = 0x30 : FAST (Heading)
-   0x06 Wind speed factor
+   0xFF 0x06 Wind speed factor
       VA = Speed correction as signed 8bit integer in percent
-   0x07 Wind direction offset
+   0xFF 0x07 Wind direction offset
       VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
-   0x09 Compass heading offset
+   0xFF 0x09 Compass heading offset
       VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
-   0x0D Compass magnetic variation
+   0xFF 0x0D Compass magnetic variation
       VA = Variation as signed 8bit integer in degrees
-   0x0E Wind shift - What is it ?
+   0xFF 0x0E Wind shift
       VA = 8bit unsigned integer
-
-PL Parameter Length ? Seems to be the number of bytes on wich VA is coded.
-
-SQ Sequence number - Incremented by one at each new configuration. Reset to zero at each power-up of the system.
-                     This number is used to avoid wrting sevral times the same value into EEPROM in case command
-                     would be repeated by master because of a not responding device. This allows extending EEPROM
-                     life time. 
 
 ************************************
 *** Message 0x07 (Ack Parameter) ***
 ************************************
+Tansmission window : Acknowledge
+
+This message is sent by a slave device to acknowledge a "Set Parameter" command sent on the asynchronous window. It is
+used by master device to detect collision on asynchronous window and to repeat "Set Parameter" command if required.
+
+Example :
+|83 03 77 37|83 03 77 37|07|09|09|80|13|13|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|
+|             MESSAGE HEADER              |
+
 
 ***************************
 *** Message 0x0A (Ping) ***
 ***************************
+Tansmission window : Asynchronous
 
 This message is used by network's master to probe devices connected to the network.
-It will also be used to remove from network devices which are not detected for several ON/OFF cycles.
+It is also used to remove from network devices which have not been detected for several ON/OFF cycles.
 
 Example :
-|83 03 77 37|83|03 77 37|0A|09|00|7B|0C|0C|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|
 |             MESSAGE HEADER              |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|
+|83 03 77 37|83 03 77 37|0A|09|00|7B|0C|0C|
 
 *******************************
 *** Message 0x0B (Ack Ping) ***
 *******************************
+Tansmission window : Acknowledge
 
 This message is used by slave devices as a response to 0x0A message from master. 
-The value sent as payload is not identified. It looks like some property flags.
+The value sent as payload is not identified. It looks like some status or property flags.
 
 Example :
 
-|83 03 77 37|01|0B C0 22|0B|01|09|37|0E|0E|00|00|
-|    NID    |DT|  DID   |MI|SO|SS|CS|LE|CS|??|CS|
 |             MESSAGE HEADER              |  ?  |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|??|CS|
+|83 03 77 37|01 0B C0 22|0B|01|09|37|0E|0E|00|00|
 
 *************************
 *** Message 0x18 (??) ***

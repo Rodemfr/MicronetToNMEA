@@ -46,41 +46,45 @@
 #define DEVICE_TYPE_DUAL_DISPLAY        0x81
 #define DEVICE_TYPE_ANALOG_WIND_DISPLAY 0x83
 
-#define MAX_DEVICES_PER_NETWORK 64
+#define MAX_DEVICES_PER_NETWORK 32
 
-#define DATA_FIELD_TIME     0x00000001
-#define DATA_FIELD_DATE     0x00000002
-#define DATA_FIELD_SOGCOG   0x00000004
-#define DATA_FIELD_POSITION 0x00000008
-#define DATA_FIELD_XTE      0x00000010
-#define DATA_FIELD_DTW      0x00000020
-#define DATA_FIELD_BTW      0x00000040
-#define DATA_FIELD_VMGWP    0x00000080
-#define DATA_FIELD_HDG      0x00000100
+#define DATA_FIELD_TIME      0x00000001
+#define DATA_FIELD_DATE      0x00000002
+#define DATA_FIELD_SOGCOG    0x00000004
+#define DATA_FIELD_POSITION  0x00000008
+#define DATA_FIELD_XTE       0x00000010
+#define DATA_FIELD_DTW       0x00000020
+#define DATA_FIELD_BTW       0x00000040
+#define DATA_FIELD_VMGWP     0x00000080
+#define DATA_FIELD_HDG       0x00000100
+#define DATA_FIELD_NODE_INFO 0x00000200
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef struct {
+typedef struct
+{
 	uint32_t deviceId;
 	uint32_t start_us;
 	uint32_t length_us;
 	uint8_t payloadBytes;
 } TxSlotDesc_t;
 
-typedef struct {
-	uint32_t networkId;
-	uint32_t nbDevices;
-	uint32_t masterDevice;
-	uint32_t nbSlots;
-	TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
-	TxSlotDesc_t asyncSlot;
-} NetworkMap_t;
-
 class MicronetCodec
 {
 public:
+	class NetworkMap
+	{
+	public:
+		uint32_t networkId;
+		uint32_t nbDevices;
+		uint32_t masterDevice;
+		uint32_t nbSlots;
+		TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
+		TxSlotDesc_t asyncSlot;
+	};
+
 	MicronetCodec();
 	virtual ~MicronetCodec();
 
@@ -94,14 +98,17 @@ public:
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
 	void DecodeDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
-	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap_t *networkMap);
+	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap *networkMap);
 	TxSlotDesc_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
 	TxSlotDesc_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
 	uint8_t CalculateSignalStrength(MicronetMessage_t *message);
 	uint8_t GetDataMessageLength(uint32_t dataFields);
-	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, NavigationData *navData, uint32_t dataFields);
-	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
-	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
+	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
+			NavigationData *navData, uint32_t dataFields);
+	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
+			uint8_t payloadLength);
+	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
+			uint8_t payloadLength);
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 
 private:
@@ -116,6 +123,7 @@ private:
 	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
 	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
+	uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
 	uint8_t AddQuad16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2, int16_t value3, int16_t value4);
 	uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
 	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);

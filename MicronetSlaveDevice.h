@@ -60,10 +60,11 @@ public:
 	void ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo);
 
 private:
+	MicronetCodec micronetCodec;
+	MicronetCodec::NetworkMap networkMap;
 	uint32_t deviceId;
 	uint32_t networkId;
 	uint32_t dataFields;
-	MicronetCodec micronetCodec;
 	uint8_t latestSignalStrength;
 };
 

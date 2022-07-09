@@ -24,90 +24,27 @@
  ***************************************************************************
  */
 
+#ifndef VERSION_H_
+#define VERSION_H_
+
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
-
-#include "MicronetSlaveDevice.h"
-#include "Globals.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-/***************************************************************************/
-/*                             Local types                                 */
-/***************************************************************************/
+// MicronetToNMEA SW version
+#define MNET2NMEA_SW_MINOR_VERSION 2
+#define MNET2NMEA_SW_MAJOR_VERSION 32
 
 /***************************************************************************/
-/*                           Local prototypes                              */
-/***************************************************************************/
-
-/***************************************************************************/
-/*                               Globals                                   */
+/*                                Types                                    */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                              Functions                                  */
+/*                              Prototypes                                 */
 /***************************************************************************/
 
-MicronetSlaveDevice::MicronetSlaveDevice() :
-		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0)
-{
-}
-
-MicronetSlaveDevice::~MicronetSlaveDevice()
-{
-}
-
-void MicronetSlaveDevice::SetDeviceId(uint32_t deviceId)
-{
-	this->deviceId = deviceId;
-}
-
-void MicronetSlaveDevice::SetNetworkId(uint32_t networkId)
-{
-	this->networkId = networkId;
-}
-
-void MicronetSlaveDevice::SetDataFields(uint32_t dataFields)
-{
-	this->dataFields = dataFields;
-}
-
-void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo)
-{
-	TxSlotDesc_t txSlot;
-	uint32_t payloadLength;
-	MicronetMessage_t txMessage;
-
-	if ((micronetCodec.GetNetworkId(message) == networkId) && (micronetCodec.VerifyHeaderCrc(message)))
-	{
-		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_REQUEST_DATA)
-		{
-			micronetCodec.GetNetworkMap(message, &networkMap);
-
-			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
-			txSlot = micronetCodec.GetSyncTransmissionSlot(message, deviceId);
-			if (txSlot.start_us != 0)
-			{
-				// TODO : include NavigationData into MicronetCodec
-				payloadLength = micronetCodec.EncodeDataMessage(&txMessage, latestSignalStrength, networkId, deviceId, &gNavData,
-						dataFields);
-				if (txSlot.payloadBytes < payloadLength)
-				{
-					txSlot = micronetCodec.GetAsyncTransmissionSlot(message);
-					micronetCodec.EncodeSlotUpdateMessage(&txMessage, latestSignalStrength, networkId, deviceId, payloadLength);
-				}
-			}
-			else
-			{
-				txSlot = micronetCodec.GetAsyncTransmissionSlot(message);
-				micronetCodec.EncodeSlotRequestMessage(&txMessage, latestSignalStrength, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
-			}
-
-			txMessage.startTime_us = txSlot.start_us;
-			messageFifo->Push(txMessage);
-		}
-	}
-}
+#endif /* VERSION_H_ */

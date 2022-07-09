@@ -31,6 +31,7 @@
 #include <Arduino.h>
 
 #include "BoardConfig.h"
+#include "Version.h"
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
 #include "Configuration.h"
@@ -62,7 +63,7 @@ void RfIsr();
 void PrintByte(uint8_t data);
 void PrintInt(uint32_t data);
 void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us);
-void PrintNetworkMap(NetworkMap_t *networkMap);
+void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap);
 void MenuAbout();
 void MenuScanNetworks();
 void MenuAttachNetwork();
@@ -274,7 +275,7 @@ void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us)
 	CONSOLE.println();
 }
 
-void PrintNetworkMap(NetworkMap_t *networkMap)
+void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap)
 {
 	CONSOLE.print("Network ID : 0x");
 	PrintInt(networkMap->networkId);
@@ -299,7 +300,10 @@ void PrintNetworkMap(NetworkMap_t *networkMap)
 
 void MenuAbout()
 {
-	CONSOLE.println("MicronetToNMEA, Version 0.9");
+	CONSOLE.println("MicronetToNMEA, Version ");
+	CONSOLE.print(MNET2NMEA_SW_MINOR_VERSION, DEC);
+	CONSOLE.print(".");
+	CONSOLE.println(MNET2NMEA_SW_MAJOR_VERSION, DEC);
 
 	CONSOLE.print("Device ID : ");
 	CONSOLE.println(gConfiguration.deviceId, HEX);
