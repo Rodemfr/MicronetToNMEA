@@ -83,6 +83,7 @@ public:
 		uint32_t nbSlots;
 		TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
 		TxSlotDesc_t asyncSlot;
+		TxSlotDesc_t ackSlot[MAX_DEVICES_PER_NETWORK];
 	};
 
 	MicronetCodec();
@@ -100,7 +101,9 @@ public:
 	void DecodeDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
 	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap *networkMap);
 	TxSlotDesc_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
-	TxSlotDesc_t GetAsyncTransmissionSlot(MicronetMessage_t *message);
+	TxSlotDesc_t GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
+	TxSlotDesc_t GetAsyncTransmissionSlot(NetworkMap *networkMap);
+	TxSlotDesc_t GetAckTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
 	uint8_t CalculateSignalStrength(MicronetMessage_t *message);
 	uint8_t GetDataMessageLength(uint32_t dataFields);
 	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
@@ -110,6 +113,7 @@ public:
 	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
 			uint8_t payloadLength);
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
+	uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 
 private:
 	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);

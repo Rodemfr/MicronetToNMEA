@@ -626,7 +626,10 @@ void MenuConvertToNmea()
 			{
 				lastHeadingTime = millis();
 				heading = gNavCompass.GetHeading();
-				gNavData.hdg_deg.value = heading;
+				gNavData.hdg_deg.value++;
+				if (gNavData.hdg_deg.value >= 360)
+					gNavData.hdg_deg.value = 0;
+//				gNavData.hdg_deg.value = heading;
 				gNavData.hdg_deg.valid = true;
 				gNavData.hdg_deg.timeStamp = lastHeadingTime;
 			}
@@ -668,7 +671,7 @@ void MenuScanAllMicronetTraffic()
 		{
 			if (gMicronetCodec.VerifyHeaderCrc(message))
 			{
-				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_REQUEST_DATA)
+				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 				{
 					CONSOLE.println("");
 					lastMasterRequest_us = message->endTime_us;
@@ -835,7 +838,7 @@ void MenuCalibrateRfFrequency()
 	{
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_REQUEST_DATA)
+			if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 			{
 				lastMessageTime = millis();
 				CONSOLE.print("*");
