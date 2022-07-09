@@ -41,14 +41,22 @@
 #define FREQUENCY_SYSTEM 0
 
 // Selects on which I2C bus is connected compass as per Wiring library definition
-#define NAVCOMPASS_I2C Wire1
+#define NAVCOMPASS_I2C Wire1  // SDA0: 18 SCL0: 19
 
 // CC1101/SPI pins
+#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
 #define CS0_PIN  10
 #define MOSI_PIN 11
 #define MISO_PIN 12
 #define SCK_PIN  14
 #define GDO0_PIN 24
+#else // Teensy 4.0 Configuration
+#define CS0_PIN  10
+#define MOSI_PIN 11
+#define MISO_PIN 12
+#define SCK_PIN  13
+#define GDO0_PIN 9
+#endif
 
 // ERROR LED pin
 #define LED_PIN LED_BUILTIN
@@ -65,11 +73,17 @@
 #define USB_BAUDRATE 115200
 
 // Wired UART params
+#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
 #define WIRED_NMEA     Serial5
 #define WIRED_BAUDRATE 115200
 #define WIRED_RX_PIN   34
 #define WIRED_TX_PIN   33
-
+#else // Teensy 4.0 Configuration#define WIRED_NMEA     Serial5
+#define WIRED_NMEA     Serial5
+#define WIRED_BAUDRATE 115200
+#define WIRED_RX_PIN   21
+#define WIRED_TX_PIN   20
+#endif
 // The console to use for menu and NMEA output
 #define CONSOLE  USB_NMEA
 #define NMEA_OUT USB_NMEA

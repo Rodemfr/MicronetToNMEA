@@ -28,6 +28,7 @@
 #define CC1101DRIVER_H_
 
 #include <Arduino.h>
+#include <SPI.h>
 
 #define CC1101_IOCFG2       0x00        // GDO2 output pin configuration
 #define CC1101_IOCFG1       0x01        // GDO1 output pin configuration
@@ -158,6 +159,8 @@ public:
 
 private:
 	float rfFreq_mHz;
+	SPISettings spiSettings;
+	uint32_t lastCSHigh;
 
 	void Reset(void);
 	void SetStaticConfig(void);

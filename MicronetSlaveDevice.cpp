@@ -52,7 +52,7 @@
 /***************************************************************************/
 
 MicronetSlaveDevice::MicronetSlaveDevice() :
-		deviceId(0), dataFields(0), networkId(0), latestSignalStrength(0)
+		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0)
 {
 }
 
