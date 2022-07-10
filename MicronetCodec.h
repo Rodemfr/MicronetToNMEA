@@ -81,6 +81,7 @@ public:
 		uint32_t nbDevices;
 		uint32_t masterDevice;
 		uint32_t nbSlots;
+		uint32_t firstSlot;
 		TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
 		TxSlotDesc_t asyncSlot;
 		TxSlotDesc_t ackSlot[MAX_DEVICES_PER_NETWORK];
@@ -100,7 +101,6 @@ public:
 
 	void DecodeDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
 	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap *networkMap);
-	TxSlotDesc_t GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId);
 	TxSlotDesc_t GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
 	TxSlotDesc_t GetAsyncTransmissionSlot(NetworkMap *networkMap);
 	TxSlotDesc_t GetAckTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);

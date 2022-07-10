@@ -161,7 +161,7 @@ void RfDriver::GDO0RxCallback()
 	message.len = packetLength;
 	message.rssi = cc1101Driver.GetRssi();
 	message.startTime_us = startTime_us;
-	message.endTime_us = startTime_us + PREAMBLE_LENGTH_IN_US + packetLength * BYTE_LENGTH_IN_US;
+	message.endTime_us = startTime_us + PREAMBLE_LENGTH_IN_US + packetLength * BYTE_LENGTH_IN_US + GUARD_TIME_IN_US;
 	messageFifo->Push(message);
 }
 
@@ -252,8 +252,6 @@ void RfDriver::ScheduleTransmit()
 		nextTransmitIndex = transmitIndex;
 		timerInt.trigger(transmitDelay);
 		interrupts();
-		CONSOLE.print("TX->");
-		CONSOLE.println(transmitList[transmitIndex].startTime_us);
 
 		return;
 	}
@@ -324,7 +322,6 @@ void RfDriver::TransmitCallback()
 	cc1101Driver.WriteTxFifo(0x55);
 	// Start transmission just after having filled FIFO with first byte to avoid latency
 	cc1101Driver.SetTx();
-	int delay = micros();
 
 	for (bytesInFifo = 1; bytesInFifo < MICRONET_RF_PREAMBLE_LENGTH; bytesInFifo++)
 		cc1101Driver.WriteTxFifo(0x55);
@@ -350,7 +347,4 @@ void RfDriver::TransmitCallback()
 		rfState = RF_STATE_TX_LAST_TRANSMIT;
 		cc1101Driver.DeIrqOnTxFifoEmpty();
 	}
-
-	CONSOLE.print("ISR ->");
-	CONSOLE.println(delay);
 }

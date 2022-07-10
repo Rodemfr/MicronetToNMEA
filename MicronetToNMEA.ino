@@ -290,12 +290,27 @@ void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap)
 		CONSOLE.print(" : 0x");
 		PrintInt(networkMap->syncSlot[i].deviceId);
 		CONSOLE.print(" ");
-		CONSOLE.print(networkMap->syncSlot[i].payloadBytes);
-		CONSOLE.print(" ");
-		CONSOLE.print(networkMap->syncSlot[i].start_us);
-		CONSOLE.print(" ");
-		CONSOLE.println(networkMap->syncSlot[i].length_us);
+		if (networkMap->syncSlot[i].start_us > 0)
+		{
+			CONSOLE.print(networkMap->syncSlot[i].payloadBytes);
+			CONSOLE.print(" ");
+			CONSOLE.print(networkMap->syncSlot[i].start_us - networkMap->firstSlot);
+			CONSOLE.print(" ");
+			CONSOLE.println(networkMap->syncSlot[i].length_us);
+		}
+		else
+		{
+			CONSOLE.println("-");
+		}
 	}
+
+	CONSOLE.print("Async : ");
+	CONSOLE.print(" ");
+	CONSOLE.print(networkMap->asyncSlot.payloadBytes);
+	CONSOLE.print(" ");
+	CONSOLE.print(networkMap->asyncSlot.start_us - networkMap->firstSlot);
+	CONSOLE.print(" ");
+	CONSOLE.println(networkMap->asyncSlot.length_us);
 }
 
 void MenuAbout()
@@ -625,10 +640,7 @@ void MenuConvertToNmea()
 			{
 				lastHeadingTime = millis();
 				heading = gNavCompass.GetHeading();
-				gNavData.hdg_deg.value++;
-				if (gNavData.hdg_deg.value >= 360)
-					gNavData.hdg_deg.value = 0;
-//				gNavData.hdg_deg.value = heading;
+				gNavData.hdg_deg.value = heading;
 				gNavData.hdg_deg.valid = true;
 				gNavData.hdg_deg.timeStamp = lastHeadingTime;
 			}

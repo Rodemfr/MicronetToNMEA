@@ -939,6 +939,8 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	deviceId |= message->data[MICRONET_PAYLOAD_OFFSET + 3];
 	networkMap->masterDevice = deviceId;
 
+	networkMap->firstSlot = message->endTime_us;
+
 	slotDelay_us = 0;
 	slotIndex = 0;
 	for (uint32_t i = 1; i < nbDevices; i++)
@@ -955,9 +957,9 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 		// A payload length of zero indicates that there is no slot reserved for the corresponding device.
 		if (payloadBytes != 0)
 		{
-			networkMap->syncSlot[slotIndex].start_us = message->endTime_us + slotDelay_us + GUARD_TIME_IN_US;
-			slotLength_us = (GUARD_TIME_IN_US + PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US) + (payloadBytes * BYTE_LENGTH_IN_US);
-			slotLength_us += ((slotLength_us + WINDOW_ROUNDING_TIME_US - 1) / WINDOW_ROUNDING_TIME_US) * WINDOW_ROUNDING_TIME_US;
+			networkMap->syncSlot[slotIndex].start_us = message->endTime_us + slotDelay_us;
+			slotLength_us = SYNC_WINDOW_OFFSET + HEADER_LENGTH_IN_US + (payloadBytes * BYTE_LENGTH_IN_US);
+			slotLength_us = ((slotLength_us + WINDOW_ROUNDING_TIME_US - 1) / WINDOW_ROUNDING_TIME_US) * WINDOW_ROUNDING_TIME_US;
 			slotDelay_us += slotLength_us;
 			networkMap->syncSlot[slotIndex].length_us = slotLength_us;
 		}
@@ -972,7 +974,7 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	networkMap->nbSlots = slotIndex;
 
 	networkMap->asyncSlot.deviceId = 0;
-	networkMap->asyncSlot.start_us = message->endTime_us + slotDelay_us + GUARD_TIME_IN_US + ASYNC_WINDOW_OFFSET;
+	networkMap->asyncSlot.start_us = message->endTime_us + slotDelay_us + ASYNC_WINDOW_OFFSET;
 	networkMap->asyncSlot.length_us = ASYNC_WINDOW_LENGTH;
 	networkMap->asyncSlot.payloadBytes = ASYNC_WINDOW_PAYLOAD;
 	slotDelay_us += ASYNC_WINDOW_LENGTH;
@@ -989,61 +991,12 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	return true;
 }
 
-TxSlotDesc_t MicronetCodec::GetSyncTransmissionSlot(MicronetMessage_t *message, uint32_t deviceId)
-{
-	uint32_t messageLength = message->len;
-	uint32_t offset;
-	uint32_t nbDevices;
-	uint32_t slotDelay_us;
-	uint8_t payloadBytes;
-	uint32_t currentDeviceId;
-
-	uint8_t crc = 0;
-	for (offset = MICRONET_PAYLOAD_OFFSET; offset < (uint32_t) (messageLength - 1); offset++)
-	{
-		crc += message->data[offset];
-	}
-
-	if (crc != message->data[messageLength - 1])
-	{
-		return
-		{	0,0,0,0};
-	}
-
-	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
-
-	slotDelay_us = 0;
-	for (uint32_t i = 1; i < nbDevices; i++)
-	{
-		// A payload length of zero indicates that there is not slot reserved for the corresponding device.
-		currentDeviceId = message->data[MICRONET_PAYLOAD_OFFSET + i * 5] << 24;
-		currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 1] << 16;
-		currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 2] << 8;
-		currentDeviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 3];
-		payloadBytes = message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4];
-		if (currentDeviceId == deviceId)
-		{
-			return
-			{	currentDeviceId, message->endTime_us + slotDelay_us + GUARD_TIME_IN_US, 0, payloadBytes};
-		}
-		if (message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4] != 0)
-		{
-			slotDelay_us += (GUARD_TIME_IN_US + PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US) + int(payloadBytes / 2.346) * 244;
-		}
-	}
-
-	return
-	{	0,0,0,0};
-}
-
 TxSlotDesc_t MicronetCodec::GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId)
 {
 	for (uint32_t i = 0; i < networkMap->nbSlots; i++)
 	{
 		if (networkMap->syncSlot[i].deviceId == deviceId)
 		{
-			CONSOLE.print("SL->");
-			CONSOLE.println(networkMap->syncSlot[i].start_us);
 			return networkMap->syncSlot[i];
 		}
 	}
