@@ -72,9 +72,9 @@ bool NmeaEncoder::EncodeMWV_R(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->awa_deg.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update |= (micronetData->aws_kt.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= (micronetData->awa_deg.valid && micronetData->aws_kt.valid);
+	update = (micronetData->awa_deg.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = (micronetData->aws_kt.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && (micronetData->awa_deg.valid && micronetData->aws_kt.valid);
 
 	if (update)
 	{
@@ -94,9 +94,9 @@ bool NmeaEncoder::EncodeMWV_T(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->twa_deg.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update |= (micronetData->tws_kt.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= (micronetData->twa_deg.valid && micronetData->tws_kt.valid);
+	update = (micronetData->twa_deg.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = (micronetData->tws_kt.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && (micronetData->twa_deg.valid && micronetData->tws_kt.valid);
 
 	if (update)
 	{
@@ -116,8 +116,8 @@ bool NmeaEncoder::EncodeDPT(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->dpt_m.timeStamp > timeStamps.dpt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= micronetData->dpt_m.valid;
+	update = (micronetData->dpt_m.timeStamp > timeStamps.dpt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && micronetData->dpt_m.valid;
 
 	if (update)
 	{
@@ -134,15 +134,14 @@ bool NmeaEncoder::EncodeMTW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->stp_degc.timeStamp > timeStamps.mtw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= micronetData->stp_degc.valid;
+	update = (micronetData->stp_degc.timeStamp > (timeStamps.mtw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS));
+	update = update && micronetData->stp_degc.valid;
 
 	if (update)
 	{
+		timeStamps.mtw = millis();
 		sprintf(sentence, "$INMTW,%.1f,C", micronetData->stp_degc.value);
 		AddNmeaChecksum(sentence);
-
-		timeStamps.mtw = millis();
 	}
 
 	return update;
@@ -152,9 +151,9 @@ bool NmeaEncoder::EncodeVLW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->log_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update |= (micronetData->trip_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= (micronetData->log_nm.valid && micronetData->trip_nm.valid);
+	update = (micronetData->log_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = (micronetData->trip_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && (micronetData->log_nm.valid && micronetData->trip_nm.valid);
 
 	if (update)
 	{
@@ -171,8 +170,8 @@ bool NmeaEncoder::EncodeVHW(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->stw_kt.timeStamp > timeStamps.vhw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= micronetData->stw_kt.valid;
+	update = (micronetData->stw_kt.timeStamp > timeStamps.vhw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && micronetData->stw_kt.valid;
 
 	if (update)
 	{
@@ -189,8 +188,8 @@ bool NmeaEncoder::EncodeHDG(NavigationData *micronetData, char *sentence)
 {
 	bool update = false;
 
-	update |= (micronetData->hdg_deg.timeStamp > timeStamps.hdg + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update &= micronetData->hdg_deg.valid;
+	update = (micronetData->hdg_deg.timeStamp > timeStamps.hdg + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && micronetData->hdg_deg.valid;
 
 	if (update)
 	{

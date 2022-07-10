@@ -171,6 +171,8 @@ private:
 	void SpiWriteBurstReg(byte addr, byte *buffer, byte num);
 	byte SpiReadReg(byte addr);
 	void SpiReadBurstReg(byte addr, byte *buffer, byte num);
+	void ChipSelect();
+	void ChipDeselect();
 };
 
 #endif

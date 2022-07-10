@@ -588,7 +588,6 @@ void MenuConvertToNmea()
 				gNavData.calibrationUpdated = false;
 				SaveCalibration();
 			}
-			gMicronetCodec.DecodeDataMessage(rxMessage, &gNavData);
 			gRxMessageFifo.DeleteMessage();
 		}
 

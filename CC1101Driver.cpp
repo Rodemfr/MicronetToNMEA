@@ -34,8 +34,8 @@
 #define READ_SINGLE     0x80
 #define READ_BURST      0xC0
 
-#define DELAY_BETWEEN_CS 8
-
+// Minimum delay in microseconds to enforce between two CS assertions
+#define DELAY_BETWEEN_CS_US 8
 
 byte freqOffset868[2] =
 { 65, 76 };
@@ -75,18 +75,17 @@ CC1101Driver::~CC1101Driver()
 
 void CC1101Driver::Reset(void)
 {
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 	delay(1);
-	digitalWrite(CS0_PIN, HIGH);
+	ChipDeselect();
 	delay(1);
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 	while (digitalRead(MISO_PIN))
 		;
 	SPI.transfer(CC1101_SRES);
 	while (digitalRead(MISO_PIN))
 		;
-	digitalWrite(CS0_PIN, HIGH);
-	lastCSHigh = micros();
+	ChipDeselect();
 }
 
 void CC1101Driver::Init(void)
@@ -100,16 +99,14 @@ void CC1101Driver::Init(void)
 
 void CC1101Driver::SpiWriteReg(byte addr, byte value)
 {
-	while(micros() < lastCSHigh + DELAY_BETWEEN_CS);
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
 	SPI.transfer(addr);
 	SPI.transfer(value);
 
-	digitalWrite(CS0_PIN, HIGH);
-	lastCSHigh = micros();
+	ChipDeselect();
 }
 
 void CC1101Driver::SpiWriteBurstReg(byte addr, byte *buffer, byte num)
@@ -118,8 +115,7 @@ void CC1101Driver::SpiWriteBurstReg(byte addr, byte *buffer, byte num)
 
 	temp = addr | WRITE_BURST;
 
-	while(micros() < lastCSHigh + DELAY_BETWEEN_CS);
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
@@ -129,21 +125,18 @@ void CC1101Driver::SpiWriteBurstReg(byte addr, byte *buffer, byte num)
 		SPI.transfer(buffer[i]);
 	}
 
-	digitalWrite(CS0_PIN, HIGH);
-	lastCSHigh = micros();
+	ChipDeselect();
 }
 
 void CC1101Driver::SpiStrobe(byte strobe)
 {
-	while(micros() < lastCSHigh + DELAY_BETWEEN_CS);
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
 	SPI.transfer(strobe);
 
-	digitalWrite(CS0_PIN, HIGH);
-	lastCSHigh = micros();
+	ChipDeselect();
 }
 
 byte CC1101Driver::SpiReadReg(byte addr)
@@ -152,16 +145,14 @@ byte CC1101Driver::SpiReadReg(byte addr)
 
 	temp = addr | READ_SINGLE;
 
-	while(micros() < lastCSHigh + DELAY_BETWEEN_CS);
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
 	SPI.transfer(temp);
 	value = SPI.transfer(0);
 
-	digitalWrite(CS0_PIN, HIGH);
-	lastCSHigh = micros();
+	ChipDeselect();
 
 	return value;
 }
@@ -172,8 +163,7 @@ void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
 
 	temp = addr | READ_BURST;
 
-	while(micros() < lastCSHigh + DELAY_BETWEEN_CS);
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
@@ -183,8 +173,7 @@ void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
 		buffer[i] = SPI.transfer(0);
 	}
 
-	digitalWrite(CS0_PIN, HIGH);
-	lastCSHigh = micros();
+	ChipDeselect();
 }
 
 byte CC1101Driver::SpiReadStatus(byte addr)
@@ -193,16 +182,14 @@ byte CC1101Driver::SpiReadStatus(byte addr)
 
 	temp = addr | READ_BURST;
 
-	while(micros() < lastCSHigh + DELAY_BETWEEN_CS);
-	digitalWrite(CS0_PIN, LOW);
+	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
 	SPI.transfer(temp);
 	value = SPI.transfer(0);
 
-	digitalWrite(CS0_PIN, HIGH);
-	lastCSHigh = micros();
+	ChipDeselect();
 
 	return value;
 }
@@ -555,4 +542,19 @@ void CC1101Driver::SetStaticConfig(void)
 	SpiWriteReg(CC1101_PKTLEN, 0x00);
 
 	SpiWriteBurstReg(CC1101_PATABLE, PA_TABLE, 8);
+}
+
+void CC1101Driver::ChipSelect()
+{
+	while (micros() < lastCSHigh + DELAY_BETWEEN_CS_US)
+	{
+	}
+
+	digitalWrite(CS0_PIN, LOW);
+}
+
+void CC1101Driver::ChipDeselect()
+{
+	digitalWrite(CS0_PIN, HIGH);
+	lastCSHigh = micros();
 }

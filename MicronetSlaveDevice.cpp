@@ -88,7 +88,6 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 			micronetCodec.GetNetworkMap(message, &networkMap);
 
 			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
-//			txSlot = micronetCodec.GetSyncTransmissionSlot(message, deviceId);
 			txSlot = micronetCodec.GetSyncTransmissionSlot(&networkMap, deviceId);
 			if (txSlot.start_us != 0)
 			{
@@ -109,6 +108,9 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 
 			txMessage.startTime_us = txSlot.start_us;
 			messageFifo->Push(txMessage);
+		} else {
+			// TODO : look for the best place where to put Nav data
+			gMicronetCodec.DecodeDataMessage(message, &gNavData);
 		}
 	}
 }

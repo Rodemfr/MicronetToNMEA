@@ -345,6 +345,6 @@ void RfDriver::TransmitCallback()
 	int delay = micros() - refTime;
 	// Start transmission
 	cc1101Driver.SetTx();
-	CONSOLE.print("->");
-	CONSOLE.println(delay);
+//	CONSOLE.print("->");
+//	CONSOLE.println(delay);
 }
