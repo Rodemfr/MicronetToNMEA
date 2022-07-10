@@ -236,6 +236,7 @@ void RfDriver::Transmit(MicronetMessage_t *message)
 
 void RfDriver::ScheduleTransmit()
 {
+	noInterrupts();
 	int transmitIndex = GetNextTransmitIndex();
 
 	if ((transmitIndex >= 0) && (transmitIndex != nextTransmitIndex))
@@ -244,16 +245,21 @@ void RfDriver::ScheduleTransmit()
 		if (transmitDelay <= 0)
 		{
 			transmitList[transmitIndex].startTime_us = 0;
+			interrupts();
 			return;
 		}
 		timerInt.stop();
 		nextTransmitIndex = transmitIndex;
 		timerInt.trigger(transmitDelay);
+		interrupts();
+		CONSOLE.print("TX->");
+		CONSOLE.println(transmitList[transmitIndex].startTime_us);
 
 		return;
 	}
 	else
 	{
+		interrupts();
 		return;
 	}
 }
@@ -313,11 +319,14 @@ void RfDriver::TransmitCallback()
 	cc1101Driver.SetLengthConfig(2);
 	cc1101Driver.FlushTxFifo();
 
-	int refTime = transmitList[nextTransmitIndex].startTime_us;
-
 	// Fill FIFO with preamble + sync byte
 	int bytesInFifo = 0;
-	for (bytesInFifo = 0; bytesInFifo < MICRONET_RF_PREAMBLE_LENGTH; bytesInFifo++)
+	cc1101Driver.WriteTxFifo(0x55);
+	// Start transmission just after having filled FIFO with first byte to avoid latency
+	cc1101Driver.SetTx();
+	int delay = micros();
+
+	for (bytesInFifo = 1; bytesInFifo < MICRONET_RF_PREAMBLE_LENGTH; bytesInFifo++)
 		cc1101Driver.WriteTxFifo(0x55);
 	cc1101Driver.WriteTxFifo(MICRONET_RF_SYNC_BYTE);
 
@@ -342,9 +351,6 @@ void RfDriver::TransmitCallback()
 		cc1101Driver.DeIrqOnTxFifoEmpty();
 	}
 
-	int delay = micros() - refTime;
-	// Start transmission
-	cc1101Driver.SetTx();
-//	CONSOLE.print("->");
-//	CONSOLE.println(delay);
+	CONSOLE.print("ISR ->");
+	CONSOLE.println(delay);
 }

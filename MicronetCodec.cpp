@@ -1041,7 +1041,11 @@ TxSlotDesc_t MicronetCodec::GetSyncTransmissionSlot(NetworkMap *networkMap, uint
 	for (uint32_t i = 0; i < networkMap->nbSlots; i++)
 	{
 		if (networkMap->syncSlot[i].deviceId == deviceId)
+		{
+			CONSOLE.print("SL->");
+			CONSOLE.println(networkMap->syncSlot[i].start_us);
 			return networkMap->syncSlot[i];
+		}
 	}
 
 	return
