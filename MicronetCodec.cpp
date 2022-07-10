@@ -974,7 +974,8 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	networkMap->nbSlots = slotIndex;
 
 	networkMap->asyncSlot.deviceId = 0;
-	networkMap->asyncSlot.start_us = message->endTime_us + slotDelay_us + ASYNC_WINDOW_OFFSET;
+	slotDelay_us += ASYNC_WINDOW_OFFSET;
+	networkMap->asyncSlot.start_us = message->endTime_us + slotDelay_us;
 	networkMap->asyncSlot.length_us = ASYNC_WINDOW_LENGTH;
 	networkMap->asyncSlot.payloadBytes = ASYNC_WINDOW_PAYLOAD;
 	slotDelay_us += ASYNC_WINDOW_LENGTH;
