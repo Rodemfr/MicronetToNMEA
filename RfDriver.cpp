@@ -75,22 +75,6 @@ void RfDriver::SetBandwidth(float bw_KHz)
 
 void RfDriver::GDO0Callback()
 {
-	if (rfState == RF_STATE_TX_TRANSMITTING)
-	{
-		GDO0TxCallback();
-	}
-	else if (rfState == RF_STATE_TX_LAST_TRANSMIT)
-	{
-		GDO0LastTxCallback();
-	}
-	else
-	{
-		GDO0RxCallback();
-	}
-}
-
-void RfDriver::GDO0RxCallback()
-{
 	static MicronetMessage_t message;
 	static int dataOffset;
 	static int packetLength;
@@ -165,45 +149,15 @@ void RfDriver::GDO0RxCallback()
 	messageFifo->Push(message);
 }
 
-void RfDriver::GDO0TxCallback()
-{
-	int bytesInFifo = cc1101Driver.GetTxFifoLevel();
-
-	if (nextTransmitIndex < 0)
-	{
-		RestartReception();
-	}
-
-	while ((bytesInFifo < 62) && (messageBytesSent < transmitList[nextTransmitIndex].len))
-	{
-		cc1101Driver.WriteTxFifo(transmitList[nextTransmitIndex].data[messageBytesSent++]);
-		bytesInFifo++;
-	}
-
-	if (messageBytesSent >= transmitList[nextTransmitIndex].len)
-	{
-		transmitList[nextTransmitIndex].startTime_us = 0;
-		nextTransmitIndex = -1;
-		rfState = RF_STATE_TX_LAST_TRANSMIT;
-		cc1101Driver.DeIrqOnTxFifoEmpty();
-	}
-}
-
-void RfDriver::GDO0LastTxCallback()
-{
-	RestartReception();
-	ScheduleTransmit();
-}
-
 void RfDriver::RestartReception()
 {
 	cc1101Driver.SetSidle();
 	cc1101Driver.FlushRxFifo();
-	rfState = RF_STATE_RX_HEADER;
 	cc1101Driver.SetFifoThreshold(CC1101_RXFIFOTHR_16);
 	cc1101Driver.IrqOnRxFifoThreshold();
 	cc1101Driver.SetSyncMode(2);
 	cc1101Driver.SetLengthConfig(2);
+	rfState = RF_STATE_RX_HEADER;
 	cc1101Driver.SetRx();
 }
 
@@ -236,7 +190,6 @@ void RfDriver::Transmit(MicronetMessage_t *message)
 
 void RfDriver::ScheduleTransmit()
 {
-	noInterrupts();
 	int transmitIndex = GetNextTransmitIndex();
 
 	if ((transmitIndex >= 0) && (transmitIndex != nextTransmitIndex))
@@ -245,19 +198,16 @@ void RfDriver::ScheduleTransmit()
 		if (transmitDelay <= 0)
 		{
 			transmitList[transmitIndex].startTime_us = 0;
-			interrupts();
 			return;
 		}
-		timerInt.stop();
 		nextTransmitIndex = transmitIndex;
 		timerInt.trigger(transmitDelay);
-		interrupts();
 
 		return;
 	}
 	else
 	{
-		interrupts();
+		timerInt.stop();
 		return;
 	}
 }
@@ -305,6 +255,8 @@ void RfDriver::TimerHandler()
 
 void RfDriver::TransmitCallback()
 {
+	int bytesInFifo;
+
 	if (nextTransmitIndex < 0)
 	{
 		RestartReception();
@@ -312,39 +264,40 @@ void RfDriver::TransmitCallback()
 	}
 
 	// Change CC1101 configuration for transmission
+	rfState = RF_STATE_TX_TRANSMITTING;
 	cc1101Driver.SetSidle();
 	cc1101Driver.SetSyncMode(0);
 	cc1101Driver.SetLengthConfig(2);
 	cc1101Driver.FlushTxFifo();
 
 	// Fill FIFO with preamble + sync byte
-	int bytesInFifo = 0;
 	cc1101Driver.WriteTxFifo(0x55);
 	// Start transmission just after having filled FIFO with first byte to avoid latency
 	cc1101Driver.SetTx();
 
-	for (bytesInFifo = 1; bytesInFifo < MICRONET_RF_PREAMBLE_LENGTH; bytesInFifo++)
+	for (int i = 1; i < MICRONET_RF_PREAMBLE_LENGTH; i++)
+	{
 		cc1101Driver.WriteTxFifo(0x55);
+	}
 	cc1101Driver.WriteTxFifo(MICRONET_RF_SYNC_BYTE);
 
 	messageBytesSent = 0;
-	while ((bytesInFifo < 62) && (messageBytesSent < transmitList[nextTransmitIndex].len))
+	do
 	{
-		cc1101Driver.WriteTxFifo(transmitList[nextTransmitIndex].data[messageBytesSent++]);
-		bytesInFifo++;
+		bytesInFifo = cc1101Driver.GetTxFifoLevel();
+		if (bytesInFifo < 60)
+		{
+			cc1101Driver.WriteTxFifo(transmitList[nextTransmitIndex].data[messageBytesSent++]);
+		}
+	} while (messageBytesSent < transmitList[nextTransmitIndex].len);
+
+	transmitList[nextTransmitIndex].startTime_us = 0;
+	nextTransmitIndex = -1;
+
+	while ((cc1101Driver.GetTxFifoLevel() & 0x80) != 0x80)
+	{
 	}
 
-	if (messageBytesSent < transmitList[nextTransmitIndex].len)
-	{
-		rfState = RF_STATE_TX_TRANSMITTING;
-		cc1101Driver.SetFifoThreshold(CC1101_TXFIFOTHR_17);
-		cc1101Driver.IrqOnTxFifoLow();
-	}
-	else
-	{
-		transmitList[nextTransmitIndex].startTime_us = 0;
-		nextTransmitIndex = -1;
-		rfState = RF_STATE_TX_LAST_TRANSMIT;
-		cc1101Driver.DeIrqOnTxFifoEmpty();
-	}
+	RestartReception();
+	ScheduleTransmit();
 }

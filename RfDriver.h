@@ -51,9 +51,6 @@ private:
 	void ScheduleTransmit();
 	int GetNextTransmitIndex();
 	int GetFreeTransmitSlot();
-	void GDO0RxCallback();
-	void GDO0TxCallback();
-	void GDO0LastTxCallback();
 	void TransmitCallback();
 	static void TimerHandler();
 	static RfDriver *rfDriver;

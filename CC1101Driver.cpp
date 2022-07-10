@@ -506,7 +506,8 @@ void CC1101Driver::SetStaticConfig(void)
 	SpiWriteReg(CC1101_FSCTRL1, 0x06);
 
 	// CC Mode
-	SpiWriteReg(CC1101_IOCFG2, 0x0B);
+	SpiWriteReg(CC1101_IOCFG2, 0x6F);
+	SpiWriteReg(CC1101_IOCFG1, 0x6F);
 	SpiWriteReg(CC1101_IOCFG0, 0x06);
 	SpiWriteReg(CC1101_PKTCTRL0, 0x05);
 	SpiWriteReg(CC1101_MDMCFG3, 0xF8);
