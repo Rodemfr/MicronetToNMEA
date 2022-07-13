@@ -110,14 +110,13 @@
 #define BYTE_LENGTH_IN_US       104
 #define WINDOW_ROUNDING_TIME_US 244
 #define PREAMBLE_LENGTH_IN_US   1771
-#define HEADER_LENGTH_IN_US     1458
-#define GUARD_TIME_IN_US        2000
-#define SYNC_WINDOW_OFFSET		3675
-#define ASYNC_WINDOW_OFFSET     5400
-#define ASYNC_WINDOW_LENGTH		6901
-#define ASYNC_WINDOW_PAYLOAD	31
-#define ACK_WINDOW_LENGTH		5368
-#define ACK_WINDOW_PAYLOAD      14
+#define HEADER_LENGTH_IN_US     1456
+#define GUARD_TIME_IN_US        1893
+#define ASYNC_WINDOW_OFFSET     7200
+#define ASYNC_WINDOW_LENGTH		7200
+#define ASYNC_WINDOW_PAYLOAD	20
+#define ACK_WINDOW_LENGTH		5328
+#define ACK_WINDOW_PAYLOAD      2
 
 /***************************************************************************/
 /*                                Types                                    */

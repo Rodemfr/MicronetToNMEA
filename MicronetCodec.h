@@ -80,10 +80,11 @@ public:
 		uint32_t networkId;
 		uint32_t nbDevices;
 		uint32_t masterDevice;
-		uint32_t nbSlots;
 		uint32_t firstSlot;
+		uint32_t nbSyncSlots;
 		TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
 		TxSlotDesc_t asyncSlot;
+		uint32_t nbAckSlots;
 		TxSlotDesc_t ackSlot[MAX_DEVICES_PER_NETWORK];
 	};
 

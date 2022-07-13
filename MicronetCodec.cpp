@@ -930,8 +930,8 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	networkMap->networkId = networkId;
 
 	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
-	networkMap->nbDevices = nbDevices;
-	networkMap->nbSlots = 0;
+	networkMap->nbSyncSlots = nbDevices;
+	networkMap->nbSyncSlots = 0;
 
 	deviceId = message->data[MICRONET_PAYLOAD_OFFSET] << 24;
 	deviceId |= message->data[MICRONET_PAYLOAD_OFFSET + 1] << 16;
@@ -958,7 +958,7 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 		if (payloadBytes != 0)
 		{
 			networkMap->syncSlot[slotIndex].start_us = message->endTime_us + slotDelay_us;
-			slotLength_us = SYNC_WINDOW_OFFSET + HEADER_LENGTH_IN_US + (payloadBytes * BYTE_LENGTH_IN_US);
+			slotLength_us = PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US + (payloadBytes * BYTE_LENGTH_IN_US) + GUARD_TIME_IN_US;
 			slotLength_us = ((slotLength_us + WINDOW_ROUNDING_TIME_US - 1) / WINDOW_ROUNDING_TIME_US) * WINDOW_ROUNDING_TIME_US;
 			slotDelay_us += slotLength_us;
 			networkMap->syncSlot[slotIndex].length_us = slotLength_us;
@@ -971,7 +971,7 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 
 		slotIndex++;
 	}
-	networkMap->nbSlots = slotIndex;
+	networkMap->nbSyncSlots = slotIndex;
 
 	networkMap->asyncSlot.deviceId = 0;
 	slotDelay_us += ASYNC_WINDOW_OFFSET;
@@ -980,21 +980,27 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	networkMap->asyncSlot.payloadBytes = ASYNC_WINDOW_PAYLOAD;
 	slotDelay_us += ASYNC_WINDOW_LENGTH;
 
-	for (uint32_t i = 0; i < networkMap->nbSlots; i++)
+	for (uint32_t i = 0; i < networkMap->nbSyncSlots; i++)
 	{
-		networkMap->ackSlot[i].deviceId = networkMap->ackSlot[networkMap->nbSlots - 1 - i].deviceId;
-		networkMap->ackSlot[i].start_us = message->endTime_us + slotDelay_us + GUARD_TIME_IN_US;
+		networkMap->ackSlot[i].deviceId = networkMap->syncSlot[networkMap->nbSyncSlots - 1 - i].deviceId;
+		networkMap->ackSlot[i].start_us = message->endTime_us + slotDelay_us;
 		networkMap->ackSlot[i].length_us = ACK_WINDOW_LENGTH;
 		networkMap->ackSlot[i].payloadBytes = ACK_WINDOW_PAYLOAD;
 		slotDelay_us += ACK_WINDOW_LENGTH;
 	}
+
+	networkMap->ackSlot[networkMap->nbSyncSlots].deviceId = networkMap->masterDevice;
+	networkMap->ackSlot[networkMap->nbSyncSlots].start_us = message->endTime_us + slotDelay_us;
+	networkMap->ackSlot[networkMap->nbSyncSlots].length_us = ACK_WINDOW_LENGTH;
+	networkMap->ackSlot[networkMap->nbSyncSlots].payloadBytes = ACK_WINDOW_PAYLOAD;
+	networkMap->nbAckSlots = networkMap->nbSyncSlots + 1;
 
 	return true;
 }
 
 TxSlotDesc_t MicronetCodec::GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId)
 {
-	for (uint32_t i = 0; i < networkMap->nbSlots; i++)
+	for (uint32_t i = 0; i < networkMap->nbSyncSlots; i++)
 	{
 		if (networkMap->syncSlot[i].deviceId == deviceId)
 		{
@@ -1013,7 +1019,7 @@ TxSlotDesc_t MicronetCodec::GetAsyncTransmissionSlot(NetworkMap *networkMap)
 
 TxSlotDesc_t MicronetCodec::GetAckTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId)
 {
-	for (uint32_t i = 0; i < networkMap->nbSlots; i++)
+	for (uint32_t i = 0; i < networkMap->nbAckSlots; i++)
 	{
 		if (networkMap->ackSlot[i].deviceId == deviceId)
 			return networkMap->ackSlot[i];

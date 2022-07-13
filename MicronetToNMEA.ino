@@ -282,10 +282,15 @@ void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap)
 	CONSOLE.println("");
 
 	CONSOLE.print("Nb Devices : ");
-	CONSOLE.println(networkMap->nbDevices);
+	CONSOLE.println(networkMap->nbSyncSlots);
+	CONSOLE.print("Master : ");
+	CONSOLE.print(" : 0x");
+	PrintInt(networkMap->masterDevice);
+	CONSOLE.println("");
 
-	for (uint32_t i = 0; i < networkMap->nbSlots; i++)
+	for (uint32_t i = 0; i < networkMap->nbSyncSlots; i++)
 	{
+		CONSOLE.print("S");
 		CONSOLE.print(i);
 		CONSOLE.print(" : 0x");
 		PrintInt(networkMap->syncSlot[i].deviceId);
@@ -311,6 +316,21 @@ void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap)
 	CONSOLE.print(networkMap->asyncSlot.start_us - networkMap->firstSlot);
 	CONSOLE.print(" ");
 	CONSOLE.println(networkMap->asyncSlot.length_us);
+
+	for (uint32_t i = 0; i < networkMap->nbAckSlots; i++)
+	{
+		CONSOLE.print("A");
+		CONSOLE.print(i);
+		CONSOLE.print(" : 0x");
+		PrintInt(networkMap->ackSlot[i].deviceId);
+		CONSOLE.print(" ");
+		CONSOLE.print(networkMap->ackSlot[i].payloadBytes);
+		CONSOLE.print(" ");
+		CONSOLE.print(networkMap->ackSlot[i].start_us - networkMap->firstSlot);
+		CONSOLE.print(" ");
+		CONSOLE.println(networkMap->ackSlot[i].length_us);
+	}
+	CONSOLE.println("");
 }
 
 void MenuAbout()
@@ -603,6 +623,7 @@ void MenuConvertToNmea()
 				gNavData.calibrationUpdated = false;
 				SaveCalibration();
 			}
+
 			gRxMessageFifo.DeleteMessage();
 		}
 
@@ -668,6 +689,7 @@ void MenuScanAllMicronetTraffic()
 {
 	bool exitSniffLoop = false;
 	uint32_t lastMasterRequest_us = 0;
+	MicronetCodec::NetworkMap networkMap;
 
 	CONSOLE.println("Starting Micronet traffic scanning.");
 	CONSOLE.println("Press ESC key at any time to stop scanning and come back to menu.");
@@ -686,6 +708,8 @@ void MenuScanAllMicronetTraffic()
 				{
 					CONSOLE.println("");
 					lastMasterRequest_us = message->endTime_us;
+					gMicronetCodec.GetNetworkMap(message, &networkMap);
+					PrintNetworkMap(&networkMap);
 				}
 				PrintRawMessage(message, lastMasterRequest_us);
 			}

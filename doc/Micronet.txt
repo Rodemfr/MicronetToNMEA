@@ -89,14 +89,14 @@ Each slave device has a "transmission window" made of :
    - Preamble + sync word : 16 bytes set at 0x55 (preamble) followed by 0x99 (sync by). The total duration of this
      part is 1771us
    - Message data : (14 + PL) bytes of message data
-   - a 1904us "guard time" during which nothing should be transmitted. Its role is to give time for slave devices to
+   - a 1893ms "guard time" during which nothing should be transmitted. Its role is to give time for slave devices to
      process the message. It also gives "space" on the line to cop-up with non precise transmission starts.
    - Transmission window is rounded to the upper 244us
    
-|-----------------------------------------------------------------------------|
-| preamble | 0x5599 |   Micronet message  |    Guard time    | 244us rounding |
-|-----------------------------------------------------------------------------|
-|       1771us      |  (14 + PL) * 104us  |      1904us      |    0-244us     |
+|---------------------------------------------------------------------------|
+| preamble | 0x99 |   Micronet message  |    Guard time    | 244us rounding |
+|---------------------------------------------------------------------------|
+|      1771us     |  (14 + PL) * 104us  |      1893ms      |    0-243us     |
 
 Slave devices must answer in the same order than defined in "Master request" message. PL parameter is also provided
 by Master request message for each slave device, allowing calculation of each window. A slave device knows the start
@@ -122,12 +122,12 @@ Typical usages of this window are :
    
 The structure of the asynchronous window is :
 
-|-----------------------------------------------------------------------------|
-| preamble | 0x5599 |   Micronet message  |    Guard time    | 244us rounding |
-|-----------------------------------------------------------------------------|
-|       1771us      |  (14 + 17) * 104us  |      1904us      |    0-244us     |
+|----------------------------------------------------------|
+| preamble | 0x99 |   Micronet message  |    Guard time    |
+|----------------------------------------------------------|
+|      1771us     |  (14 + 20) * 104us  |      1893ms      |
 
-Note that asynchronous commands can not exceed a payload of 17 bytes. Asynchronous window starts 5400us after the end of
+Note that asynchronous commands can not exceed a payload of 20 bytes. Asynchronous window starts 7200us after the end of
 the last synchronous window. Since asynchronous commands are subject to collisions (any device can potentially talk in
 this window), they generally require an acknowledge from the other devices. As an example, a display device could send a
  parameter update message (0x06) which requires all other devices to acknowledge it with message 0x07. In that case
@@ -138,10 +138,10 @@ this window), they generally require an acknowledge from the other devices. As a
 
 These Ack windows have the following structure :
 
-|-----------------------------------------------------------------------------|
-| preamble | 0x5599 |   Micronet message  |    Guard time    | 244us rounding |
-|-----------------------------------------------------------------------------|
-|       1771us      |      14 * 104us     |      1904us      |    0-244us     |
+|----------------------------------------------------------|
+| preamble | 0x99 |   Micronet message  |    Guard time    |
+|----------------------------------------------------------|
+|      1771us     |      16 * 104us     |      1893ms      |
 
 They are located just after each others. And devices will response in reverse order compared to "Master Request"
 device list.
@@ -151,7 +151,7 @@ Knowing all of this, here is an example cycle of a network composed of devices A
 |--------------|-----------------------------------|--------|------------|--------------------------------------------|
 |   Initial    |            Synchronous            |        |Asynchronous|                Acknowledge                 |
 |--------------|--------|--------|--------|--------|--------|------------|--------|--------|--------|--------|--------|
-| A:0x01(BCDE) | B:0x02 | C:0x02 | D:0x02 | E:0x02 | 5400us |   C:0x06   | E:0x07 | D:0x07 | C:0x07 | B:0x07 | A:0x07 | 
+| A:0x01(BCDE) | B:0x02 | C:0x02 | D:0x02 | E:0x02 | 7200us |   C:0x06   | E:0x07 | D:0x07 | C:0x07 | B:0x07 | A:0x07 | 
 |--------------|--------|--------|--------|--------|--------|------------|--------|--------|--------|--------|--------|
 
 **************************************
