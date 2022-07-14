@@ -75,10 +75,10 @@ void RfDriver::SetBandwidth(float bw_KHz)
 
 void RfDriver::GDO0Callback()
 {
-	static MicronetMessage_t message;
-	static int dataOffset;
-	static int packetLength;
-	static uint32_t startTime_us;
+	MicronetMessage_t message;
+	int dataOffset;
+	int packetLength;
+	uint32_t startTime_us;
 	uint8_t nbBytes;
 
 	if (rfState == RF_STATE_RX_WAIT_SYNC)
@@ -175,7 +175,6 @@ void RfDriver::Transmit(MicronetMessageFifo *txMessageFifo)
 		Transmit(txMessage);
 		txMessageFifo->DeleteMessage();
 	}
-
 }
 
 void RfDriver::Transmit(MicronetMessage_t *message)
@@ -212,9 +211,9 @@ void RfDriver::ScheduleTransmit()
 		if (transmitIndex != nextTransmitIndex)
 		{
 			transmitDelay = transmitList[transmitIndex].startTime_us - micros();
-			if (transmitDelay <= 0)
+			if ((transmitDelay <= 0) || (transmitDelay > 1000000))
 			{
-				// Transmit already in the past : delete it and schedule the next one
+				// Transmit already in the past, or invalid : delete it and schedule the next one
 				transmitList[transmitIndex].startTime_us = 0;
 				continue;
 			}

@@ -547,8 +547,13 @@ void CC1101Driver::SetStaticConfig(void)
 
 void CC1101Driver::ChipSelect()
 {
-	while (micros() < lastCSHigh + DELAY_BETWEEN_CS_US)
+	uint32_t nextCSLow = lastCSHigh + DELAY_BETWEEN_CS_US;
+
+	while (micros() < nextCSLow)
 	{
+		// Exit loop in case micros() counter loops on 2^32
+		if (micros() < lastCSHigh)
+			break;
 	}
 
 	digitalWrite(CS0_PIN, LOW);
