@@ -682,6 +682,12 @@ void MenuConvertToNmea()
 		gNavData.UpdateValidity();
 
 		yield();
+
+		// Enter sleep mode to save power. CPU will be waken-up on next interrupt
+		asm (
+				"wfi\n"
+				);
+
 	} while (!exitNmeaLoop);
 }
 
