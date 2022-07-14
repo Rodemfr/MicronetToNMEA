@@ -53,9 +53,11 @@ public:
 
 	bool Push(MicronetMessage_t &message);
 	bool Pop(MicronetMessage_t *message);
+	MicronetMessage_t *Peek(int index);
 	MicronetMessage_t *Peek();
 	void DeleteMessage();
 	void ResetFifo();
+	int GetNbMessages();
 
 private:
 	int writeIndex;

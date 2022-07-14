@@ -100,7 +100,7 @@ public:
 	uint8_t GetHeaderCrc(MicronetMessage_t *message);
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
-	void DecodeDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
+	bool DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
 	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap *networkMap);
 	TxSlotDesc_t GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
 	TxSlotDesc_t GetAsyncTransmissionSlot(NetworkMap *networkMap);
@@ -128,7 +128,7 @@ private:
 	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
 	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
-	uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
+	uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t fieldData, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
 	uint8_t AddQuad16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2, int16_t value3, int16_t value4);
 	uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
 	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);

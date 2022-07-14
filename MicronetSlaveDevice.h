@@ -66,6 +66,7 @@ private:
 	uint32_t networkId;
 	uint32_t dataFields;
 	uint8_t latestSignalStrength;
+	uint32_t firstSlot;
 };
 
 #endif /* MICRONETSLAVEDEVICE_H_ */

@@ -52,7 +52,7 @@
 /***************************************************************************/
 
 MicronetSlaveDevice::MicronetSlaveDevice() :
-		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0)
+		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0), firstSlot(0)
 {
 }
 
@@ -85,6 +85,7 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	{
 		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 		{
+			firstSlot = message->endTime_us;
 			micronetCodec.GetNetworkMap(message, &networkMap);
 
 			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
@@ -110,7 +111,15 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 			messageFifo->Push(txMessage);
 		} else {
 			// TODO : look for the best place where to put Nav data
-			gMicronetCodec.DecodeDataMessage(message, &gNavData);
+			if (gMicronetCodec.DecodeMessage(message, &gNavData))
+			{
+				txSlot = micronetCodec.GetAckTransmissionSlot(&networkMap, deviceId);
+				micronetCodec.EncodeAckParamMessage(&txMessage, latestSignalStrength, networkId, deviceId);
+				txMessage.startTime_us = txSlot.start_us;
+				messageFifo->Push(txMessage);
+				CONSOLE.print("Ack : ");
+				CONSOLE.println(txSlot.start_us - firstSlot);
+			}
 		}
 	}
 }

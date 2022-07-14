@@ -130,7 +130,7 @@ void setup()
 	gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION);
 	gMicronetDevice3.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice3.SetDeviceId(gConfiguration.deviceId + 2);
-	gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW);
+	gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO);
 	gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice4.SetDeviceId(gConfiguration.deviceId + 3);
 	gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP);
@@ -601,6 +601,7 @@ void MenuConvertToNmea()
 			gMicronetDevice2.ProcessMessage(rxMessage, &txMessageFifo);
 			gMicronetDevice3.ProcessMessage(rxMessage, &txMessageFifo);
 			gMicronetDevice4.ProcessMessage(rxMessage, &txMessageFifo);
+
 			gRfReceiver.Transmit(&txMessageFifo);
 
 			if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))

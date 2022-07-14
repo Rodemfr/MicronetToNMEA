@@ -132,8 +132,10 @@ bool MicronetCodec::VerifyHeaderCrc(MicronetMessage_t *message)
 	return (crc == message->data[MICRONET_CRC_OFFSET]);
 }
 
-void MicronetCodec::DecodeDataMessage(MicronetMessage_t *message, NavigationData *dataSet)
+bool MicronetCodec::DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet)
 {
+	bool ackRequested = false;
+
 	switch (message->data[MICRONET_MI_OFFSET])
 	{
 	case MICRONET_MESSAGE_ID_SEND_DATA:
@@ -141,8 +143,11 @@ void MicronetCodec::DecodeDataMessage(MicronetMessage_t *message, NavigationData
 		break;
 	case MICRONET_MESSAGE_ID_SET_PARAMETER:
 		DecodeSetParameterMessage(message, dataSet);
+		ackRequested = true;
 		break;
 	}
+
+	return ackRequested;
 }
 
 void MicronetCodec::DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet)
@@ -499,7 +504,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
-		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, MNET2NMEA_SW_MINOR_VERSION,
+		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, deviceId >> 24, MNET2NMEA_SW_MINOR_VERSION,
 		MNET2NMEA_SW_MAJOR_VERSION, 0x03, signalStrength);
 	}
 
@@ -750,14 +755,14 @@ uint8_t MicronetCodec::AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int
 	return offset;
 }
 
-uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3,
+uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t fieldData, uint8_t value1, uint8_t value2, uint8_t value3,
 		uint8_t value4)
 {
 	int offset = 0;
 
 	buffer[offset++] = 0x06;
 	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x10;
+	buffer[offset++] = 0x03;
 
 	buffer[offset++] = value1;
 	buffer[offset++] = value2;
@@ -1035,21 +1040,21 @@ uint8_t MicronetCodec::CalculateSignalStrength(MicronetMessage_t *message)
 
 	if (rssi < -95)
 		return 0;
-	else if (rssi < 90)
+	else if (rssi < -90)
 		return 1;
-	else if (rssi < 85)
+	else if (rssi < -85)
 		return 2;
-	else if (rssi < 80)
+	else if (rssi < -80)
 		return 3;
-	else if (rssi < 75)
+	else if (rssi < -75)
 		return 4;
-	else if (rssi < 70)
+	else if (rssi < -70)
 		return 5;
-	else if (rssi < 65)
+	else if (rssi < -65)
 		return 6;
-	else if (rssi < 60)
+	else if (rssi < -60)
 		return 7;
-	else if (rssi < 55)
+	else if (rssi < -55)
 		return 8;
 	else
 		return 9;
