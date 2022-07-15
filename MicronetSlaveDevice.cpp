@@ -35,6 +35,8 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+#define NETWORK_TIMEOUT_MS 10000
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
@@ -52,7 +54,7 @@
 /***************************************************************************/
 
 MicronetSlaveDevice::MicronetSlaveDevice() :
-		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0), firstSlot(0)
+		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0), firstSlot(0), networkStatus(NETWORK_STATUS_NOT_FOUND), lastNetworkMessage_us(0)
 {
 }
 
@@ -81,10 +83,17 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	uint32_t payloadLength;
 	MicronetMessage_t txMessage;
 
+	if ((micros() - lastNetworkMessage_us) > NETWORK_TIMEOUT_MS)
+	{
+		networkStatus = NETWORK_STATUS_NOT_FOUND;
+	}
+
 	if ((micronetCodec.GetNetworkId(message) == networkId) && (micronetCodec.VerifyHeaderCrc(message)))
 	{
 		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 		{
+			networkStatus = NETWORK_STATUS_FOUND;
+			lastNetworkMessage_us = message->startTime_us;
 			firstSlot = message->endTime_us;
 			micronetCodec.GetNetworkMap(message, &networkMap);
 

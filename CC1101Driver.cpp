@@ -479,6 +479,11 @@ void CC1101Driver::SetSidle(void)
 	SpiStrobe(CC1101_SIDLE);
 }
 
+void CC1101Driver::SetSxoff(void)
+{
+	SpiStrobe(CC1101_SXOFF);
+}
+
 int CC1101Driver::GetRssi(void)
 {
 	int rssi;
