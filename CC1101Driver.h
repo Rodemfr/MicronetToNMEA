@@ -30,6 +30,8 @@
 #include <Arduino.h>
 #include <SPI.h>
 
+#define FREQ_ESTIMATION_ARRAY_SIZE 32
+
 #define CC1101_IOCFG2       0x00        // GDO2 output pin configuration
 #define CC1101_IOCFG1       0x01        // GDO1 output pin configuration
 #define CC1101_IOCFG0       0x02        // GDO0 output pin configuration
@@ -81,18 +83,11 @@
 //CC1101 Strobe commands
 #define CC1101_SRES         0x30        // Reset chip.
 #define CC1101_SFSTXON      0x31        // Enable and calibrate frequency synthesizer (if MCSM0.FS_AUTOCAL=1).
-// If in RX/TX: Go to a wait state where only the synthesizer is
-// running (for quick RX / TX turnaround).
 #define CC1101_SXOFF        0x32        // Turn off crystal oscillator.
 #define CC1101_SCAL         0x33        // Calibrate frequency synthesizer and turn it off
-// (enables quick start).
 #define CC1101_SRX          0x34        // Enable RX. Perform calibration first if coming from IDLE and
-// MCSM0.FS_AUTOCAL=1.
 #define CC1101_STX          0x35        // In IDLE state: Enable TX. Perform calibration first if
-// MCSM0.FS_AUTOCAL=1. If in RX state and CCA is enabled:
-// Only go to TX if channel is clear.
 #define CC1101_SIDLE        0x36        // Exit RX / TX, turn off frequency synthesizer and exit
-// Wake-On-Radio mode if applicable.
 #define CC1101_SAFC         0x37        // Perform AFC adjustment of the frequency synthesizer
 #define CC1101_SWOR         0x38        // Start automatic RX polling sequence (Wake-on-Radio)
 #define CC1101_SPWD         0x39        // Enter power down mode when CSn goes high.
@@ -100,7 +95,7 @@
 #define CC1101_SFTX         0x3B        // Flush the TX FIFO buffer.
 #define CC1101_SWORRST      0x3C        // Reset real time clock.
 #define CC1101_SNOP         0x3D        // No operation. May be used to pad strobe commands to two
-// INT8Us for simpler software.
+
 //CC1101 STATUS REGISTER
 #define CC1101_PARTNUM      0x30
 #define CC1101_VERSION      0x31
@@ -158,11 +153,15 @@ public:
 	void SetFifoThreshold(uint8_t fifoThreshold);
 	void FlushRxFifo();
 	void FlushTxFifo();
+	void UpdateFreqOffset();
 
 private:
 	float rfFreq_mHz;
 	SPISettings spiSettings;
 	uint32_t lastCSHigh;
+	int freqEstArrayIndex;
+	uint8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
+	bool freqEstArrayFilled;
 
 	void Reset(void);
 	void SetStaticConfig(void);

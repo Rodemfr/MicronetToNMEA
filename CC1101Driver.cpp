@@ -48,7 +48,8 @@ uint8_t PA_TABLE[8]
 { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 CC1101Driver::CC1101Driver() :
-		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), lastCSHigh(0)
+		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), lastCSHigh(0), freqEstArrayIndex(0), freqEstArrayFilled(
+				false)
 {
 	SPI.setMOSI(MOSI_PIN);
 	SPI.setMISO(MISO_PIN);
@@ -497,7 +498,7 @@ void CC1101Driver::ActivePower()
 	// Let time to CC1101 to restart its XTAL
 	timeRef = micros();
 	timeLimit = timeRef + XTAL_RESTART_TIME_US;
-	while(micros() < timeLimit)
+	while (micros() < timeLimit)
 	{
 		if (micros() < timeRef)
 			break;
@@ -588,4 +589,35 @@ void CC1101Driver::ChipDeselect()
 {
 	digitalWrite(CS0_PIN, HIGH);
 	lastCSHigh = micros();
+}
+
+void CC1101Driver::UpdateFreqOffset()
+{
+	uint8_t freqEst;
+	uint32_t averageFreqEst;
+
+	// Read latest frequency offset estimation and store it in averaging array
+	freqEst = SpiReadReg(CC1101_FREQEST);
+	freqEstArray[freqEstArrayIndex++] = freqEst;
+
+	// Handle array index loop
+	if (freqEstArrayIndex >= FREQ_ESTIMATION_ARRAY_SIZE)
+	{
+		freqEstArrayIndex = 0;
+		freqEstArrayFilled = true;
+	}
+
+	// Only calculate averaged frequency estimator once array has been entirely filled once
+	if (freqEstArrayFilled)
+	{
+		// Average frequency offset
+		averageFreqEst = 0;
+		for (int i = 0; i < FREQ_ESTIMATION_ARRAY_SIZE; i++)
+		{
+			averageFreqEst += freqEstArray[i];
+		}
+		averageFreqEst /= FREQ_ESTIMATION_ARRAY_SIZE;
+		// Write it
+		SpiWriteReg(CC1101_FSCTRL0, freqEst);
+	}
 }

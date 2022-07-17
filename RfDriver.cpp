@@ -154,6 +154,8 @@ void RfDriver::GDO0Callback()
 	message.endTime_us = startTime_us + PREAMBLE_LENGTH_IN_US + packetLength * BYTE_LENGTH_IN_US + GUARD_TIME_IN_US;
 	message.action = MICRONET_ACTION_RF_NO_ACTION;
 	messageFifo->Push(message);
+
+	cc1101Driver.UpdateFreqOffset();
 }
 
 void RfDriver::RestartReception()
