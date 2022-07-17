@@ -209,7 +209,6 @@ void RfDriver::ScheduleTransmit()
 			timerInt.stop();
 			return;
 		}
-
 		transmitDelay = transmitList[transmitIndex].startTime_us - micros();
 		if ((transmitDelay <= 0) || (transmitDelay > 3000000))
 		{
@@ -292,24 +291,20 @@ void RfDriver::TransmitCallback()
 
 	if (transmitList[nextTransmitIndex].action == MICRONET_ACTION_RF_LOW_POWER)
 	{
-//		CONSOLE.print("LO ");
-//		CONSOLE.print(triggerTime);
-//		CONSOLE.print(" ");
-//		CONSOLE.println(triggerDelay);
 		transmitList[nextTransmitIndex].startTime_us = 0;
 		nextTransmitIndex = -1;
+
+		cc1101Driver.LowPower();
+
 		ScheduleTransmit();
-		cc1101Driver.SetSidle();
-		cc1101Driver.SetSxoff();
 	}
 	else if (transmitList[nextTransmitIndex].action == MICRONET_ACTION_RF_ACTIVE_POWER)
 	{
-//		CONSOLE.print("HI ");
-//		CONSOLE.print(triggerTime);
-//		CONSOLE.print(" ");
-//		CONSOLE.println(triggerDelay);
 		transmitList[nextTransmitIndex].startTime_us = 0;
 		nextTransmitIndex = -1;
+
+		cc1101Driver.ActivePower();
+
 		ScheduleTransmit();
 		RestartReception();
 	}
@@ -350,9 +345,6 @@ void RfDriver::TransmitCallback()
 		while ((cc1101Driver.GetTxFifoLevel() & 0x80) != 0x80)
 		{
 		}
-
-//		CONSOLE.print("TX ");
-//		CONSOLE.println((int) triggerDelay);
 
 		RestartReception();
 		ScheduleTransmit();
