@@ -253,22 +253,12 @@ void CC1101Driver::Calibrate(void)
 		else
 		{
 			SpiWriteReg(CC1101_TEST0, 0x09);
-			int s = SpiReadStatus(CC1101_FSCAL2);
-			if (s < 32)
-			{
-				SpiWriteReg(CC1101_FSCAL2, s + 32);
-			}
 		}
 	}
 	else if (rfFreq_mHz >= 900 && rfFreq_mHz <= 928)
 	{
 		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]));
 		SpiWriteReg(CC1101_TEST0, 0x09);
-		int s = SpiReadStatus(CC1101_FSCAL2);
-		if (s < 32)
-		{
-			SpiWriteReg(CC1101_FSCAL2, s + 32);
-		}
 	}
 }
 
@@ -593,8 +583,8 @@ void CC1101Driver::ChipDeselect()
 
 void CC1101Driver::UpdateFreqOffset()
 {
-	uint8_t freqEst;
-	uint32_t averageFreqEst;
+	int8_t freqEst;
+	int32_t averageFreqEst;
 
 	// Read latest frequency offset estimation and store it in averaging array
 	freqEst = SpiReadReg(CC1101_FREQEST);
@@ -618,6 +608,6 @@ void CC1101Driver::UpdateFreqOffset()
 		}
 		averageFreqEst /= FREQ_ESTIMATION_ARRAY_SIZE;
 		// Write it
-		SpiWriteReg(CC1101_FSCTRL0, freqEst);
+		SpiWriteReg(CC1101_FSCTRL0, averageFreqEst);
 	}
 }

@@ -160,7 +160,7 @@ private:
 	SPISettings spiSettings;
 	uint32_t lastCSHigh;
 	int freqEstArrayIndex;
-	uint8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
+	int8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
 	bool freqEstArrayFilled;
 
 	void Reset(void);
