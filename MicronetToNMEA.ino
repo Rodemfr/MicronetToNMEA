@@ -623,7 +623,6 @@ void MenuConvertToNmea()
 			gMicronetDevice2.ProcessMessage(rxMessage, &txMessageFifo);
 			gMicronetDevice3.ProcessMessage(rxMessage, &txMessageFifo);
 			gMicronetDevice4.ProcessMessage(rxMessage, &txMessageFifo);
-//			PrintMessageFifo(txMessageFifo);
 			gRfReceiver.Transmit(&txMessageFifo);
 
 			if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
@@ -706,10 +705,12 @@ void MenuConvertToNmea()
 
 		yield();
 
+#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
 		// Enter sleep mode to save power. CPU will be waken-up on next interrupt
 		asm (
 				"wfi\n"
 				);
+#endif
 
 	} while (!exitNmeaLoop);
 }
