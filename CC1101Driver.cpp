@@ -508,7 +508,7 @@ byte CC1101Driver::GetLqi(void)
 
 void CC1101Driver::SetStaticConfig(void)
 {
-	SpiWriteReg(CC1101_FSCTRL1, 0x06);
+	SpiWriteReg(CC1101_FSCTRL1, 0x08);
 
 	// CC Mode
 	SpiWriteReg(CC1101_IOCFG2, 0x6F);
