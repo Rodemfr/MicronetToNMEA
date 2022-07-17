@@ -152,6 +152,7 @@ void RfDriver::GDO0Callback()
 	message.rssi = cc1101Driver.GetRssi();
 	message.startTime_us = startTime_us;
 	message.endTime_us = startTime_us + PREAMBLE_LENGTH_IN_US + packetLength * BYTE_LENGTH_IN_US + GUARD_TIME_IN_US;
+	message.action = MICRONET_ACTION_RF_NO_ACTION;
 	messageFifo->Push(message);
 }
 
@@ -184,6 +185,7 @@ void RfDriver::Transmit(MicronetMessage_t *message)
 
 	if (transmitIndex >= 0)
 	{
+		transmitList[transmitIndex].action = message->action;
 		transmitList[transmitIndex].startTime_us = message->startTime_us;
 		transmitList[transmitIndex].len = message->len;
 		memcpy(transmitList[transmitIndex].data, message->data, message->len);
@@ -208,27 +210,19 @@ void RfDriver::ScheduleTransmit()
 			return;
 		}
 
-		if (transmitIndex != nextTransmitIndex)
+		transmitDelay = transmitList[transmitIndex].startTime_us - micros();
+		if ((transmitDelay <= 0) || (transmitDelay > 3000000))
 		{
-			transmitDelay = transmitList[transmitIndex].startTime_us - micros();
-			if ((transmitDelay <= 0) || (transmitDelay > 1000000))
-			{
-				// Transmit already in the past, or invalid : delete it and schedule the next one
-				transmitList[transmitIndex].startTime_us = 0;
-				continue;
-			}
-
-			// Scedule new transmit
-			nextTransmitIndex = transmitIndex;
-			timerInt.trigger(transmitDelay);
-
-			return;
+			// Transmit already in the past, or invalid : delete it and schedule the next one
+			transmitList[transmitIndex].startTime_us = 0;
+			continue;
 		}
-		else
-		{
-			// Transmit already scheduled : leave
-			return;
-		}
+
+		// Schedule new transmit
+		nextTransmitIndex = transmitIndex;
+		timerInt.trigger(transmitDelay);
+
+		return;
 	} while (true);
 }
 
@@ -276,16 +270,52 @@ void RfDriver::TimerHandler()
 void RfDriver::TransmitCallback()
 {
 	int bytesInFifo;
+	uint32_t triggerTime;
+	int32_t triggerDelay;
 
-	if (rfState == RF_STATE_RX_WAIT_SYNC)
+	if (nextTransmitIndex < 0)
+	{
+		RestartReception();
+		return;
+	}
+
+	triggerTime = micros();
+	triggerDelay = triggerTime - transmitList[nextTransmitIndex].startTime_us;
+
+	if (triggerDelay < 0)
+	{
+		// Depending on the Teensy version, timer may not be able to reach delay of more than
+		// about 50ms. in that case we reprogram it until we reach the specified amount of time
+		ScheduleTransmit();
+		return;
+	}
+
+	if (transmitList[nextTransmitIndex].action == MICRONET_ACTION_RF_LOW_POWER)
+	{
+//		CONSOLE.print("LO ");
+//		CONSOLE.print(triggerTime);
+//		CONSOLE.print(" ");
+//		CONSOLE.println(triggerDelay);
+		transmitList[nextTransmitIndex].startTime_us = 0;
+		nextTransmitIndex = -1;
+		ScheduleTransmit();
+		cc1101Driver.SetSidle();
+		cc1101Driver.SetSxoff();
+	}
+	else if (transmitList[nextTransmitIndex].action == MICRONET_ACTION_RF_ACTIVE_POWER)
+	{
+//		CONSOLE.print("HI ");
+//		CONSOLE.print(triggerTime);
+//		CONSOLE.print(" ");
+//		CONSOLE.println(triggerDelay);
+		transmitList[nextTransmitIndex].startTime_us = 0;
+		nextTransmitIndex = -1;
+		ScheduleTransmit();
+		RestartReception();
+	}
+	else if (rfState == RF_STATE_RX_WAIT_SYNC)
 	{
 		rfState = RF_STATE_TX_TRANSMIT;
-
-		if (nextTransmitIndex < 0)
-		{
-			RestartReception();
-			return;
-		}
 
 		// Change CC1101 configuration for transmission
 		cc1101Driver.SetSidle();
@@ -320,6 +350,9 @@ void RfDriver::TransmitCallback()
 		while ((cc1101Driver.GetTxFifoLevel() & 0x80) != 0x80)
 		{
 		}
+
+//		CONSOLE.print("TX ");
+//		CONSOLE.println((int) triggerDelay);
 
 		RestartReception();
 		ScheduleTransmit();

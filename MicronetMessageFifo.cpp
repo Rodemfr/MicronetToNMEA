@@ -70,6 +70,7 @@ bool MicronetMessageFifo::Push(MicronetMessage_t &message)
 	if (nbMessages < MESSAGE_STORE_SIZE)
 	{
 		// Yes : copy message to the store and update store's status
+		store[writeIndex].action = message.action;
 		store[writeIndex].len = message.len;
 		store[writeIndex].rssi = message.rssi;
 		store[writeIndex].startTime_us = message.startTime_us;

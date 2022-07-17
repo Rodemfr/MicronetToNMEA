@@ -64,6 +64,7 @@ void PrintByte(uint8_t data);
 void PrintInt(uint32_t data);
 void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us);
 void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap);
+void PrintMessageFifo(MicronetMessageFifo &messageFifo);
 void MenuAbout();
 void MenuScanNetworks();
 void MenuAttachNetwork();
@@ -331,6 +332,27 @@ void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap)
 		CONSOLE.println(networkMap->ackSlot[i].length_us);
 	}
 	CONSOLE.println("");
+}
+
+void PrintMessageFifo(MicronetMessageFifo &messageFifo)
+{
+	MicronetMessage_t *message;
+	if (messageFifo.GetNbMessages() > 0)
+	{
+		for (int i = 0; i < messageFifo.GetNbMessages(); i++)
+		{
+			message = messageFifo.Peek(i);
+			CONSOLE.print("MSG ");
+			CONSOLE.print(i);
+			CONSOLE.print(" : ");
+			CONSOLE.print(message->startTime_us);
+			CONSOLE.print("/");
+			CONSOLE.print(message->len);
+			CONSOLE.print(" ");
+			CONSOLE.println(message->action);
+		}
+		CONSOLE.println("");
+	}
 }
 
 void MenuAbout()
@@ -601,7 +623,7 @@ void MenuConvertToNmea()
 			gMicronetDevice2.ProcessMessage(rxMessage, &txMessageFifo);
 			gMicronetDevice3.ProcessMessage(rxMessage, &txMessageFifo);
 			gMicronetDevice4.ProcessMessage(rxMessage, &txMessageFifo);
-
+//			PrintMessageFifo(txMessageFifo);
 			gRfReceiver.Transmit(&txMessageFifo);
 
 			if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))

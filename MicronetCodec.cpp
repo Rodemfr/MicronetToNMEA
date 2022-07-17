@@ -943,6 +943,7 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	deviceId |= message->data[MICRONET_PAYLOAD_OFFSET + 2] << 8;
 	deviceId |= message->data[MICRONET_PAYLOAD_OFFSET + 3];
 	networkMap->masterDevice = deviceId;
+	networkMap->networkStart = message->startTime_us;
 
 	networkMap->firstSlot = message->endTime_us;
 
@@ -999,6 +1000,9 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	networkMap->ackSlot[networkMap->nbSyncSlots].length_us = ACK_WINDOW_LENGTH;
 	networkMap->ackSlot[networkMap->nbSyncSlots].payloadBytes = ACK_WINDOW_PAYLOAD;
 	networkMap->nbAckSlots = networkMap->nbSyncSlots + 1;
+	slotDelay_us += ACK_WINDOW_LENGTH;
+
+	networkMap->networkEnd = message->endTime_us + slotDelay_us;
 
 	return true;
 }
@@ -1032,6 +1036,21 @@ TxSlotDesc_t MicronetCodec::GetAckTransmissionSlot(NetworkMap *networkMap, uint3
 
 	return
 	{	0, 0, 0, 0};
+}
+
+uint32_t MicronetCodec::GetStartOfNetwork(NetworkMap *networkMap)
+{
+	return networkMap->networkStart;
+}
+
+uint32_t MicronetCodec::GetNextStartOfNetwork(NetworkMap *networkMap)
+{
+	return networkMap->networkStart + 1000000;
+}
+
+uint32_t MicronetCodec::GetEndOfNetwork(NetworkMap *networkMap)
+{
+	return networkMap->networkEnd;
 }
 
 uint8_t MicronetCodec::CalculateSignalStrength(MicronetMessage_t *message)

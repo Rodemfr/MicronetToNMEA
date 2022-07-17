@@ -122,8 +122,13 @@
 /*                                Types                                    */
 /***************************************************************************/
 
+#define MICRONET_ACTION_RF_NO_ACTION    0
+#define MICRONET_ACTION_RF_LOW_POWER    1
+#define MICRONET_ACTION_RF_ACTIVE_POWER 2
+
 typedef struct
 {
+	uint8_t action;
 	uint8_t len;
 	int16_t rssi;
 	uint32_t startTime_us;

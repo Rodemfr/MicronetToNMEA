@@ -35,7 +35,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define NETWORK_TIMEOUT_MS 10000
+#define NETWORK_TIMEOUT_MS 3000
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -83,9 +83,12 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	uint32_t payloadLength;
 	MicronetMessage_t txMessage;
 
-	if ((micros() - lastNetworkMessage_us) > NETWORK_TIMEOUT_MS)
+	if ((networkStatus == NETWORK_STATUS_FOUND) && ((micros() - lastNetworkMessage_us) > NETWORK_TIMEOUT_MS * 1000))
 	{
 		networkStatus = NETWORK_STATUS_NOT_FOUND;
+		txMessage.action = MICRONET_ACTION_RF_ACTIVE_POWER;
+		txMessage.startTime_us = micros() + 100000;
+		messageFifo->Push(txMessage);
 	}
 
 	if ((micronetCodec.GetNetworkId(message) == networkId) && (micronetCodec.VerifyHeaderCrc(message)))
@@ -97,11 +100,19 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 			firstSlot = message->endTime_us;
 			micronetCodec.GetNetworkMap(message, &networkMap);
 
+			txMessage.action = MICRONET_ACTION_RF_LOW_POWER;
+			txMessage.startTime_us = micronetCodec.GetEndOfNetwork(&networkMap);
+			messageFifo->Push(txMessage);
+
+			txMessage.action = MICRONET_ACTION_RF_ACTIVE_POWER;
+			txMessage.startTime_us = micronetCodec.GetNextStartOfNetwork(&networkMap) - 500;
+			messageFifo->Push(txMessage);
+
 			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
 			txSlot = micronetCodec.GetSyncTransmissionSlot(&networkMap, deviceId);
 			if (txSlot.start_us != 0)
 			{
-				// TODO : include NavigationData into MicronetCodec
+				// TODO : move NavigationData to MicronetCodec
 				payloadLength = micronetCodec.EncodeDataMessage(&txMessage, latestSignalStrength, networkId, deviceId, &gNavData,
 						dataFields);
 				if (txSlot.payloadBytes < payloadLength)
@@ -116,6 +127,7 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 				micronetCodec.EncodeSlotRequestMessage(&txMessage, latestSignalStrength, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
 			}
 
+			txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
 			txMessage.startTime_us = txSlot.start_us;
 			messageFifo->Push(txMessage);
 		} else {
@@ -124,10 +136,9 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 			{
 				txSlot = micronetCodec.GetAckTransmissionSlot(&networkMap, deviceId);
 				micronetCodec.EncodeAckParamMessage(&txMessage, latestSignalStrength, networkId, deviceId);
+				txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
 				txMessage.startTime_us = txSlot.start_us;
 				messageFifo->Push(txMessage);
-				CONSOLE.print("Ack : ");
-				CONSOLE.println(txSlot.start_us - firstSlot);
 			}
 		}
 	}
