@@ -36,6 +36,8 @@
 
 // Minimum delay in microseconds to enforce between two CS assertions
 #define DELAY_BETWEEN_CS_US 8
+// Minimum time in microseconds for CC1101 to restart its XTAL when exting power-down mode
+#define XTAL_RESTART_TIME_US 150
 
 byte freqOffset868[2] =
 { 65, 76 };
@@ -479,9 +481,27 @@ void CC1101Driver::SetSidle(void)
 	SpiStrobe(CC1101_SIDLE);
 }
 
-void CC1101Driver::SetSxoff(void)
+void CC1101Driver::LowPower()
 {
+	SpiStrobe(CC1101_SIDLE);
 	SpiStrobe(CC1101_SXOFF);
+}
+
+void CC1101Driver::ActivePower()
+{
+	uint32_t timeRef, timeLimit;
+
+	// Force exit of power-down mode
+	SpiStrobe(CC1101_SIDLE);
+
+	// Let time to CC1101 to restart its XTAL
+	timeRef = micros();
+	timeLimit = timeRef + XTAL_RESTART_TIME_US;
+	while(micros() < timeLimit)
+	{
+		if (micros() < timeRef)
+			break;
+	}
 }
 
 int CC1101Driver::GetRssi(void)

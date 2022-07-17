@@ -141,7 +141,8 @@ public:
 	int GetRssi(void);
 	byte GetLqi(void);
 	void SetSidle(void);
-	void SetSxoff(void);
+	void LowPower();
+	void ActivePower();
 	bool IsConnected(void);
 	void SetSyncWord(byte sh, byte sl);
 	void SetPQT(uint8_t pqt);
