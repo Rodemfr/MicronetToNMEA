@@ -106,7 +106,7 @@ Here are the steps to compile MicronetToNMEA with Arduino IDE:
 \item Get the source code from MicronetToNMEA repository (\url{https://github.com/Rodemfr/MicronetToNMEA})
 \item Double-click on MicronetToNMEA.ino. This should open Arduino IDE.
 \item In Arduino IDE, select Teensy 3.5 target HW with menu “Tools->Board->Teensyduino->Teensy3.5”
-\item Go to menu “Tools->Manage Libraries...” and install the following libraries : SmartRC-CC1101-Driver-Lib and TeensyTimerTool
+\item Go to menu “Tools->Manage Libraries...” and install TeensyTimerTool library
 \item Click on “Verify” button in the button bar, this should compile the project without error.
 \item Connect your Teensy 3.5 board onto USB port of your PC and Click “Upload” button to upload MicronetToNMEA binary into Teensy flash memory
 \end{itemize}
@@ -150,17 +150,15 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		NAVCOMPASS\_I2C & Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)\\
 		\hline
-		RF\_SPI\_BUS & Defines SPI controller connected to RF IC (SPI, SPI1, SPI2)\\
+		CS0\_PIN & Defines SPI Chip Select line connected to RF IC\\
 		\hline
-		RF\_CS0\_PIN & Defines SPI Chip Select line connected to RF IC\\
+		MOSI\_PIN & Defines MOSI pin of SPI bus connected to RF IC\\
 		\hline
-		RF\_MOSI\_PIN & Defines MOSI pin of SPI bus connected to RF IC\\
+		MISO\_PIN & Defines MISO pin of SPI bus connected to RF IC\\
 		\hline
-		RF\_MISO\_PIN & Defines MISO pin of SPI bus connected to RF IC\\
+		SCK\_PIN & Defines SCK pin of SPI bus connected to RF IC\\
 		\hline
-		RF\_SCK\_PIN & Defines SCK pin of SPI bus connected to RF IC\\
-		\hline
-		RF\_GDO0\_PIN & Defines GDO0 pin of SPI bus connected to RF IC\\
+		GDO0\_PIN & Defines GDO0 pin of SPI bus connected to RF IC\\
 		\hline
 		LED\_PIN & Defines the pin driving the LED, which is used for error signaling\\
 		\hline
@@ -173,13 +171,21 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		GNSS\_CALLBACK & Defines the name of the callback function called when new bytes arrive on the
 		configured serial port\\
 		\hline
-		GNSS\_RX\_PIN & Defines serial RX pin connected NMEA GNSS TX pin\\
+		GNSS\_RX\_PIN & Defines serial RX pin connected to NMEA GNSS TX pin\\
 		\hline
-		GNSS\_TX\_PIN & Defines serial TX pin connected NMEA GNSS RX pin\\
+		GNSS\_TX\_PIN & Defines serial TX pin connected to NMEA GNSS RX pin\\
 		\hline
-		USB\_SERIAL & Defines which serial port is connected to USB serial converter\\
+		USB\_NMEA & Defines which serial port is connected to USB serial converter\\
 		\hline
 		USB\_BAUDRATE & Defines baud rate of USB serial converter\\
+		\hline
+		WIRED\_NMEA & Defines which serial port is connected to the wired NMEA connection\\
+		\hline
+		WIRED\_BAUDRATE & Defines baud rate of the wired NMEA connection\\
+		\hline
+		WIRED\_RX\_PIN & Defines serial RX pin used for wired NMEA\\
+		\hline
+		WIRED\_TX\_PIN & Defines serial TX pin used for wired NMEA\\
 		\hline
 		CONSOLE & Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT\\
 		\hline
@@ -194,7 +200,7 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 
 \chapter{Installation}
 
-Teensy board must be connected to other boards with the same scheme than you have defined in “BoardConfig.h”. No check is made by MicronetToNMEA software to verify that your configuration is matching your actual connections. You must carefully verify that you properly connected the various devices since a wrong connections can possibly damage your hardware, especially with respect to power supply connections which are mixing 3.3 \& 5V levels.
+Teensy board must be connected to other boards with the same scheme than you have defined in “BoardConfig.h”. No check is made by MicronetToNMEA software to verify that your configuration is matching your actual connections. You must carefully verify that you properly connected the various devices since wrong connections can possibly damage your hardware, especially with respect to power supply connections which are mixing 3.3 \& 5V levels.
 
 \section{Power supply}
 
@@ -226,7 +232,7 @@ As an example, table \ref{table:boardconsumption} shows maximum current values f
 	\caption{Current consumption of typical boards}
 	\label{table:boardconsumption}
 \end{table}
-USB powering is especially useful when you plan to output NMEA through USB-serial. In this case, the connected PC/Tablet will provide power to the system and when MicronetToNMEA is not needed anymore, just unplug the USB cable.
+USB powering is especially useful when you plan to output NMEA through USB-serial. In this case, the connected PC/Tablet will provide power to the system and when MicronetToNMEA is not needed anymore, just unplug the USB cable to power-off the system.
 
 \subsection{Power with an external DC source}
 While USB powering is easy to setup, it not a common source of power in a boat. It is more usual to get two wires with an unstable battery voltage between 11V and 15V. In that case, you will need a voltage regulator or a DC-DC converter which will be used to produce a stable 5V for the system. This 5V source can then be connected to the Vin pin of Teensy 3.5. The on-board regulator will then produce 3.3V from this input.
@@ -264,8 +270,8 @@ LSM303DLH(C) uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to C
 
 \section{Connecting GNSS}
 
-Unlike CC1101 or LSM303DLH(C), GNSS/GPS boards are often requiring 5V VCC as power. So you have to connect it directly to DC-DC Converter's output. You should check however that you GNSS board is not 3.3V powered, in which case you should use one of Teensy 3.3V pin.
-TX and RX pins must then be connected respectively on RX and TX of Teensy's UART. Note that Teensy 3.5 is 5V tolerant, so you connect GNSS even if it is using 5V output. Figure \ref{figure:gnss} shows how to connect GNSS for the default configuration.
+Unlike CC1101 or LSM303DLH(C), GNSS/GPS boards are often requiring 5V VCC as power voltage. So you have to connect it directly to DC-DC Converter's output. You should check however that your GNSS board is not 3.3V powered, in which case you should use one of Teensy 3.3V pin.
+TX and RX pins must then be connected respectively on RX and TX of Teensy's UART. Note that Teensy 3.5 is 5V tolerant, so you can connect GNSS directly even if it is using 5V output. Figure \ref{figure:gnss} shows how to connect GNSS for the default configuration.
 
 \begin{figure}[h]
 	\centering
@@ -299,16 +305,16 @@ As for the GNSS, MicronetToNMEA does not configure HC-06 itself. It is your resp
 \section{Recommandations}
 
 \subsection{RF performance}
-Micronet devices cannot legally exceed a handful of milliwatts of transmit power. As a consequence the operational range will hardly exceed 10-15m. It is important not to put metal objects or panels between your various devices. This would dramatically reduce of the operational range of MicronetToNMEA.
+Micronet devices cannot legally exceed a handful of milliwatts of transmit power. As a consequence the operational range will hardly exceed 15-20m. It is important not to put metal objects or panels between your various devices. This would dramatically reduce of the operational range of MicronetToNMEA.
 You should also be careful if you are racing and using carbon sails. If the sails are between your wind vane and MicronetToNMEA, you will likely not receive wind data. Carbon disturbs RF transmissions.
 It is generally considered not to be a good idea to use wireless electronics in a carbon boat or with carbon sails. Fiberglass doesn't attenuates the signal (only a little), so it is safe to attach your device inside a GRP hull.
 
 \subsection{Magnetic compass disturbances}
 If your are using LSM303 to get magnetic heading, it is very important to put your MicronetToNMEA assembly far from other electrical devices, especially those carrying a bit of power. This can highly disturbs magnetic compass. As an example, a running 24" TV monitor can deviate the compass by 20° at 50cm and still a few degrees at 1m.
-Also, metal must be avoided. It deviates magnetic field. The bigger the piece of metal is the farthest you should put your device. In a boat you should avoid the keel, batteries and the inboard engine. At a smaller level, you should keep LSM303 board away from DC-DC converter.
+Also, metal must be avoided : it deviates magnetic field. The bigger the piece of metal is the farthest you should put your device. In a boat you should avoid the keel, batteries and the inboard engine. At a smaller level, you should keep LSM303 board away from DC-DC converter if you can.
 
 \subsection{Magnetic compass calibration}
-An electronic compass must be properly calibrated to produce good values. The theory tells us that a perfect calibration would need to have your device attached in its final position and to spin your boat around the 3 axis. This is generally not something we want to do. To achieve a good calibration with less complex operations, the best is to calibrate MicronetToNMEA outside your boat, far from any metal or electronic device. You should also keep it as far as possible of its power supply. Once calibrated, get it back to your boat and fix it in a proper place. This should give correct results.
+An electronic compass must be properly calibrated to produce good values. The theory tells us that a perfect calibration would need to have your device attached in its final position and to spin your boat around the 3 axis. This is generally not something we want to do. To achieve a good calibration with less complex operations, the best is to calibrate MicronetToNMEA outside your boat, far from any metal or electronic device. You should also keep it as far as possible of its power supply. Once calibrated, get it back to your boat and fix it in a proper place, following the above recommandations. This should give correct results.
 
 \chapter{Usage}
 
@@ -318,7 +324,7 @@ An electronic compass must be properly calibrated to produce good values. The th
 
 To be able to configure MicronetToNMEA, you must have access to the configuration menu displayed on the serial console. By default, this console is connected to the USB serial port of Teensy. So you just have to find a terminal software to connect to it. A good open source terminal is \href{http://www.teraterm.org/}{Tera Term}. Note that when using Teensy USB connection, you can use any baudrate, this as no real effect.
 
-At the first power-up, before having configured MicronetToNMEA, console should go directly to the configuration menu. If this is not the case, it means that a configuration as already been written in EEPROM and that MicronetToNMEA as automatically switched to "NMEA conversion mode". In that last case, you just have to press \emph{ESC} key to come back to the configuration menu.
+At the first power-up, before having configured MicronetToNMEA, console should go directly to the configuration menu. If this is not the case, it means that a configuration as already been written in EEPROM and that MicronetToNMEA has automatically switched to "NMEA conversion mode". In this case, you just have to press \emph{ESC} key to come back to the configuration menu.
 
 The menu should look like this :
 
@@ -339,7 +345,7 @@ The menu should look like this :
 \subsection{Attaching your Micronet network to MicronetToNMEA}
 
 We need to identify your Micronet network for MicronetToNMEA to be able to recognize it and to discard other devices that may be in you vicinity. You will typically find several networks when in a marina with many sailing boats.
-To do this, you have to power-up your Micronet network and to ensure that your master device, the one you used to power -up the network, is close to MicronetToNMEA. Once done, enter "Scan Micronet networks" menu by pressing 2 in the console. This will start a five second scanning sequence which listen to every network in the area. At the end of this sequence, all found network will be listed in the console. If there are several networks, they are listed in decreasing order of power.
+To identify your network, you have to power-up your Micronet display and to ensure that your master device, the one you used to power-up the network, is close to MicronetToNMEA. Once done, enter "Scan Micronet networks" menu by pressing 2 in the console. This will start a five second scanning sequence which listens to every network in the area. At the end of this sequence, every network found will be listed in the console. If there are several networks, they are listed in decreasing order of power.
 \texttt{
 \\
 \\
@@ -348,13 +354,13 @@ Network - 810278A6 (low)
 \\
 \\
 }
-Yours is very likely at the top of the list with mention "very strong". For each network you get a hexadecimal number which is the so called "Network ID". Write it on a piece of paper (\emph{83038F54} in our example).
+Yours is very likely at the top of the list with mention "very strong". This is the signal strength. For each network you get a hexadecimal number which is the so called "Network ID". Write it on a piece of paper (\emph{83038F54} in our example).
 Now enter menu "Attach converter to a network" by pressing 3, and type your network ID when requested. This will attach MicronetToNMEA to your Micronet devices.
-Once done, MicronetToNMEA will save this value to EEPROM and will remember it. You don't need to do this operation at each start-up. Also, since MicronetToNMEA is now attached, it will automatically go to NMEA conversion mode at the next power-up.
+Once done, MicronetToNMEA will save this value to EEPROM and will remember it. You don't need to do this operation at each start-up. Now that MicronetToNMEA is attached, it will automatically go to NMEA conversion mode at the next power-up.
 
 \subsection{Calibrating CC1101 RF frequency}
 
-CC1101 board uses a crystal to generate its frequencies. Crystal frequency is more or less precise and needs to be calibrated for CC1101 to generate exactly the expected frequency. Each crystal needs to be calibrated independently. This calibration is very important because it directly influence the range performance of the RF system (i.e. the maximum distance at which MicronetToNMEA can detect other devices). When you by a Tacktick device, this calibration has already been done at factory. But when you build a MicronetToNMEA system, you need to do it yourself.
+CC1101 board uses a crystal to generate its frequencies. Crystal frequency is more or less precise and needs to be calibrated for CC1101 to generate exactly the expected frequency. Each crystal needs to be calibrated independently. This calibration is very important because it directly influence the range performance of the RF system (i.e. the maximum distance at which MicronetToNMEA can detect other devices). When you buy a Tacktick device, this calibration has already been done at factory. But when you build a MicronetToNMEA system, you need to do it yourself.
 
 Menu "Calibrate RF frequency" does this calibration. Enter it by pressing key 6. A text will explain the procedure : power-up your Micronet network and place the master device (the one you used to power-up the network) very close to MicronetToNMEA (less than one meter). Now press any key and let the calibration proceed. During 2 minutes, you will see dots and stars appear on the console looking like this :
 
