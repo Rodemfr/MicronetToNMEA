@@ -78,7 +78,7 @@
 #define WIRED_BAUDRATE 115200
 #define WIRED_RX_PIN   34
 #define WIRED_TX_PIN   33
-#else // Teensy 4.0 Configuration#define WIRED_NMEA     Serial5
+#else // Teensy 4.0 Configuration
 #define WIRED_NMEA     Serial5
 #define WIRED_BAUDRATE 115200
 #define WIRED_RX_PIN   21
