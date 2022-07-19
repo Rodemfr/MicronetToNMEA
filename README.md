@@ -2,11 +2,11 @@
 
 ## Description
 
-MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to a standard NMEA0183 stream easily useable by your laptop or tablet software. Additionnaly, it can also transmit NMEA navigation data from your Tablet/PC to your Micronet network.
+MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymarine's wireless network called "Micronet" to a standard NMEA0183 stream, easily useable by your laptop or tablet software. Additionnaly, it can also transmit NMEA navigation data from your Tablet/PC to your Micronet network.
 
 The project requires the following hardware :
 - A boat with Raymarine Wireless system. (The boat is not strictly required)
-- A Teensy 3.5 board. Any other 32-bit Arduino compatible board should also work with some adaptations of SW.
+- A Teensy 3.5 board. Teensy 4.0 & 4.1 have also been successfully tested but Teensy 3.5 is still preferred.
 - A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU. Take care to order a board with an antenna for 868 or 915MHz operations, not 433MHz.
 
 Optionally, you can add :
@@ -64,7 +64,7 @@ GND  <-> GND
 3.3V <-- 3.3V
 ```
 
-Nothing is to be done on the SW side wether a GNSS is connected or not. If the GNSS is connected, it must be configured to output a NMEA stream at 34800 baud. I use a Ublox NEO-M8N. Neo-M8N can be configured to output a NMEA stream at this baudrate by using [U-Center software from U-Blox](https://www.u-blox.com/en/product/u-center) or by enabling a dedicated option at compilation which will enable automatic configuration code.
+Nothing is to be done on the SW side wether a GNSS is connected or not. If the GNSS is connected, it must be configured to output a NMEA stream at 9600 baud. I use a Ublox NEO-M8N. Neo-M8N can be configured to output a NMEA stream at this baudrate by using [U-Center software from U-Blox](https://www.u-blox.com/en/product/u-center) or by enabling a dedicated option in BoardConfig.h which will enable automatic configuration.
 
 MicronetToNMEA can use a LSM303DLH(C) to provide magnetic heading on both Micronet and NMEA streams :
 
@@ -78,7 +78,7 @@ GND         <-> GND
 
 Both LSM303DLH and LSM303DLHC can be used. MicronetToNMEA will automatically recognize it and select the appropriate driver.
 
-If you want to use a different MCU board and/or pinout, you have to edit the related define statements at the beginning of BoardConfig.h file.
+If you want to use a different MCU board and/or pinout, you have to edit the related definitions at the beginning of BoardConfig.h file.
 
 ## Quick Start & general guidance
 
@@ -107,4 +107,4 @@ Some tips :
   
 ## User manual
 
-If you want more details on how to set-up and configure MicronetToNMEA, there is now a [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.pdf) underwork in the doc directory.
+If you want more details on how to set-up and configure MicronetToNMEA, there is now a [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.pdf) in the doc directory.
