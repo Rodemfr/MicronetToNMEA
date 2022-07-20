@@ -155,7 +155,8 @@ void RfDriver::GDO0Callback()
 	message.action = MICRONET_ACTION_RF_NO_ACTION;
 	messageFifo->Push(message);
 
-	cc1101Driver.UpdateFreqOffset();
+	// TODO : Find the issue with FREQEST algorithm
+	//cc1101Driver.UpdateFreqOffset();
 }
 
 void RfDriver::RestartReception()
