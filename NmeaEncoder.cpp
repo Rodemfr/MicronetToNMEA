@@ -73,7 +73,7 @@ bool NmeaEncoder::EncodeMWV_R(NavigationData *micronetData, char *sentence)
 	bool update = false;
 
 	update = (micronetData->awa_deg.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update = (micronetData->aws_kt.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && (micronetData->aws_kt.timeStamp > timeStamps.vwr + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
 	update = update && (micronetData->awa_deg.valid && micronetData->aws_kt.valid);
 
 	if (update)
@@ -95,7 +95,7 @@ bool NmeaEncoder::EncodeMWV_T(NavigationData *micronetData, char *sentence)
 	bool update = false;
 
 	update = (micronetData->twa_deg.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update = (micronetData->tws_kt.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && (micronetData->tws_kt.timeStamp > timeStamps.vwt + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
 	update = update && (micronetData->twa_deg.valid && micronetData->tws_kt.valid);
 
 	if (update)
@@ -152,7 +152,7 @@ bool NmeaEncoder::EncodeVLW(NavigationData *micronetData, char *sentence)
 	bool update = false;
 
 	update = (micronetData->log_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
-	update = (micronetData->trip_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && (micronetData->trip_nm.timeStamp > timeStamps.vlw + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
 	update = update && (micronetData->log_nm.valid && micronetData->trip_nm.valid);
 
 	if (update)

@@ -935,7 +935,6 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	networkMap->networkId = networkId;
 
 	nbDevices = ((message->len - MICRONET_PAYLOAD_OFFSET - 3) / 5);
-	networkMap->nbSyncSlots = nbDevices;
 	networkMap->nbSyncSlots = 0;
 
 	deviceId = message->data[MICRONET_PAYLOAD_OFFSET] << 24;
