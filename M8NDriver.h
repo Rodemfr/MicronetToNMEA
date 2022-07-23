@@ -3,6 +3,8 @@
  *
  *  Created on: 13 mai 2022
  *      Author: Ronan
+ *  Update on 20 july 2022
+ * 
  */
 
 #ifndef M8NDRIVER_H_
@@ -24,11 +26,13 @@ public:
 	static const PROGMEM uint8_t ClearConfig[];
 	static const PROGMEM uint8_t UART1_38400[];
 	static const PROGMEM uint8_t Navrate5hz[];
+	static const PROGMEM uint8_t GNSSSetup[];
 
 	void Start(uint32_t nmeaSentences);
 
 private:
 	void GPS_SendConfig(const uint8_t *progmemPtr, uint8_t arraySize);
+	void GPS_SendPUBX(const char pubxMsg[]);
 };
 
 #endif /* M8NDRIVER_H_ */
