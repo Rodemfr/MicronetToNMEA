@@ -41,7 +41,11 @@
 #define FREQUENCY_SYSTEM 0
 
 // Selects on which I2C bus is connected compass as per Wiring library definition
-#define NAVCOMPASS_I2C Wire1  // SDA0: 18 SCL0: 19
+#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
+#define NAVCOMPASS_I2C Wire1 // SDA0: 18 SCL0: 19
+#else // Teensy 4.0 Configuration
+#define NAVCOMPASS_I2C Wire // SDA0: 18 SCL0: 19
+#endif
 
 // CC1101/SPI pins
 #if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
@@ -62,11 +66,19 @@
 #define LED_PIN LED_BUILTIN
 
 // NMEA GNSS UART pins
+#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
 #define GNSS_UBLOXM8N  1       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
 #define GNSS_SERIAL    Serial1
 #define GNSS_BAUDRATE  9600
 #define GNSS_RX_PIN    0
 #define GNSS_TX_PIN    1
+#else // Teensy 4.0 Configuration
+#define GNSS_UBLOXM8N  0       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
+#define GNSS_SERIAL    Serial5
+#define GNSS_BAUDRATE  9600
+#define GNSS_RX_PIN    0
+#define GNSS_TX_PIN    1
+#endif
 
 // USB UART params
 #define USB_NMEA     Serial
