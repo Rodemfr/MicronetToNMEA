@@ -639,6 +639,8 @@ void MenuConvertToNmea()
 				NMEA_OUT.print(nmeaSentence);
 			if (gNmeaEncoder.EncodeHDG(&gNavData, nmeaSentence))
 				NMEA_OUT.print(nmeaSentence);
+			if (gNmeaEncoder.EncodeXDG(&gNavData, nmeaSentence))
+				NMEA_OUT.print(nmeaSentence);
 
 			if (gNavData.calibrationUpdated)
 			{

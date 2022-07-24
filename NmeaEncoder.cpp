@@ -202,6 +202,24 @@ bool NmeaEncoder::EncodeHDG(NavigationData *micronetData, char *sentence)
 	return update;
 }
 
+bool NmeaEncoder::EncodeXDG(NavigationData *micronetData, char *sentence)
+{
+	bool update = false;
+
+	update = (micronetData->vcc_v.timeStamp > timeStamps.vcc + MINIMUM_DELAY_BEFORE_SENTENCE_UPDATE_MS);
+	update = update && micronetData->vcc_v.valid;
+
+	if (update)
+	{
+		sprintf(sentence, "$INXDG,U,%.1f,V,BATTERY,", micronetData->vcc_v.value);
+		AddNmeaChecksum(sentence);
+
+		timeStamps.vcc = millis();
+	}
+
+	return update;
+}
+
 uint8_t NmeaEncoder::AddNmeaChecksum(char *sentence)
 {
 	uint8_t crc = 0;

@@ -52,6 +52,7 @@ typedef struct {
 	uint32_t vlw;
 	uint32_t vhw;
 	uint32_t hdg;
+	uint32_t vcc;
 } SentencesTimeStamps_t;
 
 /***************************************************************************/
@@ -71,6 +72,7 @@ public:
 	bool EncodeVLW(NavigationData *micronetData, char *sentence);
 	bool EncodeVHW(NavigationData *micronetData, char *sentence);
 	bool EncodeHDG(NavigationData *micronetData, char *sentence);
+	bool EncodeXDG(NavigationData *micronetData, char *sentence);
 
 private:
 	SentencesTimeStamps_t timeStamps;
