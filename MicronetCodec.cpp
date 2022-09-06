@@ -435,6 +435,14 @@ uint8_t MicronetCodec::GetDataMessageLength(uint32_t dataFields)
 	{
 		offset += 6;
 	}
+	if (dataFields & DATA_FIELD_AWS)
+	{
+		offset += 6;
+	}
+	if (dataFields & DATA_FIELD_AWA)
+	{
+		offset += 6;
+	}
 
 	return offset;
 }
@@ -501,6 +509,14 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	if ((dataFields & DATA_FIELD_HDG) && (navData->hdg_deg.valid))
 	{
 		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
+	}
+	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS, navData->aws_kt.value * 10.0f);
+	}
+	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWA, navData->awa_deg.value);
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{

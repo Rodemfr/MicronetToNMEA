@@ -75,6 +75,11 @@ NavigationData::NavigationData()
 	longitude_deg.valid = false;
 	cog_deg.valid = false;
 	sog_kt.valid = false;
+	xte_nm.valid = false;
+	dtw_nm.valid = false;
+	btw_deg.valid = false;
+	vmc_kt.valid = false;
+	hdg_deg.valid = false;
 
 	calibrationUpdated = false;
 	waterSpeedFactor_per = 0.0f;

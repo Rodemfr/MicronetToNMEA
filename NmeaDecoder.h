@@ -67,6 +67,7 @@ private:
 	void DecodeRMCSentence(char *sentence, NavigationData *navData);
 	void DecodeGGASentence(char *sentence, NavigationData *navData);
 	void DecodeVTGSentence(char *sentence, NavigationData *navData);
+	void DecodeMWVSentence(char *sentence, NavigationData *navData);
 	int16_t NibbleValue(char c);
 };
 

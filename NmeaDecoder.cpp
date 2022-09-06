@@ -165,6 +165,10 @@ void NmeaDecoder::DecodeSentence(int sentenceIndex, NavigationData *navData)
 		// VTG sentence
 		DecodeVTGSentence(pField, navData);
 		break;
+	case 0x4D5756:
+		// MWV sentence
+		DecodeMWVSentence(pField, navData);
+		break;
 	}
 
 	return;
@@ -309,6 +313,30 @@ void NmeaDecoder::DecodeVTGSentence(char *sentence, NavigationData *navData)
 		navData->sog_kt.value = value;
 		navData->sog_kt.valid = true;
 		navData->sog_kt.timeStamp = millis();
+	}
+}
+
+void NmeaDecoder::DecodeMWVSentence(char *sentence, NavigationData *navData)
+{
+	float value;
+
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		navData->awa_deg.value = value;
+		navData->awa_deg.valid = true;
+		navData->awa_deg.timeStamp = millis();
+	}
+	for (int i = 0; i < 2; i++)
+	{
+		if ((sentence = strchr(sentence, ',')) == nullptr)
+			return;
+		sentence++;
+	}
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		navData->aws_kt.value = value;
+		navData->aws_kt.valid = true;
+		navData->aws_kt.timeStamp = millis();
 	}
 }
 

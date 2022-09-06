@@ -125,7 +125,7 @@ void setup()
 	// MicronetToNMEA's CC1101 and Tacktick's CC1000
 	gMicronetDevice1.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice1.SetDeviceId(gConfiguration.deviceId);
-	gMicronetDevice1.SetDataFields(DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
+	gMicronetDevice1.SetDataFields(DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG | DATA_FIELD_AWS | DATA_FIELD_AWA);
 	gMicronetDevice2.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice2.SetDeviceId(gConfiguration.deviceId + 1);
 	gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION);
