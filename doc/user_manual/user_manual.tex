@@ -15,7 +15,7 @@
 
 \section{What is MicronetToNMEA}
 
-MicronetToNMEA is a Teensy/Arduino based project aimed at building a cheap NMEA/Micronet bridge. The initial purpose of this project was to understand Micronet wireless protocol and to be able to record wind and speed data on a PC. The understanding of the protocol went so well that MicronetToNMEA is now doing a lot more than that. It can:
+MicronetToNMEA is a Teensy/Arduino based project aimed at building a cheap NMEA/Micronet bridge. The initial purpose of this project was to understand Micronet wireless protocol and to be able to record wind and speed data on a PC. The understanding of the protocol went so well that MicronetToNMEA is now doing a lot more. It can:
 
 \begin{itemize}
 \item Send NMEA stream to your PC/Tablet with data on depth, water speed, wind, magnetic heading, GNSS positioning, speed, time, etc.
@@ -33,6 +33,7 @@ MicronetToNMEA is not waterproof and more generally not reliable. All electronic
 \begin{itemize}
 \item Ronan Demoment : Main author
 \item Dietmar Warning : LSM303 drivers \& Bugfixes
+\item \href{https://github.com/j-lang}{j-lang} : UBLOX M8N initialization code
 \item Contributors of YBW forum's Micronet thread : \href{https://forums.ybw.com/index.php?threads/raymarines-micronet.539500/}{Micronet Thread}
 \end{itemize}
 
@@ -55,7 +56,7 @@ Teensy 3.5 has been chosen as the core micro-controller of the MicronetToNMEA sy
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino compatible board. Practically, this might be a different story. Several people got into troubles trying to use ESP32 boards. While this is technically feasible, Arduino's library implementation between Teensy \& Esp32 board can be slightly different in some sensitive areas like interrupt handling. This makes porting complex.
 
-Some users successfully used MicronetToNMEA on Teensy 4.0 and 4.1 boards with minimal adaptations.
+Some users successfully used MicronetToNMEA on Teensy 3.6, 4.0 and 4.1 boards with minimal adaptations.
 
 Teensy boards can be ordered here : \url{https://www.pjrc.com/teensy/}
 
@@ -257,6 +258,8 @@ CC1101 uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101'
 	\label{figure:cc1101}
 \end{figure}
 
+The quality of the antenna is critical to maximize RF performance and operational range. Antennas provided with low cost breakout boards are often designed to be small at the cost of RF performance. An easy way to get a good quality antenna is to use a simple electrical wire with the adequat length : 345mm for 869MHz or 327mm for 915MHz. With such an antenna you can reach an operating range close to original Tacktick devices.
+
 \section{Connecting LSM303}
 
 LSM303DLH(C) uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101's VCC \& GND. In addition SDA \& SCL must be connected as per your BoardConfig.h definitions. Note that DRDY, I1 \& I2 don't need to be connected. Figure \ref{figure:lsm303} shows how to connect LSM303DLH(C) with the default configuration.
@@ -307,7 +310,7 @@ As for the GNSS, MicronetToNMEA does not configure HC-06 itself. It is your resp
 \subsection{RF performance}
 Micronet devices cannot legally exceed a handful of milliwatts of transmit power. As a consequence the operational range will hardly exceed 15-20m. It is important not to put metal objects or panels between your various devices. This would dramatically reduce of the operational range of MicronetToNMEA.
 You should also be careful if you are racing and using carbon sails. If the sails are between your wind vane and MicronetToNMEA, you will likely not receive wind data. Carbon disturbs RF transmissions.
-It is generally considered not to be a good idea to use wireless electronics in a carbon boat or with carbon sails. Fiberglass doesn't attenuates the signal (only a little), so it is safe to attach your device inside a GRP hull.
+It is generally considered not to be a good idea to use wireless electronics in a carbon boat or with carbon sails. Fiberglass doesn't attenuates the signal too much (only a little), so it is safe to attach your device inside a GRP hull.
 
 \subsection{Magnetic compass disturbances}
 \label{compass-recommendations}
@@ -426,7 +429,7 @@ The following table summarizes all supported NMEA sentences and how they are dec
 		\hline
 		RMB & Decoded & & & XTE DTW BTW VMGWP \\
 		\hline
-		RMC & Decoded & Forwarded from NMEA\_IN & & TIME DATE \\
+		RMC & Decoded & Forwarded from GNSS\_SERIAL & & TIME DATE \\
 		\hline
 		GGA & Decoded & Forwarded from GNSS\_SERIAL & & LAT LON \\
 		\hline
