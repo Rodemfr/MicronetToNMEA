@@ -676,6 +676,45 @@ uint8_t MicronetCodec::EncodeAckParamMessage(MicronetMessage_t *message, uint8_t
 	return offset - MICRONET_PAYLOAD_OFFSET;
 }
 
+uint8_t MicronetCodec::EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId,
+		uint32_t deviceId)
+{
+	int offset = 0;
+
+	// Network ID
+	message->data[offset++] = (networkId >> 24) & 0xff;
+	message->data[offset++] = (networkId >> 16) & 0xff;
+	message->data[offset++] = (networkId >> 8) & 0xff;
+	message->data[offset++] = networkId & 0xff;
+	// Device ID
+	message->data[offset++] = (deviceId >> 24) & 0xff;
+	message->data[offset++] = (deviceId >> 16) & 0xff;
+	message->data[offset++] = (deviceId >> 8) & 0xff;
+	message->data[offset++] = deviceId & 0xff;
+	// Message info
+	message->data[offset++] = MICRONET_MESSAGE_ID_PING;
+	message->data[offset++] = 0x09;
+	message->data[offset++] = signalStrength;
+	// Header CRC
+	message->data[offset++] = 0x00;
+	// Message size
+	message->data[offset++] = 0x00;
+	message->data[offset++] = 0x00;
+
+	uint8_t crc = 0;
+	for (int i = MICRONET_PAYLOAD_OFFSET; i < offset; i++)
+	{
+		crc += message->data[i];
+	}
+	message->data[offset++] = crc;
+
+	message->len = offset;
+
+	WriteHeaderLengthAndCrc(message);
+
+	return offset - MICRONET_PAYLOAD_OFFSET;
+}
+
 void MicronetCodec::WriteHeaderLengthAndCrc(MicronetMessage_t *message)
 {
 	message->data[MICRONET_LEN_OFFSET_1] = message->len - 2;

@@ -121,6 +121,7 @@ public:
 			uint8_t payloadLength);
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 	uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
+	uint8_t EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 
 private:
 	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);

@@ -996,6 +996,8 @@ void MenuTestRfQuality()
 	uint32_t lastMasterRequest_us = 0;
 	MicronetCodec::NetworkMap networkMap;
 	float strength;
+	TxSlotDesc_t txSlot;
+	MicronetMessage_t txMessage;
 
 	CONSOLE.println("Starting RF signal quality test.");
 	CONSOLE.println("Press ESC key at any time to stop testing and come back to menu.");
@@ -1015,25 +1017,30 @@ void MenuTestRfQuality()
 					CONSOLE.println("");
 					lastMasterRequest_us = message->endTime_us;
 					gMicronetCodec.GetNetworkMap(message, &networkMap);
+					txSlot = gMicronetCodec.GetAsyncTransmissionSlot(&networkMap);
+					gMicronetCodec.EncodePingMessage(&txMessage, 9, networkMap.networkId, gConfiguration.deviceId);
+					txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
+					txMessage.startTime_us = txSlot.start_us;
+					gRfReceiver.Transmit(&txMessage);
 				}
 				PrintInt(gMicronetCodec.GetDeviceId(message));
 				CONSOLE.print(" Strength=");
 				strength = gMicronetCodec.CalculateSignalFloatStrength(message);
 				CONSOLE.print(strength);
 				CONSOLE.print(" (");
-				if (strength < 2.0)
+				if (strength < 1.0)
 				{
 					CONSOLE.print("Very low");
 				}
-				else if (strength < 4.0)
+				else if (strength < 2.5)
 				{
 					CONSOLE.print("Low");
 				}
-				else if (strength < 6.0)
+				else if (strength < 5.0)
 				{
 					CONSOLE.print("Medium");
 				}
-				else if (strength < 8.0)
+				else if (strength < 7.5)
 				{
 					CONSOLE.print("Good");
 				}
