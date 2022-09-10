@@ -504,8 +504,9 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
-		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, deviceId >> 24, MNET2NMEA_SW_MINOR_VERSION,
-		MNET2NMEA_SW_MAJOR_VERSION, 0x33, signalStrength);
+		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, deviceId >> 24,
+				MNET2NMEA_SW_MINOR_VERSION,
+				MNET2NMEA_SW_MAJOR_VERSION, 0x33, signalStrength);
 	}
 
 	message->len = offset;
@@ -755,8 +756,8 @@ uint8_t MicronetCodec::AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int
 	return offset;
 }
 
-uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t fieldData, uint8_t value1, uint8_t value2, uint8_t value3,
-		uint8_t value4)
+uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t fieldData, uint8_t value1, uint8_t value2,
+		uint8_t value3, uint8_t value4)
 {
 	int offset = 0;
 
@@ -1076,4 +1077,14 @@ uint8_t MicronetCodec::CalculateSignalStrength(MicronetMessage_t *message)
 		return 8;
 	else
 		return 9;
+}
+
+float MicronetCodec::CalculateSignalFloatStrength(MicronetMessage_t *message)
+{
+	float strength = (message->rssi + 95) / 5.0;
+
+	if (strength < 0)
+		strength = 0;
+
+	return strength;
 }

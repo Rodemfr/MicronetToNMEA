@@ -111,6 +111,7 @@ public:
 	uint32_t GetNextStartOfNetwork(NetworkMap *networkMap);
 	uint32_t GetEndOfNetwork(NetworkMap *networkMap);
 	uint8_t CalculateSignalStrength(MicronetMessage_t *message);
+	float CalculateSignalFloatStrength(MicronetMessage_t *message);
 	uint8_t GetDataMessageLength(uint32_t dataFields);
 	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
 			NavigationData *navData, uint32_t dataFields);

@@ -72,6 +72,7 @@ void MenuConvertToNmea();
 void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
 void MenuCalibrateRfFrequency();
+void MenuTestRfQuality();
 void SaveCalibration();
 void LoadCalibration();
 
@@ -91,6 +92,7 @@ MenuEntry_t mainMenu[] =
 { "Scan surrounding Micronet traffic", MenuScanAllMicronetTraffic },
 { "Calibrate RF frequency", MenuCalibrateRfFrequency },
 { "Calibrate magnetometer", MenuCalibrateMagnetoMeter },
+{ "Test RF quality", MenuTestRfQuality },
 { nullptr, nullptr } };
 
 /***************************************************************************/
@@ -986,6 +988,110 @@ void MenuCalibrateRfFrequency()
 	gRfReceiver.SetBandwidth(250);
 	gRfReceiver.SetFrequencyOffset(gConfiguration.rfFrequencyOffset_MHz);
 	gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ);
+}
+
+void MenuTestRfQuality()
+{
+	bool exitTestLoop = false;
+	uint32_t lastMasterRequest_us = 0;
+	MicronetCodec::NetworkMap networkMap;
+	float strength;
+
+	CONSOLE.println("Starting RF signal quality test.");
+	CONSOLE.println("Press ESC key at any time to stop testing and come back to menu.");
+	CONSOLE.println("");
+
+	gRxMessageFifo.ResetFifo();
+
+	MicronetMessage_t *message;
+	do
+	{
+		if ((message = gRxMessageFifo.Peek()) != nullptr)
+		{
+			if (gMicronetCodec.VerifyHeaderCrc(message))
+			{
+				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
+				{
+					CONSOLE.println("");
+					lastMasterRequest_us = message->endTime_us;
+					gMicronetCodec.GetNetworkMap(message, &networkMap);
+				}
+				PrintInt(gMicronetCodec.GetDeviceId(message));
+				CONSOLE.print(" Strength=");
+				strength = gMicronetCodec.CalculateSignalFloatStrength(message);
+				CONSOLE.print(strength);
+				CONSOLE.print(" (");
+				if (strength < 2.0)
+				{
+					CONSOLE.print("Very low");
+				}
+				else if (strength < 4.0)
+				{
+					CONSOLE.print("Low");
+				}
+				else if (strength < 6.0)
+				{
+					CONSOLE.print("Medium");
+				}
+				else if (strength < 8.0)
+				{
+					CONSOLE.print("Good");
+				}
+				else
+				{
+					CONSOLE.print("Excellent");
+				}
+
+				CONSOLE.print(") ");
+				switch (gMicronetCodec.GetDeviceType(message))
+				{
+				case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
+					CONSOLE.print("Hull Transmitter");
+					break;
+				case MICRONET_DEVICE_TYPE_WIND_TRANSDUCER:
+					CONSOLE.print("Wind Transducer");
+					break;
+				case MICRONET_DEVICE_TYPE_NMEA_CONVERTER:
+					CONSOLE.print("NMEA Converter");
+					break;
+				case MICRONET_DEVICE_TYPE_MAST_ROTATION:
+					CONSOLE.print("Mast Rotation Sensor");
+					break;
+				case MICRONET_DEVICE_TYPE_MOB:
+					CONSOLE.print("MOB");
+					break;
+				case MICRONET_DEVICE_TYPE_SDPOD:
+					CONSOLE.print("SDPOD");
+					break;
+				case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
+					CONSOLE.print("Dual Display");
+					break;
+				case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
+					CONSOLE.print("Analog Wind Display");
+					break;
+				default:
+					CONSOLE.print("Unknown device");
+					break;
+				}
+				if (networkMap.masterDevice == gMicronetCodec.GetDeviceId(message))
+				{
+					CONSOLE.print(", MASTER");
+				}
+				CONSOLE.println("");
+			}
+			gRxMessageFifo.DeleteMessage();
+		}
+
+		while (CONSOLE.available() > 0)
+		{
+			if (CONSOLE.read() == 0x1b)
+			{
+				CONSOLE.println("ESC key pressed, stopping scan.");
+				exitTestLoop = true;
+			}
+		}
+		yield();
+	} while (!exitTestLoop);
 }
 
 void SaveCalibration()
