@@ -1,0 +1,2 @@
+#!/bin/sh
+pandoc -s user_manual.tex -t gfm -o user_manual.md

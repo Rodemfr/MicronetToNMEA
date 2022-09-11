@@ -6,12 +6,12 @@ MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymar
 
 The project requires the following hardware :
 - A boat with Raymarine Wireless system. (The boat is not strictly required)
-- A Teensy 3.5 board. Teensy 4.0 & 4.1 have also been successfully tested but Teensy 3.5 is still preferred.
+- A Teensy 3.5 board. Teensy 3.6, 4.0 & 4.1 have also been successfully tested.
 - A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU. Take care to order a board with an antenna for 868 or 915MHz operations, not 433MHz.
 
 Optionally, you can add :
-- A NMEA GPS/GNSS, connected through UART to add your position, time, date, SOG and COG to Micronet displays and to the NMEA output stream
-- A LSM303DLH(C), connected through I2C to add magnetic heading to both Micronet and NMEA streams
+- A NMEA GPS/GNSS, connected through UART to add your position, time, date, SOG and COG to Micronet displays
+- A LSM303DLH(C), connected through I2C to add magnetic heading to Micronet displays
 
 The type of construction described here is fun and interesting to play with, but anyone with a little bit
 of experience at sea knows that it will not last long in the wet, salty and brutal environment of a sailing boat.
