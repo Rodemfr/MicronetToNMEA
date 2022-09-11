@@ -107,4 +107,4 @@ Some tips :
   
 ## User manual
 
-If you want more details on how to set-up and configure MicronetToNMEA, there is now a [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.pdf) in the doc directory.
+If you want more details on how to set-up and configure MicronetToNMEA, there is now a [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.md) in the doc directory.
