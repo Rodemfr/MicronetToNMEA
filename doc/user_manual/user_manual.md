@@ -225,38 +225,39 @@ By default, MicronetToNMEA is configured for a specific HW layout. This
 means that it is configured to be connected through specific SPI, I2C or
 GPIO pins to various boards. This configuration can be changed to some
 extent to adapt your own needs. The file bearing this configuration is
-“BoardConfig.h”.Note that no coherency check are made in the software.
-It is your responsibility to provide a reachable configuration (i.e. not
+“BoardConfig.h”. Note that no coherency check is made in the software,
+it is your responsibility to provide a reachable configuration (i.e. not
 to connect SPI wires to non SPI capable pins). Table
 <span>[3.1](#table:configswitches)</span> lists all available switches
 and their meaning.
 
 <div id="table:configswitches">
 
-| FREQUENCY\_SYSTEM | Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)                                                                       |
-| :---------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| NAVCOMPASS\_I2C   | Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)        |
-| CS0\_PIN          | Defines SPI Chip Select line connected to RF IC                                                                                                           |
-| MOSI\_PIN         | Defines MOSI pin of SPI bus connected to RF IC                                                                                                            |
-| MISO\_PIN         | Defines MISO pin of SPI bus connected to RF IC                                                                                                            |
-| SCK\_PIN          | Defines SCK pin of SPI bus connected to RF IC                                                                                                             |
-| GDO0\_PIN         | Defines GDO0 pin of SPI bus connected to RF IC                                                                                                            |
-| LED\_PIN          | Defines the pin driving the LED, which is used for error signaling                                                                                        |
-| GNSS\_UBLOXM8N    | Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)                                                                                   |
-| GNSS\_SERIAL      | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                  |
-| GNSS\_BAUDRATE    | Defines GNSS bit-rate in baud                                                                                                                             |
-| GNSS\_CALLBACK    | Defines the name of the callback function called when new bytes arrive on the configured serial port                                                      |
-| GNSS\_RX\_PIN     | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                       |
-| GNSS\_TX\_PIN     | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                       |
-| USB\_NMEA         | Defines which serial port is connected to USB serial converter                                                                                            |
-| USB\_BAUDRATE     | Defines baud rate of USB serial converter                                                                                                                 |
-| WIRED\_NMEA       | Defines which serial port is connected to the wired NMEA connection                                                                                       |
-| WIRED\_BAUDRATE   | Defines baud rate of the wired NMEA connection                                                                                                            |
-| WIRED\_RX\_PIN    | Defines serial RX pin used for wired NMEA                                                                                                                 |
-| WIRED\_TX\_PIN    | Defines serial TX pin used for wired NMEA                                                                                                                 |
-| CONSOLE           | Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT  |
-| NMEA\_OUT         | Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN      |
-| NMEA\_IN          | Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT |
+| **Compile Switch** | **Description**                                                                                                                                           |
+| :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FREQUENCY\_SYSTEM  | Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)                                                                       |
+| NAVCOMPASS\_I2C    | Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)        |
+| CS0\_PIN           | Defines SPI Chip Select line connected to RF IC                                                                                                           |
+| MOSI\_PIN          | Defines MOSI pin of SPI bus connected to RF IC                                                                                                            |
+| MISO\_PIN          | Defines MISO pin of SPI bus connected to RF IC                                                                                                            |
+| SCK\_PIN           | Defines SCK pin of SPI bus connected to RF IC                                                                                                             |
+| GDO0\_PIN          | Defines GDO0 pin of SPI bus connected to RF IC                                                                                                            |
+| LED\_PIN           | Defines the pin driving the LED, which is used for error signaling                                                                                        |
+| GNSS\_UBLOXM8N     | Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)                                                                                   |
+| GNSS\_SERIAL       | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                  |
+| GNSS\_BAUDRATE     | Defines GNSS bit-rate in baud                                                                                                                             |
+| GNSS\_CALLBACK     | Defines the name of the callback function called when new bytes arrive on the configured serial port                                                      |
+| GNSS\_RX\_PIN      | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                       |
+| GNSS\_TX\_PIN      | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                       |
+| USB\_NMEA          | Defines which serial port is connected to USB serial converter                                                                                            |
+| USB\_BAUDRATE      | Defines baud rate of USB serial converter                                                                                                                 |
+| WIRED\_NMEA        | Defines which serial port is connected to the wired NMEA connection                                                                                       |
+| WIRED\_BAUDRATE    | Defines baud rate of the wired NMEA connection                                                                                                            |
+| WIRED\_RX\_PIN     | Defines serial RX pin used for wired NMEA                                                                                                                 |
+| WIRED\_TX\_PIN     | Defines serial TX pin used for wired NMEA                                                                                                                 |
+| CONSOLE            | Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT  |
+| NMEA\_OUT          | Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN      |
+| NMEA\_IN           | Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT |
 
 Configuration switches in BoardConfig.h
 
