@@ -629,19 +629,19 @@ are decoded or encoded :
 
 <div id="table:nmeasentences">
 
-| **Sentence** | **NMEA\_IN** |        **NMEA\_OUT**        | **From Micronet** |  **To Micronet**  |
-| :----------- | :----------: | :-------------------------: | :---------------: | :---------------: |
-| RMB          |   Decoded    |                             |                   | XTE DTW BTW VMGWP |
-| RMC          |   Decoded    | Forwarded from GNSS\_SERIAL |                   |     TIME DATE     |
-| GGA          |   Decoded    | Forwarded from GNSS\_SERIAL |                   |      LAT LON      |
-| VTG          |   Decoded    | Forwarded from GNSS\_SERIAL |                   |      COG SOG      |
-| MWV (R)      |              |    Encoded from Micronet    |      AWA AWS      |                   |
-| MWV (T)      |              |    Encoded from Micronet    |      TWA TWS      |                   |
-| DPT          |              |    Encoded from Micronet    |        DPT        |                   |
-| MTW          |              |    Encoded from Micronet    |        STP        |                   |
-| VLW          |              |    Encoded from Micronet    |     LOG TRIP      |                   |
-| VHW          |              |    Encoded from Micronet    |        SPD        |                   |
-| HDG          |              |     Encoded from LSM303     |                   |        HDG        |
+| **Sentence** | **GNSS\_SERIAL** | **NMEA\_IN** |   **NMEA\_OUT**   | **From Micronet** |  **To Micronet**  |
+| :----------- | :--------------: | :----------: | :---------------: | :---------------: | :---------------: |
+| RMB          |                  |   Decoded    |                   |                   | XTE DTW BTW VMGWP |
+| RMC          |     Decoded      |              | From GNSS\_SERIAL |                   |     TIME DATE     |
+| GGA          |     Decoded      |              | From GNSS\_SERIAL |                   |      LAT LON      |
+| VTG          |     Decoded      |              | From GNSS\_SERIAL |                   |      COG SOG      |
+| MWV (R)      |                  |              |   From Micronet   |      AWA AWS      |                   |
+| MWV (T)      |                  |              |   From Micronet   |      TWA TWS      |                   |
+| DPT          |                  |              |   From Micronet   |        DPT        |                   |
+| MTW          |                  |              |   From Micronet   |        STP        |                   |
+| VLW          |                  |              |   From Micronet   |     LOG TRIP      |                   |
+| VHW          |                  |              |   From Micronet   |        SPD        |                   |
+| HDG          |                  |              |    From LSM303    |                   |        HDG        |
 
 Supported NMEA sentences
 

@@ -423,31 +423,31 @@ Here is a summary of all actions realized by MicronetToNMEA in this mode :
 
 The following table summarizes all supported NMEA sentences and how they are decoded or encoded :
 \begin{table}[h]
-	\begin{tabular}{|l|c|c|c|c|}
+	\begin{tabular}{|l|c|c|c|c|c|}
 		\hline
-		\textbf{Sentence} & \textbf{NMEA\_IN} & \textbf{NMEA\_OUT} & \textbf{From Micronet} & \textbf{To Micronet} \\
+		\textbf{Sentence} & \textbf{GNSS\_SERIAL}  & \textbf{NMEA\_IN} & \textbf{NMEA\_OUT} & \textbf{From Micronet} & \textbf{To Micronet} \\
 		\hline
-		RMB & Decoded & & & XTE DTW BTW VMGWP \\
+		RMB & & Decoded & & & XTE DTW BTW VMGWP \\
 		\hline
-		RMC & Decoded & Forwarded from GNSS\_SERIAL & & TIME DATE \\
+		RMC & Decoded & & From GNSS\_SERIAL & & TIME DATE \\
 		\hline
-		GGA & Decoded & Forwarded from GNSS\_SERIAL & & LAT LON \\
+		GGA & Decoded & & From GNSS\_SERIAL & & LAT LON \\
 		\hline
-		VTG & Decoded & Forwarded from GNSS\_SERIAL & & COG SOG \\
+		VTG & Decoded & & From GNSS\_SERIAL & & COG SOG \\
 		\hline
-		MWV (R) & & Encoded from Micronet & AWA AWS & \\
+		MWV (R) & & & From Micronet & AWA AWS & \\
 		\hline
-		MWV (T) & & Encoded from Micronet & TWA TWS & \\
+		MWV (T) & & & From Micronet & TWA TWS & \\
 		\hline
-		DPT & & Encoded from Micronet & DPT & \\
+		DPT & & & From Micronet & DPT & \\
 		\hline
-		MTW & & Encoded from Micronet & STP & \\
+		MTW & & & From Micronet & STP & \\
 		\hline
-		VLW & & Encoded from Micronet & LOG TRIP & \\
+		VLW & & & From Micronet & LOG TRIP & \\
 		\hline
-		VHW & & Encoded from Micronet & SPD & \\
+		VHW & & & From Micronet & SPD & \\
 		\hline
-		HDG & & Encoded from LSM303 & & HDG \\
+		HDG & & & From LSM303 & & HDG \\
 		\hline
 	\end{tabular}
 	\caption{Supported NMEA sentences}
