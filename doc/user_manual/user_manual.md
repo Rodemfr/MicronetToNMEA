@@ -29,9 +29,9 @@ likely fail quickly. So be careful that MicronetToNMEA should not be
 used as primary navigation tool. Also note that Micronet wireless
 protocol has been reverse engineered and that many of its aspects are
 not yet properly understood. Worse, some understandings we think to be
-correct might very well be false in some circumstances. If you need
-state of the art and reliable navigation devices, just go to your
-nearest Raymarine/TackTick reseller.
+correct might be false in some circumstances. If you need state of the
+art and reliable navigation devices, just go to your nearest
+Raymarine/TackTick reseller.
 
 ## Contributors
 
@@ -76,24 +76,24 @@ technically feasible, Arduino’s library implementation between Teensy &
 Esp32 board can be slightly different in some sensitive areas like
 interrupt handling. This makes porting complex.
 
-Some users successfully used MicronetToNMEA on Teensy 3.6, 4.0 and 4.1
-boards with minimal adaptations.
+Teensy 3.6, 4.0 and 4.1 boards have been successfully used with minimal
+adaptations.
 
 Teensy boards can be ordered here : <https://www.pjrc.com/teensy/>
 
 ### CC1101 board
 
-CC1101 is absolutely mandatory to MicronetToNMEA. It is the IC which
-enable RF communication with Micronet/TackTick devices. CC1101 breakout
-boards are very cheap but the quality of design and components is often
-less than average. So do not expect to have the same distance
-performance than an original TackTick device. Be careful when ordering
-this board since it is designed for a specific range of frequencies
-(filter and antenna), even if the board is announced to support 434 &
-868 (the IC can, but the antenna filter can not). MicronetToNMEA needs a
-board designed for 868/915MHz usage. Ordering the wrong board would
-dramatically reduce operating distance between MicronetToNMEA and
-TackTick devices. Here is an example of a suitable board: [868MHz
+CC1101 is mandatory to MicronetToNMEA. It is the IC which enables RF
+communication with Micronet/TackTick devices. CC1101 breakout boards are
+very cheap but the quality of design and components is often less than
+average. So do not expect to have the same distance performance than
+original TackTick devices. Be careful when ordering this board since it
+is designed for a specific range of frequencies (filter and antenna),
+even if the board is announced to support 434 & 868MHz (the IC can, but
+the antenna filter can not). MicronetToNMEA needs a board designed for
+868/915MHz usage. Ordering the wrong board would dramatically reduce
+operating distance between MicronetToNMEA and TackTick devices. Here is
+an example of a suitable board: [868MHz
 CC1101](https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G)
 
 These low-cost boards are often delivered without any documentation,
@@ -116,7 +116,7 @@ counterfeit hardware.
 ### LSM303DLH or LSM303DLHC navigation compass breakout board
 
 Connected to Teensy I2C bus, this IC will allow getting magnetic
-heading. MicronetToNMEA automatically detect the presence and type of
+heading. MicronetToNMEA automatically detects the presence and type of
 LSM303DLH/DLHC on its I2C bus.
 
 ### HC-06 Bluetooth transceiver
@@ -212,7 +212,7 @@ Here are the steps to compile MicronetToNMEA with Sloeber IDE:
 
   - Select "No file" as code
 
-Your project should be compiling now.
+Your project should compile now.
 
 Note that Sloeber can be somewhat picky with tool-chain or library
 paths. So don’t be surprised if you have to handle additional issues to
@@ -299,7 +299,7 @@ boards.
 
 | Board                      | Voltage source | Max current | Comment                                 |
 | :------------------------- | :------------: | :---------: | :-------------------------------------- |
-| Teensy 3.5                 |      3.3V      |    50mA     | CPU ruuning at 120MHz                   |
+| Teensy 3.5                 |      3.3V      |    50mA     | CPU running at 120MHz                   |
 | CC1101                     |      3.3V      |    40mA     | RF at 868MHz                            |
 | NEO M8N GNSS               |       5V       |    45mA     | M8N is 3.3V but the board is 5V         |
 | LSM303DLH(C)               |      3.3V      |    10mA     | Unspecified in datasheet, value assumed |
@@ -316,8 +316,8 @@ the USB cable to power-off the system.
 
 ### Power with an external DC source
 
-While USB powering is easy to setup, it not a common source of power in
-a boat. It is more usual to get two wires with an unstable battery
+While USB powering is easy to setup, it is not a common source of power
+in a boat. It is more usual to get two wires with an unstable battery
 voltage between 11V and 15V. In that case, you will need a voltage
 regulator or a DC-DC converter which will be used to produce a stable 5V
 for the system. This 5V source can then be connected to the Vin pin of
@@ -341,14 +341,6 @@ MicronetToNMEA and doesn’t need to be connected to Teensy. Figure
 configuration.
 
 ![Connecting Teensy and CC1101](MicronetToNMEA_CC1101.png)
-
-The quality of the antenna is critical to maximize RF performance and
-operational range. Antennas provided with low cost breakout boards are
-often designed to be small at the cost of RF performance. An easy way to
-get a good quality antenna is to use a simple electrical wire with the
-adequate length (half wavelength): 173mm for 869MHz or 164mm for 915MHz.
-With such an antenna you can reach an operating range close to original
-Tacktick devices.
 
 ## Connecting LSM303
 
@@ -418,6 +410,14 @@ disturbs RF transmissions. It is generally considered not to be a good
 idea to use wireless electronics in a carbon boat or with carbon sails.
 Fiberglass doesn’t attenuates the signal too much (only a little), so it
 is safe to attach your device inside a GRP hull.
+
+The quality of CC1101’s antenna is critical to maximize RF performance
+and operational range. Antennas provided with low cost breakout boards
+are often designed to be small at the cost of RF performance. An easy
+way to get a good quality antenna is to use a simple electrical wire
+with the adequate length (half wavelength): 173mm for 869MHz or 164mm
+for 915MHz. With such an antenna you can reach an operating range close
+to original Tacktick devices.
 
 ### Magnetic compass disturbances
 
@@ -630,19 +630,19 @@ are decoded or encoded :
 
 <div id="table:nmeasentences">
 
-| **Sentence** | **GNSS\_SERIAL** | **NMEA\_IN** |   **NMEA\_OUT**   | **From Micronet** |  **To Micronet**  |
-| :----------- | :--------------: | :----------: | :---------------: | :---------------: | :---------------: |
+| **Sentence** | **GNSS\_SERIAL** | **NMEA\_IN** |   **NMEA\_OUT**   | **From Micronet** | **To Micronet**   |
+| :----------- | :--------------: | :----------: | :---------------: | :---------------: | :---------------- |
 | RMB          |                  |   Decoded    |                   |                   | XTE DTW BTW VMGWP |
-| RMC          |     Decoded      |              | From GNSS\_SERIAL |                   |     TIME DATE     |
-| GGA          |     Decoded      |              | From GNSS\_SERIAL |                   |      LAT LON      |
-| VTG          |     Decoded      |              | From GNSS\_SERIAL |                   |      COG SOG      |
+| RMC          |     Decoded      |              | From GNSS\_SERIAL |                   | TIME DATE         |
+| GGA          |     Decoded      |              | From GNSS\_SERIAL |                   | LAT LON           |
+| VTG          |     Decoded      |              | From GNSS\_SERIAL |                   | COG SOG           |
 | MWV (R)      |                  |              |   From Micronet   |      AWA AWS      |                   |
 | MWV (T)      |                  |              |   From Micronet   |      TWA TWS      |                   |
 | DPT          |                  |              |   From Micronet   |        DPT        |                   |
 | MTW          |                  |              |   From Micronet   |        STP        |                   |
 | VLW          |                  |              |   From Micronet   |     LOG TRIP      |                   |
 | VHW          |                  |              |   From Micronet   |        SPD        |                   |
-| HDG          |                  |              |    From LSM303    |                   |        HDG        |
+| HDG          |                  |              |    From LSM303    |                   | HDG               |
 
 Supported NMEA sentences
 

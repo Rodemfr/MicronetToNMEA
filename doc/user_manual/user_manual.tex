@@ -27,7 +27,7 @@ MicronetToNMEA is a Teensy/Arduino based project aimed at building a cheap NMEA/
 
 \section{What is NOT MicronetToNMEA}
 
-MicronetToNMEA is not waterproof and more generally not reliable. All electronics used in this project are made for hobbyist and are all but robust. In the brutal, wet and salty environment of a boat, it will likely fail quickly. So be careful that MicronetToNMEA should not be used as primary navigation tool. Also note that Micronet wireless protocol has been reverse engineered and that many of its aspects are not yet properly understood. Worse, some understandings we think to be correct might very well be false in some circumstances. If you need state of the art and reliable navigation devices, just go to your nearest Raymarine/TackTick reseller.
+MicronetToNMEA is not waterproof and more generally not reliable. All electronics used in this project are made for hobbyist and are all but robust. In the brutal, wet and salty environment of a boat, it will likely fail quickly. So be careful that MicronetToNMEA should not be used as primary navigation tool. Also note that Micronet wireless protocol has been reverse engineered and that many of its aspects are not yet properly understood. Worse, some understandings we think to be correct might be false in some circumstances. If you need state of the art and reliable navigation devices, just go to your nearest Raymarine/TackTick reseller.
 
 \section{Contributors}
 
@@ -57,13 +57,13 @@ Teensy 3.5 has been chosen as the core micro-controller of the MicronetToNMEA sy
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino compatible board. Practically, this might be a different story. Several people got into troubles trying to use ESP32 boards. While this is technically feasible, Arduino's library implementation between Teensy \& Esp32 board can be slightly different in some sensitive areas like interrupt handling. This makes porting complex.
 
-Some users successfully used MicronetToNMEA on Teensy 3.6, 4.0 and 4.1 boards with minimal adaptations.
+Teensy 3.6, 4.0 and 4.1 boards have been successfully used with minimal adaptations.
 
 Teensy boards can be ordered here : \url{https://www.pjrc.com/teensy/}
 
 \subsection{CC1101 board}
 
-CC1101 is absolutely mandatory to MicronetToNMEA. It is the IC which enable RF communication with Micronet/TackTick devices. CC1101 breakout boards are very cheap but the quality of design and components is often less than average. So do not expect to have the same distance performance than an original TackTick device. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna), even if the board is announced to support 434 \& 868 (the IC can, but the antenna filter can not). MicronetToNMEA needs a board designed for 868/915MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Here is an example of a suitable board: \href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101}
+CC1101 is mandatory to MicronetToNMEA. It is the IC which enables RF communication with Micronet/TackTick devices. CC1101 breakout boards are very cheap but the quality of design and components is often less than average. So do not expect to have the same distance performance than original TackTick devices. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna), even if the board is announced to support 434 \& 868MHz (the IC can, but the antenna filter can not). MicronetToNMEA needs a board designed for 868/915MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Here is an example of a suitable board: \href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101}
 
 These low-cost boards are often delivered without any documentation, especially pin-out description. In that case CC1101 data-sheet might help : \href{https://www.ti.com/lit/ds/symlink/cc1101.pdf}{CC1101 data-sheet}
 
@@ -77,7 +77,7 @@ If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important
 
 \subsection{LSM303DLH or LSM303DLHC navigation compass breakout board}
 
-Connected to Teensy I2C bus, this IC will allow getting magnetic heading. MicronetToNMEA automatically detect the presence and type of LSM303DLH/DLHC on its I2C bus.
+Connected to Teensy I2C bus, this IC will allow getting magnetic heading. MicronetToNMEA automatically detects the presence and type of LSM303DLH/DLHC on its I2C bus.
 
 \subsection{HC-06 Bluetooth transceiver}
 
@@ -137,7 +137,7 @@ in the corresponding drop down menu
 \item Select "No file" as code
 \end{itemize}
 
-Your project should be compiling now.
+Your project should compile now.
 
 Note that Sloeber can be somewhat picky with tool-chain or library paths. So don’t be surprised if you have to handle additional issues to compile with it. The effort is worth, code productivity with Eclipse is way beyond Arduino IDE.
 
@@ -226,7 +226,7 @@ As an example, table \ref{table:boardconsumption} shows maximum current values f
 		\hline
 		Board & Voltage source & Max current & Comment \\
 		\hline
-		Teensy 3.5 & 3.3V & 50mA & CPU ruuning at 120MHz\\
+		Teensy 3.5 & 3.3V & 50mA & CPU running at 120MHz\\
 		CC1101 & 3.3V & 40mA & RF at 868MHz\\
 		NEO M8N GNSS & 5V & 45mA & M8N is 3.3V but the board is 5V\\
 		LSM303DLH(C) & 3.3V & 10mA & Unspecified in datasheet, value assumed\\
@@ -239,13 +239,14 @@ As an example, table \ref{table:boardconsumption} shows maximum current values f
 USB powering is especially useful when you plan to output NMEA through USB-serial. In this case, the connected PC/Tablet will provide power to the system and when MicronetToNMEA is not needed anymore, just unplug the USB cable to power-off the system.
 
 \subsection{Power with an external DC source}
-While USB powering is easy to setup, it not a common source of power in a boat. It is more usual to get two wires with an unstable battery voltage between 11V and 15V. In that case, you will need a voltage regulator or a DC-DC converter which will be used to produce a stable 5V for the system. This 5V source can then be connected to the Vin pin of Teensy 3.5. The on-board regulator will then produce 3.3V from this input.
+While USB powering is easy to setup, it is not a common source of power in a boat. It is more usual to get two wires with an unstable battery voltage between 11V and 15V. In that case, you will need a voltage regulator or a DC-DC converter which will be used to produce a stable 5V for the system. This 5V source can then be connected to the Vin pin of Teensy 3.5. The on-board regulator will then produce 3.3V from this input.
 \linebreak
 When Vin pin is connected to an external source of power, you must not connect an USB cable to avoid short circuit between Vin and Vusb which are connected together on Teensy by default. The Vin pin can handle voltages from 3.6 to 6V but it is strongly recommended to use 5V here. This way, if you accidentally connect a USB cable while powering Vin, there will be no short circuit.
 
 \begin{figure}
 \centering
-\includegraphics{MicronetToNMEA_DC_Power.png}
+
+\includegraphics[width=100mm]{MicronetToNMEA_DC_Power.png}
 	\caption{Powering Teensy with a DC-DC converter}
 \label{figure:dcpower}
 \end{figure}
@@ -256,12 +257,10 @@ CC1101 uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101'
 
 \begin{figure}[h]
 	\centering
-	\includegraphics{MicronetToNMEA_CC1101.png}
+	\includegraphics[width=50mm]{MicronetToNMEA_CC1101.png}
 	\caption{Connecting Teensy and CC1101}
 	\label{figure:cc1101}
 \end{figure}
-
-The quality of the antenna is critical to maximize RF performance and operational range. Antennas provided with low cost breakout boards are often designed to be small at the cost of RF performance. An easy way to get a good quality antenna is to use a simple electrical wire with the adequate length (half wavelength): 173mm for 869MHz or 164mm for 915MHz. With such an antenna you can reach an operating range close to original Tacktick devices.
 
 \section{Connecting LSM303}
 
@@ -269,7 +268,7 @@ LSM303DLH(C) uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to C
 
 \begin{figure}[h]
 	\centering
-	\includegraphics{MicronetToNMEA_LSM303.png}
+	\includegraphics[width=50mm]{MicronetToNMEA_LSM303.png}
 	\caption{Connecting Teensy to LSM303}
 	\label{figure:lsm303}
 \end{figure}
@@ -281,7 +280,7 @@ TX and RX pins must then be connected respectively on RX and TX of Teensy's UART
 
 \begin{figure}[h]
 	\centering
-	\includegraphics{MicronetToNMEA_GNSS.png}
+	\includegraphics[width=50mm]{MicronetToNMEA_GNSS.png}
 	\caption{Connecting Teensy and GNSS}
 	\label{figure:gnss}
 \end{figure}
@@ -301,7 +300,7 @@ When MicronetToNMEA is configured to send its console and/or NMEA output to a st
 
 \begin{figure}[h]
 	\centering
-	\includegraphics{MicronetToNMEA_HC06.png}
+	\includegraphics[width=85mm]{MicronetToNMEA_HC06.png}
 	\caption{Connecting Teensy and HC-06}
 	\label{figure:hc06}
 \end{figure}
@@ -314,6 +313,8 @@ As for the GNSS, MicronetToNMEA does not configure HC-06 itself. It is your resp
 Micronet devices cannot legally exceed a handful of milliwatts of transmit power. As a consequence the operational range will hardly exceed 15-20m. It is important not to put metal objects or panels between your various devices. This would dramatically reduce of the operational range of MicronetToNMEA.
 You should also be careful if you are racing and using carbon sails. If the sails are between your wind vane and MicronetToNMEA, you will likely not receive wind data. Carbon disturbs RF transmissions.
 It is generally considered not to be a good idea to use wireless electronics in a carbon boat or with carbon sails. Fiberglass doesn't attenuates the signal too much (only a little), so it is safe to attach your device inside a GRP hull.
+
+The quality of CC1101's antenna is critical to maximize RF performance and operational range. Antennas provided with low cost breakout boards are often designed to be small at the cost of RF performance. An easy way to get a good quality antenna is to use a simple electrical wire with the adequate length (half wavelength): 173mm for 869MHz or 164mm for 915MHz. With such an antenna you can reach an operating range close to original Tacktick devices.
 
 \subsection{Magnetic compass disturbances}
 \label{compass-recommendations}
@@ -425,8 +426,10 @@ Here is a summary of all actions realized by MicronetToNMEA in this mode :
 \subsection{Supported NMEA sentences}
 
 The following table summarizes all supported NMEA sentences and how they are decoded or encoded :
+
 \begin{table}[h]
-	\begin{tabular}{|l|c|c|c|c|c|}
+	\small
+	\begin{tabular}{|l|c|c|c|c|p{2.5cm}|}
 		\hline
 		\textbf{Sentence} & \textbf{GNSS\_SERIAL}  & \textbf{NMEA\_IN} & \textbf{NMEA\_OUT} & \textbf{From Micronet} & \textbf{To Micronet} \\
 		\hline
