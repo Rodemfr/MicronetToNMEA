@@ -993,7 +993,6 @@ void MenuCalibrateRfFrequency()
 void MenuTestRfQuality()
 {
 	bool exitTestLoop = false;
-	uint32_t lastMasterRequest_us = 0;
 	MicronetCodec::NetworkMap networkMap;
 	float strength;
 	TxSlotDesc_t txSlot;
@@ -1015,7 +1014,6 @@ void MenuTestRfQuality()
 				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 				{
 					CONSOLE.println("");
-					lastMasterRequest_us = message->endTime_us;
 					gMicronetCodec.GetNetworkMap(message, &networkMap);
 					txSlot = gMicronetCodec.GetAsyncTransmissionSlot(&networkMap);
 					gMicronetCodec.EncodePingMessage(&txMessage, 9, networkMap.networkId, gConfiguration.deviceId);
