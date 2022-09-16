@@ -42,7 +42,7 @@ Raymarine/TackTick reseller.
   - [j-lang](https://github.com/j-lang) : UBLOX M8N initialization code
 
   - Contributors of YBW forum’s Micronet thread : [Micronet
-    Thread](https://forums.ybw.com/index.php?threads/raymarines-micronet.539500/)
+    Thread](https://forums.ybw.com/index.php?threads/raymarines-Micronet.539500/)
 
 # Needed hardware and software
 
@@ -51,7 +51,7 @@ Raymarine/TackTick reseller.
 To work properly, MicronetToNMEA needs at least a Teensy 3.5 board and a
 CC1101 based breakout board.
 
-### Teensy 3.5
+### Teensy micro-controller
 
 Teensy 3.5 has been chosen as the core micro-controller of the
 MicronetToNMEA system. This choice has been led by one main reason : I
@@ -65,9 +65,10 @@ pretty well adapted :
 
   - It has a lot of highly configurable peripherals
 
-  - GPIOs are 5V tolerant (important to connect 5V GNSS \!)
+  - Teensy 3.5 GPIOs are 5V tolerant (important to connect 5V modules
+    \!)
 
-  - It has a MicroSD slot for future recording features
+  - Teensy 3.6 and 4.1 have a MicroSD slot for future recording features
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino
 compatible board. Practically, this might be a different story. Several
@@ -77,7 +78,7 @@ Esp32 board can be slightly different in some sensitive areas like
 interrupt handling. This makes porting complex.
 
 Teensy 3.6, 4.0 and 4.1 boards have been successfully used with minimal
-adaptations.
+software adaptations.
 
 Teensy boards can be ordered here : <https://www.pjrc.com/teensy/>
 
@@ -93,12 +94,12 @@ even if the board is announced to support 434 & 868MHz (the IC can, but
 the antenna filter can not). MicronetToNMEA needs a board designed for
 868/915MHz usage. Ordering the wrong board would dramatically reduce
 operating distance between MicronetToNMEA and TackTick devices. Here is
-an example of a suitable board: [868MHz
-CC1101](https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G)
+an example of a suitable board: [868MHz CC1101
+module](https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G)
 
 These low-cost boards are often delivered without any documentation,
 especially pin-out description. In that case CC1101 data-sheet might
-help : [CC1101 data-sheet](https://www.ti.com/lit/ds/symlink/cc1101.pdf)
+help : [CC1101 datasheet](https://www.ti.com/lit/ds/symlink/cc1101.pdf)
 
 ## Optional hardware
 
@@ -107,7 +108,7 @@ You can add optional HW to MicronetToNMEA to enhance its capabilities.
 ### NMEA0183 GNSS
 
 If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one
-important point : it must output localization data on a RS232 link using
+important point: it must output localization data on a RS232 link using
 NMEA0183 format. An example of cheap GNSS which fits the need is the
 UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial
 output. Avoid too cheap offers from unknown HW sources, this might be
@@ -119,12 +120,16 @@ Connected to Teensy I2C bus, this IC will allow getting magnetic
 heading. MicronetToNMEA automatically detects the presence and type of
 LSM303DLH/DLHC on its I2C bus.
 
-### HC-06 Bluetooth transceiver
+### Wireless serial devices for NMEA link (BT or WiFi)
 
-You can connect HC-06 device to MicronetToNMEA serial NMEA output to
-easily get a wireless connection to a PC/Tablet. Note that
-MicronetToNMEA does not configure HC-06 link, it is up to you to
-configure HC-06 before connecting it.
+You can connect HC-06 bluetooth transceiver to MicronetToNMEA serial
+NMEA port to easily get a wireless connection to a PC/Tablet. Connecting
+an ESP8266 based Serial to WiFi board (Wemos, nodeCPU etc.) allow you to
+establish an WiFi access point and a client connection to navigation
+software like OpenCPN etc.
+
+Note that MicronetToNMEA does not configure both boards, it is up to you
+to configure before connecting it.
 
 ## Required software
 
@@ -160,7 +165,7 @@ Here are the steps to compile MicronetToNMEA with Arduino IDE:
 
   - Double-click on MicronetToNMEA.ino. This should open Arduino IDE.
 
-  - In Arduino IDE, select Teensy 3.5 target HW with menu
+  - In Arduino IDE, select e.g. Teensy 3.5 target HW with menu
     “Tools-\>Board-\>Teensyduino-\>Teensy3.5”
 
   - Go to menu “Tools-\>Manage Libraries...” and install TeensyTimerTool
@@ -284,7 +289,7 @@ You have two options there, you can either :
 
 ### Power via USB
 
-This is the most straightforward way to power the system : just plug an
+This is the most straightforward way to power the system: just plug an
 USB cable in the Teensy connector and it will be powered by the
 connected PC. Teensy board is equipped with a voltage regulator which
 provides 3.3V. This 3.3V voltage can be used to power other boards of
@@ -297,13 +302,16 @@ boards.
 
 <div id="table:boardconsumption">
 
-| Board                      | Voltage source | Max current | Comment                                 |
+| Board                      | Supply voltage | Max current | Comment                                 |
 | :------------------------- | :------------: | :---------: | :-------------------------------------- |
-| Teensy 3.5                 |      3.3V      |    50mA     | CPU running at 120MHz                   |
+| Teensy 3.5                 |       5V       |    50mA     | CPU running at 120MHz                   |
+| Teensy 3.6                 |       5V       |    80mA     | Input not 5V tolerant                   |
+| Teensy 4.1                 |       5V       |    100mA    | Input not 5V tolerant                   |
 | CC1101                     |      3.3V      |    40mA     | RF at 868MHz                            |
-| NEO M8N GNSS               |       5V       |    45mA     | M8N is 3.3V but the board is 5V         |
+| NEO M8N GNSS               |       5V       |    45mA     | IO is 3.3V                              |
 | LSM303DLH(C)               |      3.3V      |    10mA     | Unspecified in datasheet, value assumed |
 | HC06 Bluetooth transceiver |      3.3V      |    40mA     | Peak during pairing                     |
+| Serial WiFi (ESP8266)      |       5V       |    150mA    | 80mA average, upto 400mA peak           |
 
 Current consumption of typical boards
 
@@ -359,9 +367,12 @@ VCC as power voltage. So you have to connect it directly to DC-DC
 Converter’s output. You should check however that your GNSS board is not
 3.3V powered, in which case you should use one of Teensy 3.3V pin. TX
 and RX pins must then be connected respectively on RX and TX of Teensy’s
-UART. Note that Teensy 3.5 is 5V tolerant, so you can connect GNSS
-directly even if it is using 5V output. Figure [4.4](#figure:gnss) shows
-how to connect GNSS for the default configuration.
+UART. The recommended UBLOX M8N module has an internal regulator to 3.3V
+on board, so you can connect GNSS directly even if it is using 5V supply
+voltage. This situation may be different for other GNSS modules.
+
+Figure [4.4](#figure:gnss) shows how to connect GNSS for the default
+configuration.
 
 ![Connecting Teensy and GNSS](MicronetToNMEA_GNSS.png)
 
@@ -380,14 +391,15 @@ GNSS should output the following sentences :
 
   - VTG : Track and speed
 
-## Connecting HC-06 modules
+## Connecting wireless serial modules
 
 When MicronetToNMEA is configured to send its console and/or NMEA output
 to a standard wired UART (i.e not USB), you can consider connecting a
-HC-06 Bluetooth transceiver to easily get wireless connectivity to your
-PC/Tablet. HC-06 is powered with 5V but can handle 3.3V signals. Only
-VCC, GND, RXD & TXD need to be connected. Figure [4.5](#figure:hc06)
-shows how to connect HC-06 with the default configuration.
+HC-06 Bluetooth transceiver or an Serial WiFi board to easily get
+wireless connectivity to your PC/Tablet. Both boards are powered with 5V
+but can handle 3.3V signals. Only VCC, GND, RXD & TXD need to be
+connected. Figure [4.5](#figure:hc06) shows how to connect e.g. HC-06
+with the default configuration.
 
 ![Connecting Teensy and HC-06](MicronetToNMEA_HC06.png)
 
@@ -408,7 +420,7 @@ are racing and using carbon sails. If the sails are between your wind
 vane and MicronetToNMEA, you will likely not receive wind data. Carbon
 disturbs RF transmissions. It is generally considered not to be a good
 idea to use wireless electronics in a carbon boat or with carbon sails.
-Fiberglass doesn’t attenuates the signal too much (only a little), so it
+Fibreglass doesn’t attenuates the signal too much (only a little), so it
 is safe to attach your device inside a GRP hull.
 
 The quality of CC1101’s antenna is critical to maximize RF performance
@@ -417,7 +429,7 @@ are often designed to be small at the cost of RF performance. An easy
 way to get a good quality antenna is to use a simple electrical wire
 with the adequate length (half wavelength): 173mm for 869MHz or 164mm
 for 915MHz. With such an antenna you can reach an operating range close
-to original Tacktick devices.
+to original TackTick devices.
 
 ### Magnetic compass disturbances
 
@@ -514,7 +526,7 @@ to generate exactly the expected frequency. Each crystal needs to be
 calibrated independently. This calibration is very important because it
 directly influence the range performance of the RF system (i.e. the
 maximum distance at which MicronetToNMEA can detect other devices). When
-you buy a Tacktick device, this calibration has already been done at
+you buy a TackTick device, this calibration has already been done at
 factory. But when you build a MicronetToNMEA system, you need to do it
 yourself.
 
@@ -545,9 +557,9 @@ wrong values and not just by a few degrees.
 
 The base principle of calibration consists in determining the minimum
 and maximum values of earth’s magnetic field onto each of the three axis
-of the sensor. This way, heading calulation will be able to remove any
-bias on the 3 axis. this biais is produced by The LSM303 itlself, but
-also by surrounding electronics (Teensy, GNSS, etc.).
+of the sensor. This way, heading calculation will be able to remove any
+bias on the 3 axis. This bias is produced by the LSM303 itself, but also
+by surrounding electronics (Teensy, GNSS, etc.).
 
 Before starting calibration, you must first prepare your environment as
 explained in [4.6.2](#compass-recommendations). Once ready, you can
@@ -598,7 +610,7 @@ any incoming NMEA sentence from NMEA\_IN serial (the same than NMEA\_OUT
 and CONSOLE by default) and transmits it to your Micronet network. You
 need to be in this mode to see decoded GNSS or NMEA data displayed onto
 your Micronet displays. You also need to be in this mode for the
-configuration parameters modified onto your micronet displays to be
+configuration parameters modified onto your Micronet displays to be
 memorized by MicronetToNMEA (e.g. speed factor, sounder offset, etc.).
 If attached to a network, MicronetToNMEA will automatically switch to
 this mode when powered-up. You can leave by just pressing *\<ESC\>* in
