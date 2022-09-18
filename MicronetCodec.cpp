@@ -502,11 +502,19 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	{
 		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData->hdg_deg.value);
 	}
+	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS, navData->aws_kt.value * 10.0f);
+	}
+	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWA, navData->awa_deg.value);
+	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
 		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, deviceId >> 24,
-				MNET2NMEA_SW_MINOR_VERSION,
-				MNET2NMEA_SW_MAJOR_VERSION, 0x33, signalStrength);
+		MNET2NMEA_SW_MINOR_VERSION,
+		MNET2NMEA_SW_MAJOR_VERSION, 0x33, signalStrength);
 	}
 
 	message->len = offset;

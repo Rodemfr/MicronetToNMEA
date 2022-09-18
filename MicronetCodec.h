@@ -56,6 +56,8 @@
 #define DATA_FIELD_BTW       0x00000040
 #define DATA_FIELD_VMGWP     0x00000080
 #define DATA_FIELD_HDG       0x00000100
+#define DATA_FIELD_AWS       0x00000200
+#define DATA_FIELD_AWA       0x00000400
 #define DATA_FIELD_NODE_INFO 0x00000200
 
 /***************************************************************************/
@@ -121,6 +123,7 @@ public:
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 	uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 	uint8_t EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
+	void CalculateTrueWind(NavigationData *dataSet);
 
 private:
 	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
@@ -129,7 +132,6 @@ private:
 	void UpdateMicronetData(uint8_t fieldId, int8_t value, NavigationData *dataSet);
 	void UpdateMicronetData(uint8_t fieldId, int16_t value, NavigationData *dataSet);
 	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2, NavigationData *dataSet);
-	void CalculateTrueWind(NavigationData *dataSet);
 	void WriteHeaderLengthAndCrc(MicronetMessage_t *message);
 	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);

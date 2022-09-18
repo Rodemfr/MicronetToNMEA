@@ -57,7 +57,8 @@ typedef enum {
 	NMEA_ID_RMB,
 	NMEA_ID_RMC,
 	NMEA_ID_GGA,
-	NMEA_ID_VTG
+	NMEA_ID_VTG,
+	NMEA_ID_MWV
 } NmeaId_t;
 
 typedef struct {
@@ -79,6 +80,15 @@ typedef struct {
 #define VOLTAGE_SOURCE_LINK LINK_MICRONET
 #define SEATEMP_SOURCE_LINK LINK_MICRONET
 #define COMPASS_SOURCE_LINK LINK_COMPASS
+
+//#define NAV_SOURCE_LINK     LINK_NMEA_EXT
+//#define GNSS_SOURCE_LINK    LINK_NMEA_EXT
+//#define WIND_SOURCE_LINK    LINK_NMEA_EXT
+//#define DEPTH_SOURCE_LINK   LINK_NMEA_EXT
+//#define SPEED_SOURCE_LINK   LINK_NMEA_EXT
+//#define VOLTAGE_SOURCE_LINK LINK_NMEA_EXT
+//#define SEATEMP_SOURCE_LINK LINK_NMEA_EXT
+//#define COMPASS_SOURCE_LINK LINK_NMEA_EXT
 
 #define NMEA_SENTENCE_MIN_PERIOD_MS 500
 
@@ -105,6 +115,7 @@ private:
 	void DecodeRMCSentence(char *sentence);
 	void DecodeGGASentence(char *sentence);
 	void DecodeVTGSentence(char *sentence);
+	void DecodeMWVSentence(char *sentence);
 	int16_t NibbleValue(char c);
 
 	void EncodeMWV_R(NavigationData *micronetData);

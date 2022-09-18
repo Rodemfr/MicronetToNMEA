@@ -147,6 +147,12 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 						}
 					}
 					break;
+				case NMEA_ID_MWV:
+					if (sourceLink == WIND_SOURCE_LINK)
+					{
+						DecodeMWVSentence(nmeaBuffer);
+					}
+					break;
 				default:
 					break;
 				}
@@ -243,6 +249,10 @@ NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
 	case 0x565447:
 		// VTG sentence
 		nmeaSentence = NMEA_ID_VTG;
+		break;
+	case 0x4D5756:
+		// MWV sentence
+		nmeaSentence = NMEA_ID_MWV;
 		break;
 	}
 
@@ -397,6 +407,63 @@ void DataBridge::DecodeVTGSentence(char *sentence)
 		gNavData.sog_kt.valid = true;
 		gNavData.sog_kt.timeStamp = millis();
 	}
+}
+
+void DataBridge::DecodeMWVSentence(char *sentence)
+{
+	float value;
+	float awa = -9999.0;
+	float aws;
+
+	sentence += 7;
+
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		awa = value;
+	}
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sentence[0] != 'R')
+	{
+		return;
+	}
+	if (awa > -9000.0)
+	{
+		gNavData.awa_deg.value = awa;
+		gNavData.awa_deg.valid = true;
+		gNavData.awa_deg.timeStamp = millis();
+	}
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		aws = value;
+	}
+	else
+		return;
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	switch (sentence[0])
+	{
+	case 'M':
+		aws *= 1.943844;
+		break;
+	case 'K':
+		aws *= 0.5399568;
+		break;
+	case 'N':
+		break;
+	default:
+		return;
+	}
+
+	gNavData.aws_kt.value = value;
+	gNavData.aws_kt.valid = true;
+	gNavData.aws_kt.timeStamp = millis();
+	gMicronetCodec.CalculateTrueWind(&gNavData);
 }
 
 int16_t DataBridge::NibbleValue(char c)

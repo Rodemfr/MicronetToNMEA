@@ -134,7 +134,7 @@ void setup()
 	gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO);
 	gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice4.SetDeviceId(gConfiguration.deviceId + 3);
-	gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP);
+	gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_AWS | DATA_FIELD_AWA);
 
 #if (GNSS_UBLOXM8N == 1)
 	CONSOLE.println("Configuring UBlox M8N GNSS");
@@ -595,7 +595,6 @@ void MenuAttachNetwork()
 void MenuConvertToNmea()
 {
 	bool exitNmeaLoop = false;
-	char nmeaSentence[256];
 	MicronetMessage_t *rxMessage;
 	MicronetMessageFifo txMessageFifo;
 	uint32_t lastHeadingTime = millis();
