@@ -100,12 +100,13 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 
 	if (c == 13)
 	{
+		nmeaBuffer[*nmeaWriteIndex] = 0;
+
 		if ((*nmeaWriteIndex >= 10) && (*nmeaWriteIndex < NMEA_SENTENCE_MAX_LENGTH - 1))
 		{
-			nmeaBuffer[*nmeaWriteIndex] = 0;
-
 			if (IsSentenceValid(nmeaBuffer))
 			{
+
 				NmeaId_t sId = SentenceId(nmeaBuffer);
 
 				switch (sId)
@@ -129,7 +130,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 				case NMEA_ID_GGA:
 					if (sourceLink == GNSS_SOURCE_LINK)
 					{
-						DecodeRMCSentence(nmeaBuffer);
+						DecodeGGASentence(nmeaBuffer);
 						if (sourceLink != LINK_NMEA_EXT)
 						{
 							NMEA_OUT.print(nmeaBuffer);
@@ -139,7 +140,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 				case NMEA_ID_VTG:
 					if (sourceLink == GNSS_SOURCE_LINK)
 					{
-						DecodeRMCSentence(nmeaBuffer);
+						DecodeVTGSentence(nmeaBuffer);
 						if (sourceLink != LINK_NMEA_EXT)
 						{
 							NMEA_OUT.print(nmeaBuffer);
@@ -159,7 +160,8 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 		}
 	}
 
-	nmeaBuffer[*nmeaWriteIndex++] = c;
+	nmeaBuffer[*nmeaWriteIndex] = c;
+	(*nmeaWriteIndex)++;
 
 	if (*nmeaWriteIndex >= NMEA_SENTENCE_MAX_LENGTH)
 	{
@@ -251,6 +253,8 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 {
 	float value;
 
+	sentence += 7;
+
 	if (sentence[0] != 'A')
 	{
 		return;
@@ -303,6 +307,8 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 
 void DataBridge::DecodeRMCSentence(char *sentence)
 {
+	sentence += 7;
+
 	if (sentence[0] != ',')
 	{
 		gNavData.time.hour = (sentence[0] - '0') * 10 + (sentence[1] - '0');
@@ -329,6 +335,8 @@ void DataBridge::DecodeRMCSentence(char *sentence)
 void DataBridge::DecodeGGASentence(char *sentence)
 {
 	float degs, mins;
+
+	sentence += 7;
 
 	if ((sentence = strchr(sentence, ',')) == nullptr)
 		return;
@@ -368,6 +376,8 @@ void DataBridge::DecodeGGASentence(char *sentence)
 void DataBridge::DecodeVTGSentence(char *sentence)
 {
 	float value;
+
+	sentence += 7;
 
 	if (sscanf(sentence, "%f", &value) == 1)
 	{
