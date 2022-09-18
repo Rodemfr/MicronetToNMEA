@@ -35,10 +35,8 @@
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
 #include "Configuration.h"
-#include "NmeaEncoder.h"
 #include "Globals.h"
 #include "MicronetCodec.h"
-#include "NmeaDecoder.h"
 #include "NavCompass.h"
 
 #include <SPI.h>
@@ -601,7 +599,6 @@ void MenuConvertToNmea()
 	MicronetMessage_t *rxMessage;
 	MicronetMessageFifo txMessageFifo;
 	uint32_t lastHeadingTime = millis();
-	float heading;
 
 	if (gConfiguration.networkId == 0)
 	{
@@ -627,22 +624,7 @@ void MenuConvertToNmea()
 			gMicronetDevice4.ProcessMessage(rxMessage, &txMessageFifo);
 			gRfReceiver.Transmit(&txMessageFifo);
 
-			if (gNmeaEncoder.EncodeMWV_R(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
-			if (gNmeaEncoder.EncodeMWV_T(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
-			if (gNmeaEncoder.EncodeDPT(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
-			if (gNmeaEncoder.EncodeMTW(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
-			if (gNmeaEncoder.EncodeVLW(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
-			if (gNmeaEncoder.EncodeVHW(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
-			if (gNmeaEncoder.EncodeHDG(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
-			if (gNmeaEncoder.EncodeXDG(&gNavData, nmeaSentence))
-				NMEA_OUT.print(nmeaSentence);
+			gDataBridge.UpdateMicronetData();
 
 			if (gNavData.calibrationUpdated)
 			{
@@ -655,15 +637,8 @@ void MenuConvertToNmea()
 
 		while (GNSS_SERIAL.available() > 0)
 		{
-			gGnssDecoder.PushChar(GNSS_SERIAL.read(), &gNavData);
+			gDataBridge.PushNmeaChar(GNSS_SERIAL.read(), LINK_NMEA_GNSS);
 		}
-
-		int nbGnssSentences = gGnssDecoder.GetNbSentences();
-		for (int i = 0; i < nbGnssSentences; i++)
-		{
-			NMEA_OUT.println(gGnssDecoder.GetSentence(i));
-		}
-		gGnssDecoder.resetSentences();
 
 		char c;
 		while (NMEA_IN.available() > 0)
@@ -674,9 +649,8 @@ void MenuConvertToNmea()
 				CONSOLE.println("ESC key pressed, stopping conversion.");
 				exitNmeaLoop = true;
 			}
-			gNavDecoder.PushChar(c, &gNavData);
+			gDataBridge.PushNmeaChar(c, LINK_NMEA_EXT);
 		}
-		gNavDecoder.resetSentences();
 
 		// Only execute magnetic heading code if navigation compass is available
 		if (gConfiguration.navCompassAvailable == true)
@@ -686,10 +660,7 @@ void MenuConvertToNmea()
 			if ((millis() - lastHeadingTime) > 100)
 			{
 				lastHeadingTime = millis();
-				heading = gNavCompass.GetHeading();
-				gNavData.hdg_deg.value = heading;
-				gNavData.hdg_deg.valid = true;
-				gNavData.hdg_deg.timeStamp = lastHeadingTime;
+				gDataBridge.UpdateCompassData(gNavCompass.GetHeading());
 			}
 		}
 
@@ -1038,9 +1009,13 @@ void MenuTestRfQuality()
 				{
 					CONSOLE.print("Medium");
 				}
-				else if (strength < 7.5)
+				else if (strength < 7.0)
 				{
 					CONSOLE.print("Good");
+				}
+				else if (strength < 9.0)
+				{
+					CONSOLE.print("Very Good");
 				}
 				else
 				{

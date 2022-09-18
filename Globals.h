@@ -35,8 +35,7 @@
 #include "MicronetMessageFifo.h"
 #include "MicronetCodec.h"
 #include "Configuration.h"
-#include "NmeaEncoder.h"
-#include "NmeaDecoder.h"
+#include "DataBridge.h"
 #include "NavigationData.h"
 #include "NavCompass.h"
 #include "RfDriver.h"
@@ -60,9 +59,7 @@ extern MenuManager gMenuManager;
 extern MicronetMessageFifo gRxMessageFifo;
 extern MicronetCodec gMicronetCodec;
 extern Configuration gConfiguration;
-extern NmeaEncoder gNmeaEncoder;
-extern NmeaDecoder gGnssDecoder;
-extern NmeaDecoder gNavDecoder;
+extern DataBridge gDataBridge;
 extern NavigationData gNavData;
 extern NavCompass gNavCompass;
 extern M8NDriver gM8nDriver;

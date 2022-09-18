@@ -24,8 +24,8 @@
  ***************************************************************************
  */
 
-#ifndef NMEADECODER_H_
-#define NMEADECODER_H_
+#ifndef DATABRIDGE_H_
+#define DATABRIDGE_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -60,29 +60,44 @@ typedef enum {
 	NMEA_ID_VTG
 } NmeaId_t;
 
+typedef struct {
+	uint32_t vwr;
+	uint32_t vwt;
+	uint32_t dpt;
+	uint32_t mtw;
+	uint32_t vlw;
+	uint32_t vhw;
+	uint32_t hdg;
+	uint32_t vcc;
+} NmeaTimeStamps_t;
+
 #define NAV_SOURCE_LINK     LINK_NMEA_EXT
 #define GNSS_SOURCE_LINK    LINK_NMEA_GNSS
 #define WIND_SOURCE_LINK    LINK_MICRONET
 #define DEPTH_SOURCE_LINK   LINK_MICRONET
 #define SPEED_SOURCE_LINK   LINK_MICRONET
+#define VOLTAGE_SOURCE_LINK LINK_MICRONET
+#define SEATEMP_SOURCE_LINK LINK_MICRONET
 #define COMPASS_SOURCE_LINK LINK_COMPASS
+
+#define NMEA_SENTENCE_MIN_PERIOD_MS 500
 
 class DataBridge
 {
 public:
-	DataBridge(NavigationData *navData);
+	DataBridge();
 	virtual ~DataBridge();
 
 	void PushNmeaChar(char c, LinkId_t sourceLink);
 	void UpdateCompassData(float heading_deg);
-	void UpdateMicronetData(NavigationData *navData);
+	void UpdateMicronetData();
 
 private:
-	NavigationData *micronetData;
 	char nmeaExtBuffer[NMEA_SENTENCE_MAX_LENGTH];
 	char nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
 	int nmeaExtWriteIndex;
 	int nmeaGnssWriteIndex;
+	NmeaTimeStamps_t nmeaTimeStamps;
 
 	bool IsSentenceValid(char *nmeaBuffer);
 	NmeaId_t SentenceId(char *nmeaBuffer);
@@ -91,10 +106,21 @@ private:
 	void DecodeGGASentence(char *sentence);
 	void DecodeVTGSentence(char *sentence);
 	int16_t NibbleValue(char c);
+
+	void EncodeMWV_R(NavigationData *micronetData);
+	void EncodeMWV_T(NavigationData *micronetData);
+	void EncodeDPT(NavigationData *micronetData);
+	void EncodeMTW(NavigationData *micronetData);
+	void EncodeVLW(NavigationData *micronetData);
+	void EncodeVHW(NavigationData *micronetData);
+	void EncodeHDG(NavigationData *micronetData);
+	void EncodeXDG(NavigationData *micronetData);
+
+	uint8_t AddNmeaChecksum(char *sentence);
 };
 
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
 
-#endif /* NMEADECODER_H_ */
+#endif /* DATABRIDGE_H_ */

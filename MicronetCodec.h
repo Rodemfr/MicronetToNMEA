@@ -34,7 +34,6 @@
 #include <stdint.h>
 
 #include "Micronet.h"
-#include "NmeaDecoder.h"
 #include "NavigationData.h"
 
 /***************************************************************************/
