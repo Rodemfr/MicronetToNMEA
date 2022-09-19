@@ -58,6 +58,7 @@
 #define DATA_FIELD_HDG       0x00000100
 #define DATA_FIELD_AWS       0x00000200
 #define DATA_FIELD_AWA       0x00000400
+#define DATA_FIELD_DPT       0x00000800
 #define DATA_FIELD_NODE_INFO 0x00000200
 
 /***************************************************************************/

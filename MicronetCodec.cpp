@@ -516,6 +516,10 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 		MNET2NMEA_SW_MINOR_VERSION,
 		MNET2NMEA_SW_MAJOR_VERSION, 0x33, signalStrength);
 	}
+	if ((dataFields & DATA_FIELD_DPT) && ((navData->dpt_m.valid)))
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_DPT, (navData->dpt_m.value - navData->depthOffset_m) * 10.0f / 0.3048f);
+	}
 
 	message->len = offset;
 

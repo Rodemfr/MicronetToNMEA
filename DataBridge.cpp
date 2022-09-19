@@ -153,6 +153,12 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 						DecodeMWVSentence(nmeaBuffer);
 					}
 					break;
+				case NMEA_ID_DPT:
+					if (sourceLink == DEPTH_SOURCE_LINK)
+					{
+						DecodeDPTSentence(nmeaBuffer);
+					}
+					break;
 				default:
 					break;
 				}
@@ -253,6 +259,10 @@ NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
 	case 0x4D5756:
 		// MWV sentence
 		nmeaSentence = NMEA_ID_MWV;
+		break;
+	case 0x445054:
+		// DPT sentence
+		nmeaSentence = NMEA_ID_DPT;
 		break;
 	}
 
@@ -391,6 +401,9 @@ void DataBridge::DecodeVTGSentence(char *sentence)
 
 	if (sscanf(sentence, "%f", &value) == 1)
 	{
+		if (value < 0)
+			value += 360.0f;
+
 		gNavData.cog_deg.value = value;
 		gNavData.cog_deg.valid = true;
 		gNavData.cog_deg.timeStamp = millis();
@@ -464,6 +477,30 @@ void DataBridge::DecodeMWVSentence(char *sentence)
 	gNavData.aws_kt.valid = true;
 	gNavData.aws_kt.timeStamp = millis();
 	gMicronetCodec.CalculateTrueWind(&gNavData);
+}
+
+void DataBridge::DecodeDPTSentence(char *sentence)
+{
+	float value;
+	float depth;
+
+	sentence += 7;
+
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		depth = value;
+	}
+	else
+		return;
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sscanf(sentence, "%f", &value) == 1)
+	{
+		gNavData.dpt_m.value = depth + value;
+		gNavData.dpt_m.valid = true;
+		gNavData.dpt_m.timeStamp = millis();
+	}
 }
 
 int16_t DataBridge::NibbleValue(char c)

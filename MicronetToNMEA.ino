@@ -128,7 +128,7 @@ void setup()
 	gMicronetDevice1.SetDataFields(DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
 	gMicronetDevice2.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice2.SetDeviceId(gConfiguration.deviceId + 1);
-	gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION);
+	gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_DPT);
 	gMicronetDevice3.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice3.SetDeviceId(gConfiguration.deviceId + 2);
 	gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO);
@@ -357,7 +357,7 @@ void PrintMessageFifo(MicronetMessageFifo &messageFifo)
 
 void MenuAbout()
 {
-	CONSOLE.println("MicronetToNMEA, Version ");
+	CONSOLE.print("MicronetToNMEA, Version ");
 	CONSOLE.print(MNET2NMEA_SW_MINOR_VERSION, DEC);
 	CONSOLE.print(".");
 	CONSOLE.println(MNET2NMEA_SW_MAJOR_VERSION, DEC);
