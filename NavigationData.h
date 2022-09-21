@@ -80,7 +80,7 @@ public:
 
 	void UpdateValidity();
 
-	FloatValue_t stw_kt;
+	FloatValue_t spd_kt;
 	FloatValue_t awa_deg;
 	FloatValue_t aws_kt;
 	FloatValue_t twa_deg;

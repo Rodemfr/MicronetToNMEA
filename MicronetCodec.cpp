@@ -317,10 +317,10 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value, Navigatio
 
 	switch (fieldId)
 	{
-	case MICRONET_FIELD_ID_STW:
-		dataSet->stw_kt.value = (((float) value) / 100.0f) * dataSet->waterSpeedFactor_per;
-		dataSet->stw_kt.valid = true;
-		dataSet->stw_kt.timeStamp = millis();
+	case MICRONET_FIELD_ID_SPD:
+		dataSet->spd_kt.value = (((float) value) / 100.0f) * dataSet->waterSpeedFactor_per;
+		dataSet->spd_kt.valid = true;
+		dataSet->spd_kt.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_DPT:
 		if (value < MAXIMUM_VALID_DEPTH_FT * 10)
@@ -374,14 +374,14 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t 
 
 void MicronetCodec::CalculateTrueWind(NavigationData *dataSet)
 {
-	if ((dataSet->awa_deg.valid) && (dataSet->aws_kt.valid) && (dataSet->stw_kt.valid))
+	if ((dataSet->awa_deg.valid) && (dataSet->aws_kt.valid) && (dataSet->spd_kt.valid))
 	{
 		if ((!dataSet->twa_deg.valid) || (!dataSet->tws_kt.valid) || (dataSet->awa_deg.timeStamp > dataSet->twa_deg.timeStamp)
 				|| (dataSet->aws_kt.timeStamp > dataSet->tws_kt.timeStamp)
-				|| (dataSet->stw_kt.timeStamp > dataSet->twa_deg.timeStamp))
+				|| (dataSet->spd_kt.timeStamp > dataSet->twa_deg.timeStamp))
 		{
 			float twLon, twLat;
-			twLon = (dataSet->aws_kt.value * cosf(dataSet->awa_deg.value * M_PI / 180.0f)) - dataSet->stw_kt.value;
+			twLon = (dataSet->aws_kt.value * cosf(dataSet->awa_deg.value * M_PI / 180.0f)) - dataSet->spd_kt.value;
 			twLat = (dataSet->aws_kt.value * sinf(dataSet->awa_deg.value * M_PI / 180.0f));
 
 			dataSet->tws_kt.value = sqrtf(twLon * twLon + twLat * twLat);
@@ -504,11 +504,11 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS, navData->aws_kt.value * 10.0f);
+		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWS, ((uint32_t)(navData->aws_kt.value * 10.0f) << 8) | 0x09);
 	}
 	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWA, navData->awa_deg.value);
+		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWA, ((int32_t)navData->awa_deg.value << 8) | 0x09);
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
@@ -519,6 +519,10 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	if ((dataFields & DATA_FIELD_DPT) && ((navData->dpt_m.valid)))
 	{
 		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_DPT, (navData->dpt_m.value - navData->depthOffset_m) * 10.0f / 0.3048f);
+	}
+	if ((dataFields & DATA_FIELD_SPD) && ((navData->spd_kt.valid)))
+	{
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_SPD, (short)(navData->spd_kt.value * 100.0f));
 	}
 
 	message->len = offset;

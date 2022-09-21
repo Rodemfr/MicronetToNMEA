@@ -59,7 +59,7 @@
 
 NavigationData::NavigationData()
 {
-	stw_kt.valid = false;
+	spd_kt.valid = false;
 	awa_deg.valid = false;
 	aws_kt.valid = false;
 	twa_deg.valid = false;
@@ -105,8 +105,8 @@ void NavigationData::UpdateValidity()
 		log_nm.valid = false;
 	if (currentTime - stp_degc.timeStamp > VALIDITY_TIME_FAST_MS)
 		stp_degc.valid = false;
-	if (currentTime - stw_kt.timeStamp > VALIDITY_TIME_FAST_MS)
-		stw_kt.valid = false;
+	if (currentTime - spd_kt.timeStamp > VALIDITY_TIME_FAST_MS)
+		spd_kt.valid = false;
 	if (currentTime - trip_nm.timeStamp > VALIDITY_TIME_FAST_MS)
 		trip_nm.valid = false;
 	if (currentTime - twa_deg.timeStamp > VALIDITY_TIME_FAST_MS)

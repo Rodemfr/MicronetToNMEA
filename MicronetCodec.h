@@ -56,10 +56,11 @@
 #define DATA_FIELD_BTW       0x00000040
 #define DATA_FIELD_VMGWP     0x00000080
 #define DATA_FIELD_HDG       0x00000100
-#define DATA_FIELD_AWS       0x00000200
-#define DATA_FIELD_AWA       0x00000400
-#define DATA_FIELD_DPT       0x00000800
 #define DATA_FIELD_NODE_INFO 0x00000200
+#define DATA_FIELD_AWS       0x00000400
+#define DATA_FIELD_AWA       0x00000800
+#define DATA_FIELD_DPT       0x00001000
+#define DATA_FIELD_SPD       0x00002000
 
 /***************************************************************************/
 /*                                Types                                    */

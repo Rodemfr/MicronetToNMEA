@@ -126,12 +126,29 @@ void setup()
 	gMicronetDevice1.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice1.SetDeviceId(gConfiguration.deviceId);
 	gMicronetDevice1.SetDataFields(DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
+
 	gMicronetDevice2.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice2.SetDeviceId(gConfiguration.deviceId + 1);
-	gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_DPT);
+	if (DEPTH_SOURCE_LINK != LINK_MICRONET)
+	{
+		gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_DPT);
+	}
+	else
+	{
+		gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION);
+	}
+
 	gMicronetDevice3.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice3.SetDeviceId(gConfiguration.deviceId + 2);
-	gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO);
+	if (SPEED_SOURCE_LINK != LINK_MICRONET)
+	{
+		gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO | DATA_FIELD_SPD);
+	}
+	else
+	{
+		gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO);
+	}
+
 	gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice4.SetDeviceId(gConfiguration.deviceId + 3);
 	gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_AWS | DATA_FIELD_AWA);

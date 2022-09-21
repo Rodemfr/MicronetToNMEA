@@ -59,7 +59,8 @@ typedef enum {
 	NMEA_ID_GGA,
 	NMEA_ID_VTG,
 	NMEA_ID_MWV,
-	NMEA_ID_DPT
+	NMEA_ID_DPT,
+	NMEA_ID_VHW
 } NmeaId_t;
 
 typedef struct {
@@ -118,6 +119,7 @@ private:
 	void DecodeVTGSentence(char *sentence);
 	void DecodeMWVSentence(char *sentence);
 	void DecodeDPTSentence(char *sentence);
+	void DecodeVHWSentence(char *sentence);
 	int16_t NibbleValue(char c);
 
 	void EncodeMWV_R(NavigationData *micronetData);
