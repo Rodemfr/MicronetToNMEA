@@ -48,8 +48,8 @@ DID = Device ID (4 bytes) - Unique number identifying the device sending the mes
           0x06 SDPOD
           0x83 Analog Wind Display
           0x81 Dual Display
-		  0x86 Dual Maxi Display 
-		  0x88 Remote Display 
+          0x86 Dual Maxi Display 
+          0x88 Remote Display 
 
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to know how to decode payload.
      0x01 Master Request
@@ -58,24 +58,18 @@ MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to k
      0x07 Ack Parameter
      0x0a Ping
      0x0b Ack Ping
-	 0x0c Enter Remote Mode
-	 0x0d Exit Remote Mode
-	 0x14 Send RC Command
-	 0x18 Send invitation to become master?
-	 0x19 Ack to becoming master?
-	 0x1b Ack Remote - Report control capabilities?
+     0x0c Enter Remote Mode
+     0x0d Exit Remote Mode
+     0x14 Send RC Command
+     0x18 Initiate Master Change
+     0x19 Ack Master Change
+     0x1b Ack Remote - Report control capabilities?
 
-	 880B2906 860B78C7 1B 19 09 CF 0E 0E  -- 02 02
-	 880B2906 860B78BD 1B 19 00 BC 0E 0E  -- 02 02
-	 880B2906 860B78C7 1B 19 09 CF 0E 0E  -- 02 02 (i'm not being remote controlled)
-	 
-	 880B2906 860B78BD 1B 19 00 BC 0E 0E  -- 02 02
-	 
 DF = Device Flags - Unclear if this byte really plays a role or not. It seems to give information on emitting
      device status/properties. It seems to be defined as a set of bit flags. Interpretation probably wrong.
        0x01 Measurement device
        0x08 Display (or master ?) device
-	   0x19 Dual Maxi Display ?
+       0x19 Dual Maxi Display?
 
 SS = Signal Strength - Indicator of signal strength as seen by slave device. Value ranges from 0 (weakest signal) to
                        9 (strongest signal). It is measured by slave device when receiving 0x01 message from master. 
@@ -404,8 +398,8 @@ Example : Speed filtering level MED
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
 |83 03 77 37|81 03 70 82|06|09|09|C2|12|12|FF|04|01|20|0E|32|
 
-Example : Set Display backlight?
-|             MESSAGE HEADER              | DISPLAY?  |
+Example : Set Display backlight to off
+|             MESSAGE HEADER              |  DISPLAY  |
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|VA|VE|CS|
 |88 0B 29 06|88 0B C9 44|06|01|09|72|10|10|E5|00|01|E6|
 
@@ -418,7 +412,7 @@ VE Version - Incremented by one at each new value sent to other devices. Reset t
 
 PA Page - This bytes seems to select a page of parameters you want to access. Pretty unsure definition.
             0xFF - Nav & Sensors page
-			0xE5 - Backlight level
+            0xE5 - Backlight level
 
 PI Parameter ID - Id of the parameter to be changed in the page
 
@@ -564,7 +558,7 @@ CS = Checksum
 Note: not sure if one can send any RC command directly to a display without prior 0x0C command and/or 0x14 device select command.
 
 ********************************************************
-*** Message 0x18 (Initiate Master Change?) ***
+*** Message 0x18 (Initiate Master Change) ***
 ********************************************************
 Transmission window : Synchronous?
 
@@ -579,7 +573,7 @@ Initiate Master change
 |88 0B 29 06|88 0B C9 44|18|01|00|7B|11|11|BD 78 0B 86|C6|
 
 **********************************************
-*** Message 0x19 (Ack Master Change?) ***
+*** Message 0x19 (Ack Master Change) ***
 **********************************************
 Transmission window : Acknowledge?
 
@@ -607,4 +601,4 @@ Acknowledge Remote state
 |    NUID   |    DID    |MI|DF|SS|CS|LE|CS|VA|CS|
 |88 0B 29 06|86 0B 78 BD|1B|19|09|C5|0E|0E|02|02|
 
-VA = number of controllable panes ??
+VA = number of controllable panes?
