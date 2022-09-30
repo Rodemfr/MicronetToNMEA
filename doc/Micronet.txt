@@ -564,10 +564,11 @@ Transmission window : Synchronous?
 
 This message is used to initiate a change of Master device. 
 It is sent automatically by the current master to another device it selects (selection criteria unknown).
+A typical case seems to be the Remote Display willing to give up its Master status to another (bigger) Display device.
 
 Message example :
 
-Initiate Master change
+Initiate Master change from the Remote Display to a Dual Maxi Display
 |             MESSAGE HEADER              |     FIELD    |
 |    NUID   |    DID    |MI|DF|SS|CS|LE|CS|    DID1   |CS|
 |88 0B 29 06|88 0B C9 44|18|01|00|7B|11|11|BD 78 0B 86|C6|
@@ -577,11 +578,11 @@ Initiate Master change
 **********************************************
 Transmission window : Acknowledge?
 
-This message is the acknowledgement by the device which received the 0x19 request that it will become the new Master.
+This message is the acknowledgement by the device which received the 0x18 request that it will become the new Master.
 
 Message example :
 
-Acknowledge Master change
+Maxi Display acknowledging to becoming the new Master
 |             MESSAGE HEADER              |
 |    NUID   |    DID    |MI|DF|SS|CS|LE|CS|
 |88 0B 29 06|86 0B 78 BD|19|19|09|C3|0C|0C|
@@ -591,8 +592,8 @@ Acknowledge Master change
 ******************************************************************
 Transmission window : Acknowledge?
 
-This message is sent by the controlled device after it receives its first 0x14 command.
-(ie for a dual display, it is not sent when selecting the bottom pane, but it will be resent again everytime the RC switches back to the device)
+This message is sent by the controlled device after it receives its first 0x14 (remote) command.
+(i.e. for a dual display, it is not sent when selecting the bottom pane or receiving menu navigation commands, but it will be resent again everytime the RC switches back to the device)
 
 Message example :
 
