@@ -504,25 +504,27 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
 	{
-		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWS, ((uint32_t)(navData->aws_kt.value * 10.0f) << 8) | 0x09);
+		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWS,
+				((uint32_t) (navData->aws_kt.value * 10.0f) << 8) | 0x09);
 	}
 	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
 	{
-		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWA, ((int32_t)navData->awa_deg.value << 8) | 0x09);
+		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWA, ((int32_t) navData->awa_deg.value << 8) | 0x09);
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
 		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, deviceId >> 24,
-		MNET2NMEA_SW_MINOR_VERSION,
-		MNET2NMEA_SW_MAJOR_VERSION, 0x33, signalStrength);
+		MNET2NMEA_SW_MAJOR_VERSION,
+		MNET2NMEA_SW_MINOR_VERSION, 0x33, signalStrength);
 	}
 	if ((dataFields & DATA_FIELD_DPT) && ((navData->dpt_m.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_DPT, (navData->dpt_m.value - navData->depthOffset_m) * 10.0f / 0.3048f);
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_DPT,
+				(navData->dpt_m.value - navData->depthOffset_m) * 10.0f / 0.3048f);
 	}
 	if ((dataFields & DATA_FIELD_SPD) && ((navData->spd_kt.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_SPD, (short)(navData->spd_kt.value * 100.0f));
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_SPD, (short) (navData->spd_kt.value * 100.0f));
 	}
 
 	message->len = offset;

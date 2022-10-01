@@ -296,10 +296,10 @@ FI = Field ID
           YY = Year (from 2000)
      0x10 Device Info
           |01|02|03|04|05|06|07|08|
-          |06|10|DT|MI|MA|SB|SS|CS|
+          |06|10|DT|MA|MI|SB|SS|CS|
           DT = Device type
-          MI = Minor version of SW (0 to 9 max)
           MA = Major version of SW
+          MI = Minor version of SW (0 to 9 max)
           SB = Charge & Battery Level.
                  High nibble is charge level (0..3)
                  Low nibble is battery level (0..3) 

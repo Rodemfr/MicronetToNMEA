@@ -423,7 +423,8 @@ void DataBridge::DecodeVTGSentence(char *sentence)
 	{
 		// Version without T, M & N
 		fieldsToSkip = 2;
-	} else
+	}
+	else
 	{
 		// Correct version
 		fieldsToSkip = 4;
@@ -473,6 +474,8 @@ void DataBridge::DecodeMWVSentence(char *sentence)
 	}
 	if (awa > -9000.0)
 	{
+		if (awa > 180.0)
+			awa -= 360.0f;
 		gNavData.awa_deg.value = awa;
 		gNavData.awa_deg.valid = true;
 		gNavData.awa_deg.timeStamp = millis();
@@ -539,12 +542,28 @@ void DataBridge::DecodeVHWSentence(char *sentence)
 
 	sentence += 7;
 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 2; i++)
 	{
 		if ((sentence = strchr(sentence, ',')) == nullptr)
 			return;
 		sentence++;
 	}
+	if (sscanf(sentence, "%f", &value) != 1)
+		return;
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+	if (sentence[0] == 'M')
+	{
+		if (value < 0)
+			value += 360.0f;
+		gNavData.hdg_deg.value = value;
+		gNavData.hdg_deg.valid = true;
+		gNavData.hdg_deg.timeStamp = millis();
+	}
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
 	if (sscanf(sentence, "%f", &value) != 1)
 		return;
 	if ((sentence = strchr(sentence, ',')) == nullptr)
