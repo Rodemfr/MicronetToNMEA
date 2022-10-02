@@ -48,19 +48,28 @@ DID = Device ID (4 bytes) - Unique number identifying the device sending the mes
           0x06 SDPOD
           0x83 Analog Wind Display
           0x81 Dual Display
+          0x86 Dual Maxi Display 
+          0x88 Remote Display 
 
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to know how to decode payload.
      0x01 Master Request
      0x02 Send Data
      0x06 Set Parameter
-     0x07 Ack parameter
+     0x07 Ack Parameter
      0x0a Ping
      0x0b Ack Ping
+     0x0c Enter Remote Mode
+     0x0d Exit Remote Mode
+     0x14 Send RC Command
+     0x18 Initiate Master Change
+     0x19 Ack Master Change
+     0x1b Ack Remote - Report control capabilities?
 
 DF = Device Flags - Unclear if this byte really plays a role or not. It seems to give information on emitting
      device status/properties. It seems to be defined as a set of bit flags. Interpretation probably wrong.
        0x01 Measurement device
        0x08 Display (or master ?) device
+       0x19 Dual Maxi Display?
 
 SS = Signal Strength - Indicator of signal strength as seen by slave device. Value ranges from 0 (weakest signal) to
                        9 (strongest signal). It is measured by slave device when receiving 0x01 message from master. 
@@ -157,7 +166,7 @@ Knowing all of this, here is an example cycle of a network composed of devices A
 **************************************
 *** Message 0x01 (Master Resquest) ***
 **************************************
-Tansmission window : Initial
+Transmission window : Initial
 
 This message is sent by the master device to initiate a communication cycle on the network. Slave devices use this
 message to know how and when they can talk on the radio.
@@ -182,7 +191,7 @@ CS - Checksum
 ********************************
 *** Message 0x02 (Send Data) ***
 ********************************
-Tansmission window : Synchronous
+Transmission window : Synchronous
 
 This message is used to send data from one device to other network devices. It is a response to "Master Request"
 message sent by the main display to collect data from all sensors. It sends a variable number of fields depending on
@@ -337,7 +346,7 @@ CS = Field checksum. Sum of all bytes of the field.
 ******************************************
 *** Message 0x03 (Request Sync Window) ***
 ******************************************
-Tansmission window : Asynchronous
+Transmission window : Asynchronous
 
 When a device is not listed in the synchronous data schedule. It can request a sync transmission window to the master
 device with this message.
@@ -353,7 +362,7 @@ CS - Checksum of the entire payload
 *****************************************
 *** Message 0x05 (Resize Sync Window) ***
 *****************************************
-Tansmission window : Asynchronous
+Transmission window : Asynchronous
 
 When a device wants to change the size of its maximum payload in its synchronous window, it can use this command. The
 payload size will be updated at next cycle. 
@@ -369,7 +378,7 @@ CS - Checksum of the entire payload
 ************************************
 *** Message 0x06 (Set Parameter) ***
 ************************************
-Tansmission window : Asynchronous
+Transmission window : Asynchronous
 
 This message is sent by a display when a parameter changed. This is typically used when user changes a configuration
 parameter.
@@ -389,6 +398,11 @@ Example : Speed filtering level MED
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
 |83 03 77 37|81 03 70 82|06|09|09|C2|12|12|FF|04|01|20|0E|32|
 
+Example : Set Display backlight to off
+|             MESSAGE HEADER              |  DISPLAY  |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|VA|VE|CS|
+|88 0B 29 06|88 0B C9 44|06|01|09|72|10|10|E5|00|01|E6|
+
 PL Parameter Length - Number of bytes on wich VA is coded.
 
 VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
@@ -398,6 +412,7 @@ VE Version - Incremented by one at each new value sent to other devices. Reset t
 
 PA Page - This bytes seems to select a page of parameters you want to access. Pretty unsure definition.
             0xFF - Nav & Sensors page
+            0xE5 - Backlight level
 
 PI Parameter ID - Id of the parameter to be changed in the page
 
@@ -434,10 +449,16 @@ PI Parameter ID - Id of the parameter to be changed in the page
    0xFF 0x0E Wind shift
       VA = 8bit unsigned integer
 
+   0xE5 Backlight level
+      VA = 0x00 : Off
+      VA = 0x01 : Level 1
+      VA = 0x02 : Level 2
+      VA = 0x03 : Level 3
+
 ************************************
 *** Message 0x07 (Ack Parameter) ***
 ************************************
-Tansmission window : Acknowledge
+Transmission window : Acknowledge
 
 This message is sent by a slave device to acknowledge a "Set Parameter" command sent on the asynchronous window. It is
 used by master device to detect collision on asynchronous window and to repeat "Set Parameter" command if required.
@@ -451,7 +472,7 @@ Example :
 ***************************
 *** Message 0x0A (Ping) ***
 ***************************
-Tansmission window : Asynchronous
+Transmission window : Asynchronous
 
 This message is used by network's master to probe devices connected to the network.
 It is also used to remove from network devices which have not been detected for several ON/OFF cycles.
@@ -464,7 +485,7 @@ Example :
 *******************************
 *** Message 0x0B (Ack Ping) ***
 *******************************
-Tansmission window : Acknowledge
+Transmission window : Acknowledge
 
 This message is used by slave devices as a response to 0x0A message from master. 
 The value sent as payload is not identified. It looks like some status or property flags.
@@ -475,10 +496,110 @@ Example :
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|??|CS|
 |83 03 77 37|01 0B C0 22|0B|01|09|37|0E|0E|00|00|
 
-*************************
-*** Message 0x18 (??) ***
-*************************
+******************************************
+*** Message 0x0C (Remote Control Start) ***
+******************************************
+Transmission window : Asynchronous?
 
-*************************
-*** Message 0x19 (??) ***
-*************************
+This message is used by the remote control device to broadcast that it is entering remote control mode. 
+it is followed by a 0x14 "remote device select" to select the active controlled device.
+
+Example :
+
+|             MESSAGE HEADER              |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|
+|88 0B 29 06|88 0B C9 44|0C|01|09|78|0C|0C|
+	 
+******************************************
+*** Message 0x0D (Remote Control End) ***
+******************************************
+Transmission window : Asynchronous?
+
+This message is used by the remote control device to broadcast that it is exiting remote control mode. 
+it is followed by a 0x06 "set param" message to ?. which is then ack'd (0x07) by the controllable displays (incl .the remote itself) 
+
+Example :
+
+|             MESSAGE HEADER              |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|
+|88 0B 29 06|88 0B C9 44|0D|01|09|79|0C|0C|
+
+**************************************
+*** Message 0x14 (Send RC Command) ***
+**************************************
+Transmission window : Asynchronous?
+
+This message is used to send a remote command to a controllable display device.
+It sends an RC command and the target device id.
+
+Message example :
+
+Send "v" button press to display device
+|             MESSAGE HEADER              |    RC COMMAND   |
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS|RC|    DID1   |CS|
+|88 0B 29 06|88 0B C9 44|14|01|09|80|12|12|05|BD 78 0B 86|CB|
+
+RC = RC Command
+     0x05 "v" button press (chapter)
+     0x06 long "v" button press (on/off)
+     0x09 "o" button press (set)
+     0x0a long "o" button press (setup)
+	 0x0d "<" button press (page left or adjust value left)
+	 0x11 ">" button press (page right or adjust value right)
+	 0x12 long ">" button press (backlighting)
+	 0x13 long ">" button press (backlighting) -- /!\ both 12 and 13 are sent on a long ">" press
+	 0x24 select upper pane on dual displays (only tested on a Maxi display)
+	 0x25 select lower pane on dual displays (only tested on a Maxi display)
+
+DID1 = target device
+
+CS = Checksum
+
+Note: not sure if one can send any RC command directly to a display without prior 0x0C command and/or 0x14 device select command.
+
+********************************************************
+*** Message 0x18 (Initiate Master Change) ***
+********************************************************
+Transmission window : Synchronous?
+
+This message is used to initiate a change of Master device. 
+It is sent automatically by the current master to another device it selects (selection criteria unknown).
+A typical case seems to be the Remote Display willing to give up its Master status to another (bigger) Display device.
+
+Message example :
+
+Initiate Master change from the Remote Display to a Dual Maxi Display
+|             MESSAGE HEADER              |     FIELD    |
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS|    DID1   |CS|
+|88 0B 29 06|88 0B C9 44|18|01|00|7B|11|11|BD 78 0B 86|C6|
+
+**********************************************
+*** Message 0x19 (Ack Master Change) ***
+**********************************************
+Transmission window : Acknowledge?
+
+This message is the acknowledgement by the device which received the 0x18 request that it will become the new Master.
+
+Message example :
+
+Maxi Display acknowledging to becoming the new Master
+|             MESSAGE HEADER              |
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS|
+|88 0B 29 06|86 0B 78 BD|19|19|09|C3|0C|0C|
+
+******************************************************************
+*** Message 0x1b (Ack Remote - Report control capabilities ??) ***
+******************************************************************
+Transmission window : Acknowledge?
+
+This message is sent by the controlled device after it receives its first 0x14 (remote) command.
+(i.e. for a dual display, it is not sent when selecting the bottom pane or receiving menu navigation commands, but it will be resent again everytime the RC switches back to the device)
+
+Message example :
+
+Acknowledge Remote state
+|             MESSAGE HEADER              |FIELD|
+|    NUID   |    DID    |MI|DF|SS|CS|LE|CS|VA|CS|
+|88 0B 29 06|86 0B 78 BD|1B|19|09|C5|0E|0E|02|02|
+
+VA = number of controllable panes?
