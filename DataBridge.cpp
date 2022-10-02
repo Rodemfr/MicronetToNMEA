@@ -165,6 +165,12 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 						DecodeVHWSentence(nmeaBuffer);
 					}
 					break;
+				case NMEA_ID_HDG:
+					if (sourceLink == COMPASS_SOURCE_LINK)
+					{
+						DecodeHDGSentence(nmeaBuffer);
+					}
+					break;
 				default:
 					break;
 				}
@@ -273,6 +279,10 @@ NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
 	case 0x564857:
 		// DPT sentence
 		nmeaSentence = NMEA_ID_VHW;
+		break;
+	case 0x484447:
+		// HDG sentence
+		nmeaSentence = NMEA_ID_HDG;
 		break;
 	}
 
@@ -577,6 +587,21 @@ void DataBridge::DecodeVHWSentence(char *sentence)
 	}
 }
 
+void DataBridge::DecodeHDGSentence(char *sentence)
+{
+	float value;
+
+	sentence += 7;
+
+	if (sscanf(sentence, "%f", &value) != 1)
+		return;
+	if (value < 0)
+		value += 360.0f;
+	gNavData.hdg_deg.value = value;
+	gNavData.hdg_deg.valid = true;
+	gNavData.hdg_deg.timeStamp = millis();
+}
+
 int16_t DataBridge::NibbleValue(char c)
 {
 	if ((c >= '0') && (c <= '9'))
@@ -712,11 +737,23 @@ void DataBridge::EncodeVHW(NavigationData *micronetData)
 	if (SPEED_SOURCE_LINK == LINK_MICRONET)
 	{
 		update = (gNavData.spd_kt.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
-		update = update && gNavData.spd_kt.valid;
+		update = update || (gNavData.hdg_deg.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
+		update = update && (gNavData.spd_kt.valid || gNavData.hdg_deg.valid);
 
 		if (update)
 		{
-			sprintf(sentence, "$INVHW,,T,,M,%.2f,N,,K", gNavData.spd_kt.value);
+			if ((gNavData.hdg_deg.valid) && (gNavData.spd_kt.valid))
+			{
+				sprintf(sentence, "$INVHW,,T,%.0f,M,%.2f,N,,K", gNavData.hdg_deg.value, gNavData.spd_kt.value);
+			}
+			else if (gNavData.hdg_deg.valid)
+			{
+				sprintf(sentence, "$INVHW,,T,%.0f,M,,N,,K", gNavData.hdg_deg.value);
+			}
+			else
+			{
+				sprintf(sentence, "$INVHW,,T,,M,%.2f,N,,K", gNavData.spd_kt.value);
+			}
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.vhw = millis();
 			NMEA_OUT.print(sentence);
