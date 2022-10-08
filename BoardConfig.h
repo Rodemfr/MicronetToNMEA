@@ -62,9 +62,6 @@
 #define GDO0_PIN 9
 #endif
 
-// ERROR LED pin
-#define LED_PIN LED_BUILTIN
-
 // NMEA GNSS UART pins
 #if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
 #define GNSS_UBLOXM8N  1       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
@@ -96,33 +93,25 @@
 #define WIRED_RX_PIN   21
 #define WIRED_TX_PIN   20
 #endif
+
 // The console to use for menu and NMEA output
 #define CONSOLE  USB_NMEA
 #define NMEA_OUT USB_NMEA
 #define NMEA_IN  USB_NMEA
 
 // Defines with data comes from which link
-// LINK_NMEA_EXT -> data comes from external NMEA link
-// LINK_NMEA_GNSS -> data comes from GNSS NMEA link
+// LINK_NMEA_EXT -> data comes from external NMEA link (WIRED_NMEA)
+// LINK_NMEA_GNSS -> data comes from GNSS NMEA link (GNSS_SERIAL)
 // LINK_MICRONET -> data comes from Micronet network
-// LINK_COMPASS -> data comes from LSM303
-#define NAV_SOURCE_LINK     LINK_NMEA_EXT // Navigation data (RMB)
-#define GNSS_SOURCE_LINK    LINK_NMEA_EXT // Positionning data (RMC, GGA, VTG)
-#define WIND_SOURCE_LINK    LINK_NMEA_EXT // Wind data (MWV)
-#define DEPTH_SOURCE_LINK   LINK_NMEA_EXT // Depth data (DPT)
-#define SPEED_SOURCE_LINK   LINK_NMEA_EXT // Speed data (SPD, LOG)
-#define VOLTAGE_SOURCE_LINK LINK_NMEA_EXT // Battery voltage data (XDG)
-#define SEATEMP_SOURCE_LINK LINK_NMEA_EXT // Temperature data (STP)
-#define COMPASS_SOURCE_LINK LINK_NMEA_EXT // Heading data (HDG)
-
-//#define NAV_SOURCE_LINK     LINK_NMEA_EXT
-//#define GNSS_SOURCE_LINK    LINK_NMEA_GNSS
-//#define WIND_SOURCE_LINK    LINK_MICRONET
-//#define DEPTH_SOURCE_LINK   LINK_MICRONET
-//#define SPEED_SOURCE_LINK   LINK_MICRONET
-//#define VOLTAGE_SOURCE_LINK LINK_MICRONET
-//#define SEATEMP_SOURCE_LINK LINK_MICRONET
-//#define COMPASS_SOURCE_LINK LINK_COMPASS
+// LINK_COMPASS -> data comes from LSM303 (NAVCOMPASS_I2C)
+#define NAV_SOURCE_LINK     LINK_NMEA_EXT  // Navigation data (RMB)
+#define GNSS_SOURCE_LINK    LINK_NMEA_GNSS // Positionning data (RMC, GGA, VTG)
+#define WIND_SOURCE_LINK    LINK_MICRONET  // Wind data (MWV)
+#define DEPTH_SOURCE_LINK   LINK_MICRONET  // Depth data (DPT)
+#define SPEED_SOURCE_LINK   LINK_MICRONET  // Speed data (SPD, LOG)
+#define VOLTAGE_SOURCE_LINK LINK_MICRONET  // Battery voltage data (XDG)
+#define SEATEMP_SOURCE_LINK LINK_MICRONET  // Temperature data (STP)
+#define COMPASS_SOURCE_LINK LINK_COMPASS   // Heading data (HDG)
 
 /***************************************************************************/
 /*                                Types                                    */

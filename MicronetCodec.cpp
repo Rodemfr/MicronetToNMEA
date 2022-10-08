@@ -435,6 +435,26 @@ uint8_t MicronetCodec::GetDataMessageLength(uint32_t dataFields)
 	{
 		offset += 6;
 	}
+	if (dataFields & DATA_FIELD_NODE_INFO)
+	{
+		offset += 8;
+	}
+	if (dataFields & DATA_FIELD_AWS)
+	{
+		offset += 7;
+	}
+	if (dataFields & DATA_FIELD_AWA)
+	{
+		offset += 7;
+	}
+	if (dataFields & DATA_FIELD_DPT)
+	{
+		offset += 6;
+	}
+	if (dataFields & DATA_FIELD_SPD)
+	{
+		offset += 6;
+	}
 
 	return offset;
 }

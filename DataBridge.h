@@ -38,7 +38,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define NMEA_SENTENCE_MAX_LENGTH   96
+#define NMEA_SENTENCE_MAX_LENGTH   128
 #define NMEA_SENTENCE_HISTORY_SIZE 24
 
 /***************************************************************************/
@@ -115,7 +115,7 @@ private:
 	void EncodeHDG(NavigationData *micronetData);
 	void EncodeXDG(NavigationData *micronetData);
 
-	uint8_t AddNmeaChecksum(char *sentence);
+	uint8_t AddNmeaChecksumAndCrLf(char *sentence);
 };
 
 /***************************************************************************/

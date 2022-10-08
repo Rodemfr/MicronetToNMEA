@@ -171,9 +171,9 @@ void setup()
 
 		while (1)
 		{
-			digitalWrite(LED_PIN, HIGH);
+			digitalWrite(LED_BUILTIN, HIGH);
 			delay(500);
-			digitalWrite(LED_PIN, LOW);
+			digitalWrite(LED_BUILTIN, LOW);
 			delay(500);
 		}
 	}
