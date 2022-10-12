@@ -115,7 +115,7 @@ private:
 	void EncodeHDG(NavigationData *micronetData);
 	void EncodeXDG(NavigationData *micronetData);
 
-	uint8_t AddNmeaChecksumAndCrLf(char *sentence);
+	uint8_t AddNmeaChecksum(char *sentence);
 };
 
 /***************************************************************************/

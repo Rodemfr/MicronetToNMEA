@@ -510,9 +510,10 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	{
 		offset += Add32bitField(message->data + offset, MICRONET_FIELD_ID_DTW, (short) (navData->dtw_nm.value * 100));
 	}
-	if ((dataFields & DATA_FIELD_BTW) && (navData->btw_deg.valid))
+	if ((dataFields & DATA_FIELD_BTW) && ((navData->btw_deg.valid) || (navData->btw_name.valid)))
 	{
-		offset += AddQuad16bitField(message->data + offset, MICRONET_FIELD_ID_BTW, (short) navData->btw_deg.value, 0, 0, 0);
+		offset += Add16bitAndSix8bitField(message->data + offset, MICRONET_FIELD_ID_BTW, (short) navData->btw_deg.value,
+				navData->btw_name.wpname);
 	}
 	if ((dataFields & DATA_FIELD_VMGWP) && (navData->vmc_kt.valid))
 	{
@@ -533,7 +534,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
-		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO, deviceId >> 24,
+		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO,
 		MNET2NMEA_SW_MAJOR_VERSION,
 		MNET2NMEA_SW_MINOR_VERSION, 0x33, signalStrength);
 	}
@@ -833,14 +834,14 @@ uint8_t MicronetCodec::AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int
 	return offset;
 }
 
-uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t fieldData, uint8_t value1, uint8_t value2,
+uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2,
 		uint8_t value3, uint8_t value4)
 {
 	int offset = 0;
 
 	buffer[offset++] = 0x06;
 	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x03;
+	buffer[offset++] = 0x03; //type NMEA 
 
 	buffer[offset++] = value1;
 	buffer[offset++] = value2;
@@ -857,23 +858,25 @@ uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint
 	return offset;
 }
 
-uint8_t MicronetCodec::AddQuad16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2, int16_t value3,
-		int16_t value4)
+uint8_t MicronetCodec::Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t *WPname)
 {
 	int offset = 0;
 
 	buffer[offset++] = 0x0a;
 	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x05;
+	buffer[offset++] = 0x09;
 
 	buffer[offset++] = (value1 >> 8) & 0xff;
 	buffer[offset++] = value1 & 0xff;
-	buffer[offset++] = (value2 >> 8) & 0xff;
-	buffer[offset++] = value2 & 0xff;
-	buffer[offset++] = (value3 >> 8) & 0xff;
-	buffer[offset++] = value3 & 0xff;
-	buffer[offset++] = (value4 >> 8) & 0xff;
-	buffer[offset++] = value4 & 0xff;
+
+	char cBuff[4];
+	memcpy(cBuff, WPname, 4);
+	buffer[offset++] = 0;
+	buffer[offset++] = 0;
+	buffer[offset++] = cBuff[0];
+	buffer[offset++] = cBuff[1];
+	buffer[offset++] = cBuff[2];
+	buffer[offset++] = cBuff[3];
 
 	uint8_t crc = 0;
 	for (int i = offset - 11; i < offset; i++)
@@ -900,33 +903,6 @@ uint8_t MicronetCodec::Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t
 
 	uint8_t crc = 0;
 	for (int i = offset - 7; i < offset; i++)
-	{
-		crc += buffer[i];
-	}
-	buffer[offset++] = crc;
-
-	return offset;
-}
-
-uint8_t MicronetCodec::AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2)
-{
-	int offset = 0;
-
-	buffer[offset++] = 0x0a;
-	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x05;
-
-	buffer[offset++] = (value1 >> 24) & 0xff;
-	buffer[offset++] = (value1 >> 16) & 0xff;
-	buffer[offset++] = (value1 >> 8) & 0xff;
-	buffer[offset++] = value1 & 0xff;
-	buffer[offset++] = (value2 >> 24) & 0xff;
-	buffer[offset++] = (value2 >> 16) & 0xff;
-	buffer[offset++] = (value2 >> 8) & 0xff;
-	buffer[offset++] = value2 & 0xff;
-
-	uint8_t crc = 0;
-	for (int i = offset - 11; i < offset; i++)
 	{
 		crc += buffer[i];
 	}
