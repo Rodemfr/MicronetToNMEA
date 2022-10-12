@@ -307,6 +307,7 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 	if ((sentence = strchr(sentence, ',')) == nullptr)
 		return;
 	sentence++;
+	memset(gNavData.btw_name.wpname, 32, 5);
 	if (sentence[0] != ',') {
 		// We look for WP1 ID (target)
 		for (int i = 0; i < 5; i++)
@@ -315,6 +316,8 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 				gNavData.btw_name.wpname[i] = toupper(sentence[i]);
 				gNavData.btw_name.valid = true;
 				gNavData.btw_name.timeStamp = millis();
+			} else {
+				break;
 			}
 		}
 	}
