@@ -307,21 +307,34 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 	if ((sentence = strchr(sentence, ',')) == nullptr)
 		return;
 	sentence++;
+#if (INVERTED_RMB_WORKAROUND != 1)
+	if ((sentence = strchr(sentence, ',')) == nullptr)
+		return;
+	sentence++;
+#endif
 	memset(gNavData.btw_name.wpname, 32, 5);
-	if (sentence[0] != ',') {
+	if (sentence[0] != ',')
+	{
 		// We look for WP1 ID (target)
 		for (int i = 0; i < 5; i++)
 		{
-			if (sentence[i] != ',') {
+			if (sentence[i] != ',')
+			{
 				gNavData.btw_name.wpname[i] = toupper(sentence[i]);
 				gNavData.btw_name.valid = true;
 				gNavData.btw_name.timeStamp = millis();
-			} else {
+			}
+			else
+			{
 				break;
 			}
 		}
 	}
+#if (INVERTED_RMB_WORKAROUND != 1)
+	for (int i = 0; i < 5; i++)
+#else
 	for (int i = 0; i < 6; i++)
+#endif
 	{
 		if ((sentence = strchr(sentence, ',')) == nullptr)
 			return;
