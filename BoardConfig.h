@@ -116,7 +116,7 @@
 // Several navigation software send a wrong RMB sentence and invert "FROM" and "TO" fields
 // If you see your Micronet display showing the "FROM" waypoint name instead of the "TO"
 // on the DTW & BTW pages, then change the following configuration key to/from 0/1
-#define INVERTED_RMB_WORKAROUND 1
+#define INVERTED_RMB_WORKAROUND 0
 
 /***************************************************************************/
 /*                                Types                                    */
