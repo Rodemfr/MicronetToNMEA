@@ -526,11 +526,11 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
 	{
 		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWS,
-				((uint32_t) (navData->aws_kt.value * 10.0f) << 8) | 0x09);
+				((uint32_t) (navData->aws_kt.value * 10.0f) << 8) | 0x00);
 	}
 	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
 	{
-		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWA, ((int32_t) navData->awa_deg.value << 8) | 0x09);
+		offset += Add24bitField(message->data + offset, MICRONET_FIELD_ID_RAWA, ((int32_t) navData->awa_deg.value << 8) | 0x00);
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
