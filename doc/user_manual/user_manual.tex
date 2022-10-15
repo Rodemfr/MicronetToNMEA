@@ -171,10 +171,7 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		GNSS\_SERIAL & Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)\\
 		\hline
-		GNSS\_BAUDRATE & Defines GNSS bit-rate in baud\\
-		\hline
-		GNSS\_CALLBACK & Defines the name of the callback function called when new bytes arrive on the
-		configured serial port\\
+		GNSS\_BAUDRATE & Defines GNSS UART default baud-rate\\
 		\hline
 		GNSS\_RX\_PIN & Defines serial RX pin connected to NMEA GNSS TX pin\\
 		\hline
@@ -194,9 +191,25 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		CONSOLE & Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT\\
 		\hline
-		NMEA\_OUT & Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN\\
+		NMEA\_OUT & Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN.\\
 		\hline
-		NMEA\_IN & Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT\\
+		NMEA\_IN & Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT.\\
+		\hline
+		GNSS\_SOURCE\_LINK & Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). Can be set to LINK\_NMEA\_EXT or LINK\_NMEA\_GNSS.\\
+		\hline
+		WIND\_SOURCE\_LINK & Defines where wind data is coming from (related to MWV sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		\hline
+		DEPTH\_SOURCE\_LINK & Defines where depth data is coming from (related to DPT sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		\hline
+		SPEED\_SOURCE\_LINK & Defines where speed data is coming from (related to SPD, LOG sentences). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		\hline
+		VOLTAGE\_SOURCE\_LINK & Defines where voltage data is coming from (related to XDG sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		\hline
+		SEATEMP\_SOURCE\_LINK & Defines where temperature data is coming from (related to STP sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		\hline
+		COMPASS\_SOURCE\_LINK & Defines where heading data data is coming from (related to HDG sentence). Can be set to LINK\_MICRONET, LINK\_NMEA\_EXT or LINK\_COMPASS.\\
+		\hline
+		INVERTED\_RMB\_WORKAROUND & Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software also inverts them. Practically if you don't see the right waypoint name on your Micronet display when following a route, change this value from/to 0/1. At the time this document is written, OpenCPN needs a 1 here.\\
 		\hline
 \end{tabular}
 	\caption{Configuration switches in BoardConfig.h}
