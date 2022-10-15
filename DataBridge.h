@@ -88,6 +88,7 @@ public:
 	void UpdateMicronetData();
 
 private:
+	static const uint8_t asciiTable[128];
 	char nmeaExtBuffer[NMEA_SENTENCE_MAX_LENGTH];
 	char nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
 	int nmeaExtWriteIndex;

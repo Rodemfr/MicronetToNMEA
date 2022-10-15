@@ -510,10 +510,10 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	{
 		offset += Add32bitField(message->data + offset, MICRONET_FIELD_ID_DTW, (short) (navData->dtw_nm.value * 100));
 	}
-	if ((dataFields & DATA_FIELD_BTW) && ((navData->btw_deg.valid) || (navData->btw_name.valid)))
+	if ((dataFields & DATA_FIELD_BTW) && ((navData->btw_deg.valid) || (navData->waypoint.valid)))
 	{
 		offset += Add16bitAndSix8bitField(message->data + offset, MICRONET_FIELD_ID_BTW, (short) navData->btw_deg.value,
-				navData->btw_name.wpname);
+				navData->waypoint.name);
 	}
 	if ((dataFields & DATA_FIELD_VMGWP) && (navData->vmc_kt.valid))
 	{
@@ -525,8 +525,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS,
-				(uint32_t) (navData->aws_kt.value * 10.0f));
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS, (uint32_t) (navData->aws_kt.value * 10.0f));
 	}
 	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
 	{
@@ -560,26 +559,26 @@ uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8
 {
 	int offset = 0;
 
-	// Network ID
+// Network ID
 	message->data[offset++] = (networkId >> 24) & 0xff;
 	message->data[offset++] = (networkId >> 16) & 0xff;
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
-	// Device ID
+// Device ID
 	message->data[offset++] = (deviceId >> 24) & 0xff;
 	message->data[offset++] = (deviceId >> 16) & 0xff;
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
-	// Message info
+// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_UPDATE_SLOT;
 	message->data[offset++] = 0x09;
 	message->data[offset++] = signalStrength;
-	// Header CRC
+// Header CRC
 	message->data[offset++] = 0x00;
-	// Message size
+// Message size
 	message->data[offset++] = 0x00;
 	message->data[offset++] = 0x00;
-	// Data fields
+// Data fields
 	message->data[offset++] = payloadLength;
 
 	uint8_t crc = 0;
@@ -601,26 +600,26 @@ uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint
 {
 	int offset = 0;
 
-	// Network ID
+// Network ID
 	message->data[offset++] = (networkId >> 24) & 0xff;
 	message->data[offset++] = (networkId >> 16) & 0xff;
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
-	// Device ID
+// Device ID
 	message->data[offset++] = (deviceId >> 24) & 0xff;
 	message->data[offset++] = (deviceId >> 16) & 0xff;
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
-	// Message info
+// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_REQUEST_SLOT;
 	message->data[offset++] = 0x09;
 	message->data[offset++] = signalStrength;
-	// Header CRC
+// Header CRC
 	message->data[offset++] = 0x00;
-	// Message size
+// Message size
 	message->data[offset++] = 0x00;
 	message->data[offset++] = 0x00;
-	// Data fields
+// Data fields
 	message->data[offset++] = 0x00;
 	message->data[offset++] = payloadLength;
 
@@ -643,26 +642,26 @@ uint8_t MicronetCodec::EncodeResetMessage(MicronetMessage_t *message, uint8_t si
 {
 	int offset = 0;
 
-	// Network ID
+// Network ID
 	message->data[offset++] = (networkId >> 24) & 0xff;
 	message->data[offset++] = (networkId >> 16) & 0xff;
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
-	// Device ID
+// Device ID
 	message->data[offset++] = (deviceId >> 24) & 0xff;
 	message->data[offset++] = (deviceId >> 16) & 0xff;
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
-	// Message info
+// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_SET_PARAMETER;
 	message->data[offset++] = 0x09;
 	message->data[offset++] = signalStrength;
-	// Header CRC
+// Header CRC
 	message->data[offset++] = 0x00;
-	// Message size
+// Message size
 	message->data[offset++] = 0x00;
 	message->data[offset++] = 0x00;
-	// Data fields
+// Data fields
 	message->data[offset++] = 0xfa;
 	message->data[offset++] = 0x4f;
 	message->data[offset++] = 0x46;
@@ -688,23 +687,23 @@ uint8_t MicronetCodec::EncodeAckParamMessage(MicronetMessage_t *message, uint8_t
 {
 	int offset = 0;
 
-	// Network ID
+// Network ID
 	message->data[offset++] = (networkId >> 24) & 0xff;
 	message->data[offset++] = (networkId >> 16) & 0xff;
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
-	// Device ID
+// Device ID
 	message->data[offset++] = (deviceId >> 24) & 0xff;
 	message->data[offset++] = (deviceId >> 16) & 0xff;
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
-	// Message info
+// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_ACK_PARAMETER;
 	message->data[offset++] = 0x01;
 	message->data[offset++] = signalStrength;
-	// Header CRC
+// Header CRC
 	message->data[offset++] = 0x00;
-	// Message size
+// Message size
 	message->data[offset++] = 0x00;
 	message->data[offset++] = 0x00;
 
@@ -720,23 +719,23 @@ uint8_t MicronetCodec::EncodePingMessage(MicronetMessage_t *message, uint8_t sig
 {
 	int offset = 0;
 
-	// Network ID
+// Network ID
 	message->data[offset++] = (networkId >> 24) & 0xff;
 	message->data[offset++] = (networkId >> 16) & 0xff;
 	message->data[offset++] = (networkId >> 8) & 0xff;
 	message->data[offset++] = networkId & 0xff;
-	// Device ID
+// Device ID
 	message->data[offset++] = (deviceId >> 24) & 0xff;
 	message->data[offset++] = (deviceId >> 16) & 0xff;
 	message->data[offset++] = (deviceId >> 8) & 0xff;
 	message->data[offset++] = deviceId & 0xff;
-	// Message info
+// Message info
 	message->data[offset++] = MICRONET_MESSAGE_ID_PING;
 	message->data[offset++] = 0x09;
 	message->data[offset++] = signalStrength;
-	// Header CRC
+// Header CRC
 	message->data[offset++] = 0x00;
-	// Message size
+// Message size
 	message->data[offset++] = 0x00;
 	message->data[offset++] = 0x00;
 
@@ -834,14 +833,14 @@ uint8_t MicronetCodec::AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int
 	return offset;
 }
 
-uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2,
-		uint8_t value3, uint8_t value4)
+uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3,
+		uint8_t value4)
 {
 	int offset = 0;
 
 	buffer[offset++] = 0x06;
 	buffer[offset++] = fieldCode;
-	buffer[offset++] = 0x03; //type NMEA 
+	buffer[offset++] = 0x03; //type NMEA
 
 	buffer[offset++] = value1;
 	buffer[offset++] = value2;
@@ -920,7 +919,7 @@ uint8_t MicronetCodec::AddPositionField(uint8_t *buffer, float latitude, float l
 	buffer[offset++] = 0x09;
 	buffer[offset++] = 0x05;
 
-	// Direction flags
+// Direction flags
 	if (latitude > 0.0f)
 		dir |= 0x01;
 	else
@@ -931,13 +930,13 @@ uint8_t MicronetCodec::AddPositionField(uint8_t *buffer, float latitude, float l
 	else
 		longitude = -longitude;
 
-	// Latitude
+// Latitude
 	buffer[offset++] = (uint8_t) floorf(latitude);
 	uint16_t latMin = 60000.0f * (latitude - floorf(latitude));
 	buffer[offset++] = (latMin >> 8) & 0xff;
 	buffer[offset++] = latMin & 0xff;
 
-	// Longitude
+// Longitude
 	buffer[offset++] = (uint8_t) floorf(longitude);
 	uint16_t lonMin = 60000.0f * (longitude - floorf(longitude));
 	buffer[offset++] = (lonMin >> 8) & 0xff;

@@ -71,7 +71,7 @@ typedef struct
 typedef struct
 {
 	bool valid;
-	uint8_t wpname[5];
+	uint8_t name[8];
 	uint32_t timeStamp;
 } WaypointName_t;
 
@@ -107,7 +107,7 @@ public:
 	FloatValue_t xte_nm;
 	FloatValue_t dtw_nm;
 	FloatValue_t btw_deg;
-	WaypointName_t btw_name;
+	WaypointName_t waypoint;
 	FloatValue_t vmc_kt;
 
 	FloatValue_t hdg_deg;

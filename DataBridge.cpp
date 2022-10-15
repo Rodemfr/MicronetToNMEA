@@ -39,6 +39,26 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+const uint8_t DataBridge::asciiTable[128] =
+{
+  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // 0
+  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // 8
+  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // 16
+  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // 24
+  ' ', ' ', '\"', ' ', ' ', '%', '&', '\'', // 32
+  ' ', ' ', ' ', '+', ' ', '-', '.', '/', // 40
+  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', // 48
+  ' ', ' ', ':', ' ', '<', ' ', '>', '?', // 56
+  ' ', 'A', '(', 'C', ')', 'E', 'F', 'G', // 64
+  'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', // 72
+  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', // 80
+  'X', 'Y', 'Z', ' ', ' ', ' ', ' ', ' ', // 88
+  ' ', 'A', '(', 'C', ')', 'E', 'F', 'G', // 96
+  'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', // 104
+  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', // 112
+  'X', 'Y', 'Z', ' ', ' ', ' ', ' ', ' '  // 120
+};
+
 /***************************************************************************/
 /*                                Macros                                   */
 /***************************************************************************/
@@ -312,17 +332,27 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 		return;
 	sentence++;
 #endif
-	memset(gNavData.btw_name.wpname, 32, 5);
+	memset(gNavData.waypoint.name, ' ', sizeof(gNavData.waypoint.name));
 	if (sentence[0] != ',')
 	{
 		// We look for WP1 ID (target)
-		for (int i = 0; i < 5; i++)
+		uint8_t c;
+		for (uint32_t i = 0; i < sizeof(gNavData.waypoint.name); i++)
 		{
 			if (sentence[i] != ',')
 			{
-				gNavData.btw_name.wpname[i] = toupper(sentence[i]);
-				gNavData.btw_name.valid = true;
-				gNavData.btw_name.timeStamp = millis();
+				c = sentence[i];
+				if (c < 128)
+				{
+					c = asciiTable[(int32_t)sentence[i]];
+				}
+				else
+				{
+					c = ' ';
+				}
+				gNavData.waypoint.name[i] = c;
+				gNavData.waypoint.valid = true;
+				gNavData.waypoint.timeStamp = millis();
 			}
 			else
 			{
