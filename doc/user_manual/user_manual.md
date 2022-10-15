@@ -238,31 +238,38 @@ and their meaning.
 
 <div id="table:configswitches">
 
-| **Compile Switch** | **Description**                                                                                                                                           |
-| :----------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FREQUENCY\_SYSTEM  | Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)                                                                       |
-| NAVCOMPASS\_I2C    | Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)        |
-| CS0\_PIN           | Defines SPI Chip Select line connected to RF IC                                                                                                           |
-| MOSI\_PIN          | Defines MOSI pin of SPI bus connected to RF IC                                                                                                            |
-| MISO\_PIN          | Defines MISO pin of SPI bus connected to RF IC                                                                                                            |
-| SCK\_PIN           | Defines SCK pin of SPI bus connected to RF IC                                                                                                             |
-| GDO0\_PIN          | Defines GDO0 pin of SPI bus connected to RF IC                                                                                                            |
-| LED\_PIN           | Defines the pin driving the LED, which is used for error signaling                                                                                        |
-| GNSS\_UBLOXM8N     | Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)                                                                                   |
-| GNSS\_SERIAL       | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                  |
-| GNSS\_BAUDRATE     | Defines GNSS bit-rate in baud                                                                                                                             |
-| GNSS\_CALLBACK     | Defines the name of the callback function called when new bytes arrive on the configured serial port                                                      |
-| GNSS\_RX\_PIN      | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                       |
-| GNSS\_TX\_PIN      | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                       |
-| USB\_NMEA          | Defines which serial port is connected to USB serial converter                                                                                            |
-| USB\_BAUDRATE      | Defines baud rate of USB serial converter                                                                                                                 |
-| WIRED\_NMEA        | Defines which serial port is connected to the wired NMEA connection                                                                                       |
-| WIRED\_BAUDRATE    | Defines baud rate of the wired NMEA connection                                                                                                            |
-| WIRED\_RX\_PIN     | Defines serial RX pin used for wired NMEA                                                                                                                 |
-| WIRED\_TX\_PIN     | Defines serial TX pin used for wired NMEA                                                                                                                 |
-| CONSOLE            | Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT  |
-| NMEA\_OUT          | Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN      |
-| NMEA\_IN           | Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT |
+| **Compile Switch**        | **Description**                                                                                                                                                                                                                                                                                                           |
+| :------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FREQUENCY\_SYSTEM         | Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)                                                                                                                                                                                                                                       |
+| NAVCOMPASS\_I2C           | Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)                                                                                                                                                                        |
+| CS0\_PIN                  | Defines SPI Chip Select line connected to RF IC                                                                                                                                                                                                                                                                           |
+| MOSI\_PIN                 | Defines MOSI pin of SPI bus connected to RF IC                                                                                                                                                                                                                                                                            |
+| MISO\_PIN                 | Defines MISO pin of SPI bus connected to RF IC                                                                                                                                                                                                                                                                            |
+| SCK\_PIN                  | Defines SCK pin of SPI bus connected to RF IC                                                                                                                                                                                                                                                                             |
+| GDO0\_PIN                 | Defines GDO0 pin of SPI bus connected to RF IC                                                                                                                                                                                                                                                                            |
+| LED\_PIN                  | Defines the pin driving the LED, which is used for error signaling                                                                                                                                                                                                                                                        |
+| GNSS\_UBLOXM8N            | Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)                                                                                                                                                                                                                                                   |
+| GNSS\_SERIAL              | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                                                                                                                                                                                  |
+| GNSS\_BAUDRATE            | Defines GNSS UART default baud-rate                                                                                                                                                                                                                                                                                       |
+| GNSS\_RX\_PIN             | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                                                                                                                                                                                       |
+| GNSS\_TX\_PIN             | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                                                                                                                                                                                       |
+| USB\_NMEA                 | Defines which serial port is connected to USB serial converter                                                                                                                                                                                                                                                            |
+| USB\_BAUDRATE             | Defines baud rate of USB serial converter                                                                                                                                                                                                                                                                                 |
+| WIRED\_NMEA               | Defines which serial port is connected to the wired NMEA connection                                                                                                                                                                                                                                                       |
+| WIRED\_BAUDRATE           | Defines baud rate of the wired NMEA connection                                                                                                                                                                                                                                                                            |
+| WIRED\_RX\_PIN            | Defines serial RX pin used for wired NMEA                                                                                                                                                                                                                                                                                 |
+| WIRED\_TX\_PIN            | Defines serial TX pin used for wired NMEA                                                                                                                                                                                                                                                                                 |
+| CONSOLE                   | Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT                                                                                                                                                                  |
+| NMEA\_OUT                 | Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN.                                                                                                                                                                     |
+| NMEA\_IN                  | Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT.                                                                                                                                                                |
+| GNSS\_SOURCE\_LINK        | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                               |
+| WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                                 |
+| DEPTH\_SOURCE\_LINK       | Defines where depth data is coming from (related to DPT sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                                |
+| SPEED\_SOURCE\_LINK       | Defines where speed data is coming from (related to SPD, LOG sentences). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                          |
+| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDG sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                              |
+| SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                          |
+| COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                         |
+| INVERTED\_RMB\_WORKAROUND | Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software also inverts them. Practically if you don’t see the right waypoint name on your Micronet display when following a route, change this value from/to 0/1. At the time this document is written, OpenCPN needs a 1 here. |
 
 Configuration switches in BoardConfig.h
 
@@ -637,24 +644,25 @@ Here is a summary of all actions realized by MicronetToNMEA in this mode
 
 ### Supported NMEA sentences
 
-The following table summarizes all supported NMEA sentences and how they
-are decoded or encoded :
+The following table summarizes all supported NMEA sentences, the
+corresponding Micronet data and the possible sources where
+MicronetToNMEA can decode them from:
 
 <div id="table:nmeasentences">
 
-| **Sentence** | **GNSS\_SERIAL** | **NMEA\_IN** |   **NMEA\_OUT**   | **From Micronet** | **To Micronet**   |
-| :----------- | :--------------: | :----------: | :---------------: | :---------------: | :---------------- |
-| RMB          |                  |   Decoded    |                   |                   | XTE DTW BTW VMGWP |
-| RMC          |     Decoded      |              | From GNSS\_SERIAL |                   | TIME DATE         |
-| GGA          |     Decoded      |              | From GNSS\_SERIAL |                   | LAT LON           |
-| VTG          |     Decoded      |              | From GNSS\_SERIAL |                   | COG SOG           |
-| MWV (R)      |                  |              |   From Micronet   |      AWA AWS      |                   |
-| MWV (T)      |                  |              |   From Micronet   |      TWA TWS      |                   |
-| DPT          |                  |              |   From Micronet   |        DPT        |                   |
-| MTW          |                  |              |   From Micronet   |        STP        |                   |
-| VLW          |                  |              |   From Micronet   |     LOG TRIP      |                   |
-| VHW          |                  |              |   From Micronet   |        SPD        |                   |
-| HDG          |                  |              |    From LSM303    |                   | HDG               |
+| **Sentence** |    **Action**    | **Corresponding Micronet data** | **Possible sources**                         |
+| :----------- | :--------------: | :-----------------------------: | :------------------------------------------- |
+| RMB          |     Decoded      |        XTE DTW BTW VMGWP        | LINK\_NMEA\_EXT                              |
+| RMC          | Decoded/Forwared |            TIME DATE            | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
+| GGA          | Decoded/Forwared |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
+| VTG          | Decoded/Forwared |             COG SOG             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
+| MWV (R)      | Decoded/Encoded  |             AWA AWS             | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| MWV (T)      | Decoded/Encoded  |             TWA TWS             | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| DPT          | Decoded/Encoded  |               DPT               | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| MTW          | Decoded/Encoded  |               STP               | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| VLW          | Decoded/Encoded  |            LOG TRIP             | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| VHW          | Decoded/Encoded  |               SPD               | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| HDG          | Decoded/Encoded  |               HDG               | LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS |
 
 Supported NMEA sentences
 

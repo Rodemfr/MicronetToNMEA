@@ -147,7 +147,7 @@ Note that Sloeber can be somewhat picky with tool-chain or library paths. So don
 By default, MicronetToNMEA is configured for a specific HW layout. This means that it is configured to be connected through specific SPI, I2C or GPIO pins to various boards. This configuration can be changed to some extent to adapt your own needs. The file bearing this configuration is “BoardConfig.h”. Note that no coherency check is made in the software, it is your responsibility to provide a reachable configuration (i.e. not to connect SPI wires to non SPI capable pins). Table {\ref{table:configswitches}} lists all available switches and their meaning.
 
 \begin{table}[h]
-	\begin{tabular}{|l|p{12cm}|}
+	\begin{tabular}{|l|p{10cm}|}
 		\hline
 		\textbf{Compile Switch} & \textbf{Description}\\
 		\hline
@@ -195,19 +195,19 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		NMEA\_IN & Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT.\\
 		\hline
-		GNSS\_SOURCE\_LINK & Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). Can be set to LINK\_NMEA\_EXT or LINK\_NMEA\_GNSS.\\
+		GNSS\_SOURCE\_LINK & Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Table {\ref{table:nmeasentences}} for more details on possible values.\\
 		\hline
-		WIND\_SOURCE\_LINK & Defines where wind data is coming from (related to MWV sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		WIND\_SOURCE\_LINK & Defines where wind data is coming from (related to MWV sentence). See Table {\ref{table:nmeasentences}} for more details on possible values.\\
 		\hline
-		DEPTH\_SOURCE\_LINK & Defines where depth data is coming from (related to DPT sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		DEPTH\_SOURCE\_LINK & Defines where depth data is coming from (related to DPT sentence). See Table {\ref{table:nmeasentences}} for more details on possible values.\\
 		\hline
-		SPEED\_SOURCE\_LINK & Defines where speed data is coming from (related to SPD, LOG sentences). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		SPEED\_SOURCE\_LINK & Defines where speed data is coming from (related to SPD, LOG sentences). See Table {\ref{table:nmeasentences}} for more details on possible values.\\
 		\hline
-		VOLTAGE\_SOURCE\_LINK & Defines where voltage data is coming from (related to XDG sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		VOLTAGE\_SOURCE\_LINK & Defines where voltage data is coming from (related to XDG sentence). See Table {\ref{table:nmeasentences}} for more details on possible values.\\
 		\hline
-		SEATEMP\_SOURCE\_LINK & Defines where temperature data is coming from (related to STP sentence). Can be set to LINK\_MICRONET or LINK\_NMEA\_EXT.\\
+		SEATEMP\_SOURCE\_LINK & Defines where temperature data is coming from (related to STP sentence). See Table {\ref{table:nmeasentences}} for more details on possible values.\\
 		\hline
-		COMPASS\_SOURCE\_LINK & Defines where heading data data is coming from (related to HDG sentence). Can be set to LINK\_MICRONET, LINK\_NMEA\_EXT or LINK\_COMPASS.\\
+		COMPASS\_SOURCE\_LINK & Defines where heading data data is coming from (related to HDG sentence). See Table {\ref{table:nmeasentences}} for more details on possible values.\\
 		\hline
 		INVERTED\_RMB\_WORKAROUND & Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software also inverts them. Practically if you don't see the right waypoint name on your Micronet display when following a route, change this value from/to 0/1. At the time this document is written, OpenCPN needs a 1 here.\\
 		\hline
@@ -450,39 +450,38 @@ Here is a summary of all actions realized by MicronetToNMEA in this mode :
 
 \subsection{Supported NMEA sentences}
 
-The following table summarizes all supported NMEA sentences and how they are decoded or encoded :
+The following table summarizes all supported NMEA sentences, the corresponding Micronet data and the possible sources where MicronetToNMEA can decode them from:
 
 \begin{table}[h]
 	\small
-	\begin{tabular}{|l|c|c|c|c|p{2.5cm}|}
+	\begin{tabular}{|l|c|c|p{5cm}|}
 		\hline
-		\textbf{Sentence} & \textbf{GNSS\_SERIAL}  & \textbf{NMEA\_IN} & \textbf{NMEA\_OUT} & \textbf{From Micronet} & \textbf{To Micronet} \\
+		\textbf{Sentence} & \textbf{Action}  & \textbf{Corresponding Micronet data} & \textbf{Possible sources} \\
 		\hline
-		RMB & & Decoded & & & XTE DTW BTW VMGWP \\
+		RMB & Decoded & XTE DTW BTW VMGWP & LINK\_NMEA\_EXT \\
 		\hline
-		RMC & Decoded & & From GNSS\_SERIAL & & TIME DATE \\
+		RMC & Decoded/Forwared & TIME DATE & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
 		\hline
-		GGA & Decoded & & From GNSS\_SERIAL & & LAT LON \\
+		GGA & Decoded/Forwared & LAT LON & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
 		\hline
-		VTG & Decoded & & From GNSS\_SERIAL & & COG SOG \\
+		VTG & Decoded/Forwared & COG SOG & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
 		\hline
-		MWV (R) & & & From Micronet & AWA AWS & \\
+		MWV (R) & Decoded/Encoded & AWA AWS & LINK\_MICRONET LINK\_NMEA\_EXT \\
 		\hline
-		MWV (T) & & & From Micronet & TWA TWS & \\
+		MWV (T) & Decoded/Encoded & TWA TWS & LINK\_MICRONET LINK\_NMEA\_EXT \\
 		\hline
-		DPT & & & From Micronet & DPT & \\
+		DPT & Decoded/Encoded & DPT & LINK\_MICRONET LINK\_NMEA\_EXT \\
 		\hline
-		MTW & & & From Micronet & STP & \\
+		MTW & Decoded/Encoded & STP & LINK\_MICRONET LINK\_NMEA\_EXT \\
 		\hline
-		VLW & & & From Micronet & LOG TRIP & \\
+		VLW & Decoded/Encoded & LOG TRIP & LINK\_MICRONET LINK\_NMEA\_EXT \\
 		\hline
-		VHW & & & From Micronet & SPD & \\
+		VHW & Decoded/Encoded & SPD & LINK\_MICRONET LINK\_NMEA\_EXT \\
 		\hline
-		HDG & & & From LSM303 & & HDG \\
+		HDG & Decoded/Encoded & HDG & LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS \\
 		\hline
 	\end{tabular}
 	\caption{Supported NMEA sentences}
 	\label{table:nmeasentences}
 \end{table}
-
 \end{document}
