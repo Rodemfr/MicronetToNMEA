@@ -75,6 +75,12 @@ NavigationData::NavigationData()
 	longitude_deg.valid = false;
 	cog_deg.valid = false;
 	sog_kt.valid = false;
+	xte_nm.valid = false;
+	dtw_nm.valid = false;
+	btw_deg.valid = false;
+	btw_name.valid = false;
+	vmc_kt.valid = false;
+	hdg_deg.valid = false;
 
 	calibrationUpdated = false;
 	waterSpeedFactor_per = 0.0f;
@@ -133,6 +139,8 @@ void NavigationData::UpdateValidity()
 		dtw_nm.valid = false;
 	if (currentTime - btw_deg.timeStamp > VALIDITY_TIME_SLOW_MS)
 		btw_deg.valid = false;
+	if (currentTime - btw_name.timeStamp > VALIDITY_TIME_SLOW_MS)
+		btw_name.valid = false;
 	if (currentTime - vmc_kt.timeStamp > VALIDITY_TIME_SLOW_MS)
 		vmc_kt.valid = false;
 	if (currentTime - hdg_deg.timeStamp > VALIDITY_TIME_FAST_MS)
