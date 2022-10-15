@@ -321,13 +321,13 @@ FI = Field ID
           |01|02|03|04|05|06|07|
           |04|05|FP| VAL |SO|CS|
           VAL = ApparentWindSpeed * 10 (kt)
-          SO = Seems to be a code identifying the intital repeater of the value, probably to avoid infinite repeats
+          SO = Might be an identyfier of the repeater of the value or a property flag.
      0x22 RAWA - The be same value than 0x06/AWA, but used by non wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
           |04|05|FP| VAL |SO|CS|
           VAL = ApparentWindAngle (deg)
-          Values are between -180 and 180
-          SO = Seems to be a code identifying the intital repeater of the value, probably to avoid infinite repeats
+                  Values are between -180 and 180
+          SO = Might be an identyfier of the repeater of the value or a property flag.
 
 FP = Field Property ??
      0x05 Seems to be the value used when the data comes from the measuring sensor
