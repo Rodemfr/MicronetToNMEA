@@ -275,9 +275,10 @@ FI = Field ID
                        0x00/0x02 -> West/East
      0x0A BTW
           |01|02|03|04|05|06|07|08|09|10|11|12|
-          |0a|0a|FP| VAL |??|??|??|??|??|??|CS|
+          |0a|0a|FP| VAL |??|??|  WPNAME   |CS|
           VAL = BTW (Deg)
           Values are between 0 and 360
+          WPNAME = Waypoint name in ASCII (upper case)
      0x0B XTE
           |01|02|03|04|05|06|
           |04|0b|FP| VAL |CS|
@@ -316,17 +317,17 @@ FI = Field ID
           |01|02|03|04|05|06|07|08|
           |06|1f|FP|    VAL    |CS|
           VAL = Distance * 100 (NM)
-     0x21 AWS - Seems the be same value than 0x05, but with an unidentified extra byte ? 0x21 is used by non
-	            wind-transducer devices to repeat the value.
+     0x21 RAWS - The be same value than 0x05/AWS, but used by non wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
-          |04|05|FP| VAL |??|CS|
+          |04|05|FP| VAL |SO|CS|
           VAL = ApparentWindSpeed * 10 (kt)
-     0x22 AWA - Seems the be same value than 0x06, but with an unidentified extra byte ? 0x22 is used by non
-	            wind-transducer devices to repeat the value.
+          SO = Seems to be a code identifying the intital repeater of the value, probably to avoid infinite repeats
+     0x22 RAWA - The be same value than 0x06/AWA, but used by non wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
-          |04|05|FP| VAL |??|CS|
+          |04|05|FP| VAL |SO|CS|
           VAL = ApparentWindAngle (deg)
           Values are between -180 and 180
+          SO = Seems to be a code identifying the intital repeater of the value, probably to avoid infinite repeats
 
 FP = Field Property ??
      0x05 Seems to be the value used when the data comes from the measuring sensor
