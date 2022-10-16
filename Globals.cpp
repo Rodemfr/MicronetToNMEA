@@ -55,9 +55,7 @@ MenuManager gMenuManager;           // Menu manager object
 MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 MicronetCodec gMicronetCodec;       // Micronet message encoder/decoder
 Configuration gConfiguration;
-NmeaEncoder gNmeaEncoder;
-NmeaDecoder gGnssDecoder;
-NmeaDecoder gNavDecoder;
+DataBridge gDataBridge;
 NavigationData gNavData;
 NavCompass gNavCompass;
 M8NDriver gM8nDriver;

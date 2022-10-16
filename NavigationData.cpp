@@ -59,7 +59,7 @@
 
 NavigationData::NavigationData()
 {
-	stw_kt.valid = false;
+	spd_kt.valid = false;
 	awa_deg.valid = false;
 	aws_kt.valid = false;
 	twa_deg.valid = false;
@@ -75,6 +75,12 @@ NavigationData::NavigationData()
 	longitude_deg.valid = false;
 	cog_deg.valid = false;
 	sog_kt.valid = false;
+	xte_nm.valid = false;
+	dtw_nm.valid = false;
+	btw_deg.valid = false;
+	waypoint.valid = false;
+	vmc_kt.valid = false;
+	hdg_deg.valid = false;
 
 	calibrationUpdated = false;
 	waterSpeedFactor_per = 0.0f;
@@ -105,8 +111,8 @@ void NavigationData::UpdateValidity()
 		log_nm.valid = false;
 	if (currentTime - stp_degc.timeStamp > VALIDITY_TIME_FAST_MS)
 		stp_degc.valid = false;
-	if (currentTime - stw_kt.timeStamp > VALIDITY_TIME_FAST_MS)
-		stw_kt.valid = false;
+	if (currentTime - spd_kt.timeStamp > VALIDITY_TIME_FAST_MS)
+		spd_kt.valid = false;
 	if (currentTime - trip_nm.timeStamp > VALIDITY_TIME_FAST_MS)
 		trip_nm.valid = false;
 	if (currentTime - twa_deg.timeStamp > VALIDITY_TIME_FAST_MS)
@@ -133,6 +139,8 @@ void NavigationData::UpdateValidity()
 		dtw_nm.valid = false;
 	if (currentTime - btw_deg.timeStamp > VALIDITY_TIME_SLOW_MS)
 		btw_deg.valid = false;
+	if (currentTime - waypoint.timeStamp > VALIDITY_TIME_SLOW_MS)
+		waypoint.valid = false;
 	if (currentTime - vmc_kt.timeStamp > VALIDITY_TIME_SLOW_MS)
 		vmc_kt.valid = false;
 	if (currentTime - hdg_deg.timeStamp > VALIDITY_TIME_FAST_MS)

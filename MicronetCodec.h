@@ -34,7 +34,6 @@
 #include <stdint.h>
 
 #include "Micronet.h"
-#include "NmeaDecoder.h"
 #include "NavigationData.h"
 
 /***************************************************************************/
@@ -58,6 +57,10 @@
 #define DATA_FIELD_VMGWP     0x00000080
 #define DATA_FIELD_HDG       0x00000100
 #define DATA_FIELD_NODE_INFO 0x00000200
+#define DATA_FIELD_AWS       0x00000400
+#define DATA_FIELD_AWA       0x00000800
+#define DATA_FIELD_DPT       0x00001000
+#define DATA_FIELD_SPD       0x00002000
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -122,6 +125,7 @@ public:
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 	uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 	uint8_t EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
+	void CalculateTrueWind(NavigationData *dataSet);
 
 private:
 	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
@@ -130,14 +134,12 @@ private:
 	void UpdateMicronetData(uint8_t fieldId, int8_t value, NavigationData *dataSet);
 	void UpdateMicronetData(uint8_t fieldId, int16_t value, NavigationData *dataSet);
 	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2, NavigationData *dataSet);
-	void CalculateTrueWind(NavigationData *dataSet);
 	void WriteHeaderLengthAndCrc(MicronetMessage_t *message);
 	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
 	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
-	uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t fieldData, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
-	uint8_t AddQuad16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2, int16_t value3, int16_t value4);
-	uint8_t AddDual32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value1, int32_t value2);
+	uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
+	uint8_t Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t *wpname);
 	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 	uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 };

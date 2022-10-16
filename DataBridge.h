@@ -24,25 +24,45 @@
  ***************************************************************************
  */
 
-#ifndef NMEAENCODER_H_
-#define NMEAENCODER_H_
+#ifndef DATABRIDGE_H_
+#define DATABRIDGE_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <string>
-#include "MicronetCodec.h"
+#include <stdint.h>
+#include "NavigationData.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
+#define NMEA_SENTENCE_MAX_LENGTH   128
+#define NMEA_SENTENCE_HISTORY_SIZE 24
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-using namespace std;
+typedef enum {
+		LINK_NMEA_EXT,
+		LINK_NMEA_GNSS,
+		LINK_MICRONET,
+		LINK_COMPASS
+} LinkId_t;
+
+typedef enum {
+	NMEA_ID_UNKNOWN,
+	NMEA_ID_RMB,
+	NMEA_ID_RMC,
+	NMEA_ID_GGA,
+	NMEA_ID_VTG,
+	NMEA_ID_MWV,
+	NMEA_ID_DPT,
+	NMEA_ID_VHW,
+	NMEA_ID_HDG
+} NmeaId_t;
 
 typedef struct {
 	uint32_t vwr;
@@ -53,29 +73,49 @@ typedef struct {
 	uint32_t vhw;
 	uint32_t hdg;
 	uint32_t vcc;
-} SentencesTimeStamps_t;
+} NmeaTimeStamps_t;
 
-/***************************************************************************/
-/*                               Classes                                   */
-/***************************************************************************/
+#define NMEA_SENTENCE_MIN_PERIOD_MS 500
 
-class NmeaEncoder
+class DataBridge
 {
 public:
-	NmeaEncoder();
-	virtual ~NmeaEncoder();
+	DataBridge();
+	virtual ~DataBridge();
 
-	bool EncodeMWV_R(NavigationData *micronetData, char *sentence);
-	bool EncodeMWV_T(NavigationData *micronetData, char *sentence);
-	bool EncodeDPT(NavigationData *micronetData, char *sentence);
-	bool EncodeMTW(NavigationData *micronetData, char *sentence);
-	bool EncodeVLW(NavigationData *micronetData, char *sentence);
-	bool EncodeVHW(NavigationData *micronetData, char *sentence);
-	bool EncodeHDG(NavigationData *micronetData, char *sentence);
-	bool EncodeXDG(NavigationData *micronetData, char *sentence);
+	void PushNmeaChar(char c, LinkId_t sourceLink);
+	void UpdateCompassData(float heading_deg);
+	void UpdateMicronetData();
 
 private:
-	SentencesTimeStamps_t timeStamps;
+	static const uint8_t asciiTable[128];
+	char nmeaExtBuffer[NMEA_SENTENCE_MAX_LENGTH];
+	char nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
+	int nmeaExtWriteIndex;
+	int nmeaGnssWriteIndex;
+	NmeaTimeStamps_t nmeaTimeStamps;
+
+	bool IsSentenceValid(char *nmeaBuffer);
+	NmeaId_t SentenceId(char *nmeaBuffer);
+	void DecodeRMBSentence(char *sentence);
+	void DecodeRMCSentence(char *sentence);
+	void DecodeGGASentence(char *sentence);
+	void DecodeVTGSentence(char *sentence);
+	void DecodeMWVSentence(char *sentence);
+	void DecodeDPTSentence(char *sentence);
+	void DecodeVHWSentence(char *sentence);
+	void DecodeHDGSentence(char *sentence);
+	int16_t NibbleValue(char c);
+
+	void EncodeMWV_R(NavigationData *micronetData);
+	void EncodeMWV_T(NavigationData *micronetData);
+	void EncodeDPT(NavigationData *micronetData);
+	void EncodeMTW(NavigationData *micronetData);
+	void EncodeVLW(NavigationData *micronetData);
+	void EncodeVHW(NavigationData *micronetData);
+	void EncodeHDG(NavigationData *micronetData);
+	void EncodeXDG(NavigationData *micronetData);
+
 	uint8_t AddNmeaChecksum(char *sentence);
 };
 
@@ -83,4 +123,4 @@ private:
 /*                              Prototypes                                 */
 /***************************************************************************/
 
-#endif /* NMEAENCODER_H_ */
+#endif /* DATABRIDGE_H_ */

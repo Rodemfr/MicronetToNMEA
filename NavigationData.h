@@ -68,6 +68,13 @@ typedef struct
 	uint32_t timeStamp;
 } DateValue_t;
 
+typedef struct
+{
+	bool valid;
+	uint8_t name[8];
+	uint32_t timeStamp;
+} WaypointName_t;
+
 /***************************************************************************/
 /*                               Classes                                   */
 /***************************************************************************/
@@ -80,7 +87,7 @@ public:
 
 	void UpdateValidity();
 
-	FloatValue_t stw_kt;
+	FloatValue_t spd_kt;
 	FloatValue_t awa_deg;
 	FloatValue_t aws_kt;
 	FloatValue_t twa_deg;
@@ -100,6 +107,7 @@ public:
 	FloatValue_t xte_nm;
 	FloatValue_t dtw_nm;
 	FloatValue_t btw_deg;
+	WaypointName_t waypoint;
 	FloatValue_t vmc_kt;
 
 	FloatValue_t hdg_deg;
