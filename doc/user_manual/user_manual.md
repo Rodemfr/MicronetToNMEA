@@ -262,13 +262,14 @@ and their meaning.
 | CONSOLE                   | Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT                                                                                                                                                                  |
 | NMEA\_OUT                 | Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN.                                                                                                                                                                     |
 | NMEA\_IN                  | Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT.                                                                                                                                                                |
-| GNSS\_SOURCE\_LINK        | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                               |
-| WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                                 |
-| DEPTH\_SOURCE\_LINK       | Defines where depth data is coming from (related to DPT sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                                |
-| SPEED\_SOURCE\_LINK       | Defines where speed data is coming from (related to SPD, LOG sentences). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                          |
-| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDG sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                              |
-| SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                          |
-| COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Table <span>[5.1](#table:nmeasentences)</span> for more details on possible values.                                                                                                                                                         |
+| NAV\_SOURCE\_LINK         | Defines where navigation data is coming from (related to RMB sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                   |
+| GNSS\_SOURCE\_LINK        | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                        |
+| WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                          |
+| DEPTH\_SOURCE\_LINK       | Defines where depth data is coming from (related to DPT sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                         |
+| SPEED\_SOURCE\_LINK       | Defines where speed data is coming from (related to SPD, LOG sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                   |
+| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDG sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                       |
+| SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                   |
+| COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                  |
 | INVERTED\_RMB\_WORKAROUND | Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software also inverts them. Practically if you don’t see the right waypoint name on your Micronet display when following a route, change this value from/to 0/1. At the time this document is written, OpenCPN needs a 1 here. |
 
 Configuration switches in BoardConfig.h
@@ -642,11 +643,38 @@ Here is a summary of all actions realized by MicronetToNMEA in this mode
 
   - Send heading data to Micronet network and NMEA\_OUT link
 
-### Supported NMEA sentences
+### NMEA sentences and data flow
+
+MicronetToNMEA handles a number of data fields coming either from
+Micronet network, either from NMEA links. NMEA sentences can be handled
+in various ways depending on your installation. MicronetToNMEA offers
+the possibility to configure how Micronet data and NMEA sentences are
+processed. NMEA sentences can be configured to be decoded/encoded from
+the following links :
+
+  - LINK\_MICRONET : This link accesses data of the Micronet newtork
+    through CC1101 IC. If a sentence is configured to be received from
+    this link, it means that it will be encoded every second from
+    Micronet data and sent to NMEA\_EXT link.
+
+  - LINK\_NMEA\_GNSS : This is the NMEA link with the optional GNSS. It
+    is a receiving only link. If a sentence is configured to be received
+    from this link, it means that it will be decoded and sent to
+    Micronet network. It will also be forwarded to NMEA\_EXT.
+
+  - LINK\_NMEA\_EXT : This is the NMEA link with the "external" device.
+    The external device can be a PC with a navigation software, a WiFi
+    or Bluetooth bridge, etc. Practically it uses NMEA\_IN and NMEA\_OUT
+    serial links defined in BoardConfig.h. If a sentence is configured
+    to be received from this link, it means that it will be decoded and
+    sent to Micronet network.
+
+  - LINK\_COMPASS : This is the I2C link with LSM303DLH(C) optional IC.
+    If a sentence is configured to be received from this link, it means
+    that it will be sent to Micronet network, then encoded to NMEA\_EXT.
 
 The following table summarizes all supported NMEA sentences, the
-corresponding Micronet data and the possible sources where
-MicronetToNMEA can decode them from:
+corresponding Micronet data and the possible source links:
 
 <div id="table:nmeasentences">
 
@@ -656,8 +684,7 @@ MicronetToNMEA can decode them from:
 | RMC          | Decoded/Forwared |            TIME DATE            | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
 | GGA          | Decoded/Forwared |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
 | VTG          | Decoded/Forwared |             COG SOG             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| MWV (R)      | Decoded/Encoded  |             AWA AWS             | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| MWV (T)      | Decoded/Encoded  |             TWA TWS             | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| MWV          | Decoded/Encoded  |         AWA AWS TWA TWS         | LINK\_MICRONET LINK\_NMEA\_EXT               |
 | DPT          | Decoded/Encoded  |               DPT               | LINK\_MICRONET LINK\_NMEA\_EXT               |
 | MTW          | Decoded/Encoded  |               STP               | LINK\_MICRONET LINK\_NMEA\_EXT               |
 | VLW          | Decoded/Encoded  |            LOG TRIP             | LINK\_MICRONET LINK\_NMEA\_EXT               |
