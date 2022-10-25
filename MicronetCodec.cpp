@@ -525,11 +525,11 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS, (uint32_t) (navData->aws_kt.value * 10.0f));
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS, (uint32_t) (navData->aws_kt.value * 10.0f / navData->windSpeedFactor_per));
 	}
 	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWA, (int16_t) navData->awa_deg.value);
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWA, (int16_t) (navData->awa_deg.value - navData->windDirectionOffset_deg));
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
