@@ -214,7 +214,7 @@ void DataBridge::UpdateMicronetData()
 	EncodeVLW(&gNavData);
 	EncodeVHW(&gNavData);
 	EncodeHDG(&gNavData);
-	EncodeXDG(&gNavData);
+	EncodeXDR(&gNavData);
 }
 
 bool DataBridge::IsSentenceValid(char *nmeaBuffer)
@@ -378,9 +378,9 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 	sentence++;
 	if (sscanf(sentence, "%f", &value) == 1)
 	{
-		gNavData.vmc_kt.value = value;
-		gNavData.vmc_kt.valid = true;
-		gNavData.vmc_kt.timeStamp = millis();
+		gNavData.vmgwp_kt.value = value;
+		gNavData.vmgwp_kt.valid = true;
+		gNavData.vmgwp_kt.timeStamp = millis();
 	}
 }
 
@@ -820,7 +820,7 @@ void DataBridge::EncodeHDG(NavigationData *micronetData)
 	}
 }
 
-void DataBridge::EncodeXDG(NavigationData *micronetData)
+void DataBridge::EncodeXDR(NavigationData *micronetData)
 {
 	char sentence[NMEA_SENTENCE_MAX_LENGTH];
 	bool update;
@@ -832,7 +832,7 @@ void DataBridge::EncodeXDG(NavigationData *micronetData)
 
 		if (update)
 		{
-			sprintf(sentence, "$INXDG,U,%.1f,V,BATTERY,", gNavData.vcc_v.value);
+			sprintf(sentence, "$INXDR,U,%.1f,V,BATTERY#0", gNavData.vcc_v.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.vcc = millis();
 			NMEA_OUT.println(sentence);

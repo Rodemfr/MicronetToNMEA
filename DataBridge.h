@@ -114,7 +114,7 @@ private:
 	void EncodeVLW(NavigationData *micronetData);
 	void EncodeVHW(NavigationData *micronetData);
 	void EncodeHDG(NavigationData *micronetData);
-	void EncodeXDG(NavigationData *micronetData);
+	void EncodeXDR(NavigationData *micronetData);
 
 	uint8_t AddNmeaChecksum(char *sentence);
 };

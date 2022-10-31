@@ -267,7 +267,7 @@ and their meaning.
 | WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                          |
 | DEPTH\_SOURCE\_LINK       | Defines where depth data is coming from (related to DPT sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                         |
 | SPEED\_SOURCE\_LINK       | Defines where speed data is coming from (related to SPD, LOG sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                   |
-| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDG sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                       |
+| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDR sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                       |
 | SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                   |
 | COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                                                                                                                                                  |
 | INVERTED\_RMB\_WORKAROUND | Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software also inverts them. Practically if you don’t see the right waypoint name on your Micronet display when following a route, change this value from/to 0/1. At the time this document is written, OpenCPN needs a 1 here. |
@@ -690,6 +690,7 @@ corresponding Micronet data and the possible source links:
 | VLW          | Decoded/Encoded  |            LOG TRIP             | LINK\_MICRONET LINK\_NMEA\_EXT               |
 | VHW          | Decoded/Encoded  |               SPD               | LINK\_MICRONET LINK\_NMEA\_EXT               |
 | HDG          | Decoded/Encoded  |               HDG               | LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS |
+| XDR          |     Decoded      |               VCC               | LINK\_MICRONET                               |
 
 Supported NMEA sentences
 

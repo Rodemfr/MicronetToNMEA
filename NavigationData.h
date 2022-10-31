@@ -108,7 +108,7 @@ public:
 	FloatValue_t dtw_nm;
 	FloatValue_t btw_deg;
 	WaypointName_t waypoint;
-	FloatValue_t vmc_kt;
+	FloatValue_t vmgwp_kt;
 
 	FloatValue_t hdg_deg;
 
