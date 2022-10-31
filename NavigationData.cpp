@@ -79,7 +79,7 @@ NavigationData::NavigationData()
 	dtw_nm.valid = false;
 	btw_deg.valid = false;
 	waypoint.valid = false;
-	vmc_kt.valid = false;
+	vmgwp_kt.valid = false;
 	hdg_deg.valid = false;
 
 	calibrationUpdated = false;
@@ -141,8 +141,8 @@ void NavigationData::UpdateValidity()
 		btw_deg.valid = false;
 	if (currentTime - waypoint.timeStamp > VALIDITY_TIME_SLOW_MS)
 		waypoint.valid = false;
-	if (currentTime - vmc_kt.timeStamp > VALIDITY_TIME_SLOW_MS)
-		vmc_kt.valid = false;
+	if (currentTime - vmgwp_kt.timeStamp > VALIDITY_TIME_SLOW_MS)
+		vmgwp_kt.valid = false;
 	if (currentTime - hdg_deg.timeStamp > VALIDITY_TIME_FAST_MS)
 		hdg_deg.valid = false;
 }

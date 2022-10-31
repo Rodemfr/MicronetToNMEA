@@ -515,9 +515,9 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 		offset += Add16bitAndSix8bitField(message->data + offset, MICRONET_FIELD_ID_BTW, (short) navData->btw_deg.value,
 				navData->waypoint.name);
 	}
-	if ((dataFields & DATA_FIELD_VMGWP) && (navData->vmc_kt.valid))
+	if ((dataFields & DATA_FIELD_VMGWP) && (navData->vmgwp_kt.valid))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_VMGWP, (short) (navData->vmc_kt.value * 100));
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_VMGWP, (short) (navData->vmgwp_kt.value * 100));
 	}
 	if ((dataFields & DATA_FIELD_HDG) && (navData->hdg_deg.valid))
 	{
