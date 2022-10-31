@@ -152,11 +152,14 @@ void setup()
 	gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
 	gMicronetDevice4.SetDeviceId(gConfiguration.deviceId + 3);
 
-#if (MICRONET_WIND_REPEATER == 1)
-	gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_AWS | DATA_FIELD_AWA);
-#else
-	gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP);
-#endif
+	if ((MICRONET_WIND_REPEATER == 1) || (WIND_SOURCE_LINK != LINK_MICRONET))
+	{
+		gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_AWS | DATA_FIELD_AWA);
+	}
+	else
+	{
+		gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP);
+	}
 
 #if (GNSS_UBLOXM8N == 1)
 	CONSOLE.println("Configuring UBlox M8N GNSS");
