@@ -211,7 +211,9 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		COMPASS\_SOURCE\_LINK & Defines where heading data data is coming from (related to HDG sentence). See Section {\ref{supportednmeasentences}} for more details on possible values.\\
 		\hline
-		INVERTED\_RMB\_WORKAROUND & Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software also inverts them. Practically if you don't see the right waypoint name on your Micronet display when following a route, change this value from/to 0/1. At the time this document is written, OpenCPN needs a 1 here.\\
+		INVERTED\_RMB\_WORKAROUND & Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software wrongly inverts them.\\
+		\hline
+		MICRONET\_WIND\_REPEATER & If set to 1, MicronetToNMEA will repeat the wind values on the micronet network to help in case of poor RF connection with wind tranduscer.\\
 		\hline
 \end{tabular}
 	\caption{Configuration switches in BoardConfig.h}

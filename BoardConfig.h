@@ -70,8 +70,8 @@
 #define GNSS_RX_PIN    0
 #define GNSS_TX_PIN    1
 #else // Teensy 4.0 Configuration
-#define GNSS_UBLOXM8N  0       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
-#define GNSS_SERIAL    Serial5
+#define GNSS_UBLOXM8N  1       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
+#define GNSS_SERIAL    Serial1
 #define GNSS_BAUDRATE  9600
 #define GNSS_RX_PIN    0
 #define GNSS_TX_PIN    1
@@ -113,10 +113,15 @@
 #define SEATEMP_SOURCE_LINK LINK_MICRONET  // Temperature data (STP)
 #define COMPASS_SOURCE_LINK LINK_COMPASS   // Heading data (HDG)
 
-// Several navigation software send a wrong RMB sentence and invert "FROM" and "TO" fields
+// Navigation softwares can send a wrong RMB sentence and invert "FROM" and "TO" fields
 // If you see your Micronet display showing the "FROM" waypoint name instead of the "TO"
-// on the DTW & BTW pages, then change the following configuration key to/from 0/1
+// on the DTW & BTW pages, then change the following configuration key to/from 1/0
 #define INVERTED_RMB_WORKAROUND 0
+
+// In case your displays would have difficulties to receive data from the Tacktick with a
+// good signal/noise ratio, you can ask MicronetToNMEA to repeat the value on the network
+// by setting MICRONET_WIND_REPEATER to 1. Set it to 0 else.
+#define MICRONET_WIND_REPEATER 0
 
 /***************************************************************************/
 /*                                Types                                    */
