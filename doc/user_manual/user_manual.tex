@@ -205,7 +205,7 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		SPEED\_SOURCE\_LINK & Defines where speed data is coming from (related to SPD, LOG sentences). See Section {\ref{supportednmeasentences}} for more details on possible values.\\
 		\hline
-		VOLTAGE\_SOURCE\_LINK & Defines where voltage data is coming from (related to XDG sentence). See Section {\ref{supportednmeasentences}} for more details on possible values.\\
+		VOLTAGE\_SOURCE\_LINK & Defines where voltage data is coming from (related to XDR sentence). See Section {\ref{supportednmeasentences}} for more details on possible values.\\
 		\hline
 		SEATEMP\_SOURCE\_LINK & Defines where temperature data is coming from (related to STP sentence). See Section {\ref{supportednmeasentences}} for more details on possible values.\\
 		\hline
@@ -488,6 +488,8 @@ The following table summarizes all supported NMEA sentences, the corresponding M
 		VHW & Decoded/Encoded & SPD & LINK\_MICRONET LINK\_NMEA\_EXT \\
 		\hline
 		HDG & Decoded/Encoded & HDG & LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS \\
+		\hline
+		XDR & Decoded & VCC & LINK\_MICRONET \\
 		\hline
 	\end{tabular}
 	\caption{Supported NMEA sentences}
