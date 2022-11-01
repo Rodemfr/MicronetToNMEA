@@ -253,15 +253,14 @@ and their meaning.
 | GNSS\_BAUDRATE            | Defines GNSS UART default baud-rate                                                                                                                                                |
 | GNSS\_RX\_PIN             | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                                                |
 | GNSS\_TX\_PIN             | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                                                |
-| USB\_NMEA                 | Defines which serial port is connected to USB serial converter                                                                                                                     |
+| USB\_NMEA                 | Defines which serial port is connected to the USB NMEA connection                                                                                                                  |
 | USB\_BAUDRATE             | Defines baud rate of USB serial converter                                                                                                                                          |
 | WIRED\_NMEA               | Defines which serial port is connected to the wired NMEA connection                                                                                                                |
 | WIRED\_BAUDRATE           | Defines baud rate of the wired NMEA connection                                                                                                                                     |
 | WIRED\_RX\_PIN            | Defines serial RX pin used for wired NMEA                                                                                                                                          |
 | WIRED\_TX\_PIN            | Defines serial TX pin used for wired NMEA                                                                                                                                          |
-| CONSOLE                   | Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT                           |
-| NMEA\_OUT                 | Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN.                              |
-| NMEA\_IN                  | Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT.                         |
+| CONSOLE                   | Defines on which serial port is displayed the console (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than NMEA\_EXT                                             |
+| NMEA\_EXT                 | Defines to which serial port is connected the external NMEA stream. (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than CONSOLE and NMEA\_IN.                   |
 | NAV\_SOURCE\_LINK         | Defines where navigation data is coming from (related to RMB sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.            |
 | GNSS\_SOURCE\_LINK        | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values. |
 | WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                   |
@@ -611,38 +610,41 @@ value in EEPROM. Your compass is calibrated.
 
 Menu *"4 - Start NMEA conversion"* actually start Micronet/NMEA
 conversion as suggested by the name. Once you enter in this mode
-MicronetToNMEA will output NMEA sentences to the NMEA\_OUT link. By
-default, NMEA\_OUT is routed to the same serial link than the console
+MicronetToNMEA will output NMEA sentences to the NMEA\_EXT link. By
+default, NMEA\_EXT is routed to the same serial link than the console
 (USB serial). It means that you will immediately see NMEA sentences
-beeing written onto console. More silently, MicronetToNMEA also decodes
-any incoming NMEA sentence from NMEA\_IN serial (the same than NMEA\_OUT
-and CONSOLE by default) and transmits it to your Micronet network. You
-need to be in this mode to see decoded GNSS or NMEA data displayed onto
-your Micronet displays. You also need to be in this mode for the
-configuration parameters modified onto your Micronet displays to be
-memorized by MicronetToNMEA (e.g. speed factor, sounder offset, etc.).
-If attached to a network, MicronetToNMEA will automatically switch to
-this mode when powered-up. You can leave by just pressing *\<ESC\>* in
-the console.  
+beeing written onto console. Additionnaly, MicronetToNMEA also decodes
+any incoming NMEA sentence from NMEA\_EXT serial and transmits it to
+your Micronet network. You need to be in this mode to see decoded GNSS
+or NMEA data displayed onto your Micronet displays. You also need to be
+in this mode for the configuration parameters modified onto your
+Micronet displays to be memorized by MicronetToNMEA (e.g. speed factor,
+sounder offset, etc.). If attached to a network, MicronetToNMEA will
+automatically switch to this mode when powered-up. You can leave it by
+just pressing *\<ESC\>* in the console.  
   
-Here is a summary of all actions realized by MicronetToNMEA in this mode
-:
+Here is a summary of all actions realized by MicronetToNMEA in this
+mode, with the default configuration :
 
   - Collect and decode NMEA sentences from GNSS\_NMEA link
 
-  - Collect and decode NMEA sentences from NMEA\_IN link
+  - Collect and decode NMEA sentences from NMEA\_EXT link
 
-  - Forward NMEA sentences from GNSS\_NMEA link to NMEA\_OUT link
+  - Forward NMEA sentences from GNSS\_NMEA link to NMEA\_EXT link
 
   - Collect and decode data from Micronet devices
 
   - Send all data collected from NMEA links to Micronet network
 
-  - Send all data collected from Micronet devices to NMEA\_OUT link
+  - Send all data collected from Micronet devices to NMEA\_EXT link
 
   - Calculate heading from LSM303DLH(C), if any
 
-  - Send heading data to Micronet network and NMEA\_OUT link
+  - Send heading data to Micronet network and NMEA\_EXT link
+
+It is important to note that the configuration can change this sequence
+and the way MicronetToNMEA decodes/forwards data. See chapter
+<span>[5.1.6](#supportednmeasentences)</span> for more details.
 
 ### NMEA sentences and data flow
 
