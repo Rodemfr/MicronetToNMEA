@@ -177,7 +177,7 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		GNSS\_TX\_PIN & Defines serial TX pin connected to NMEA GNSS RX pin\\
 		\hline
-		USB\_NMEA & Defines which serial port is connected to USB serial converter\\
+		USB\_NMEA & Defines which serial port is connected to the USB NMEA connection\\
 		\hline
 		USB\_BAUDRATE & Defines baud rate of USB serial converter\\
 		\hline
@@ -189,11 +189,9 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		WIRED\_TX\_PIN & Defines serial TX pin used for wired NMEA\\
 		\hline
-		CONSOLE & Defines on which serial port is displayed the console (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than NMEA\_IN and NMEA\_OUT\\
+		CONSOLE & Defines on which serial port is displayed the console (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than NMEA\_EXT\\
 		\hline
-		NMEA\_OUT & Defines on which serial port to output NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_IN.\\
-		\hline
-		NMEA\_IN & Defines on which serial port to read input NMEA stream. (can be USB\_CONSOLE or WIRED\_SERIAL). Can be on the same serial link than CONSOLE and NMEA\_OUT.\\
+		NMEA\_EXT & Defines to which serial port is connected the external NMEA stream. (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than CONSOLE and NMEA\_IN.\\
 		\hline
 		NAV\_SOURCE\_LINK & Defines where navigation data is coming from (related to RMB sentences). See Section {\ref{supportednmeasentences}} for more details on possible values.\\
 		\hline
@@ -435,22 +433,24 @@ Once achieved, just press \emph{<ESC>} and tell MicronetToNMEA to save the value
 
 \subsection{Starting NMEA conversion}
 
-Menu \emph{"4 - Start NMEA conversion"} actually start Micronet/NMEA conversion as suggested by the name. Once you enter in this mode MicronetToNMEA will output NMEA sentences to the NMEA\_OUT link. By default, NMEA\_OUT is routed to the same serial link than the console (USB serial). It means that you will immediately see NMEA sentences beeing written onto console. More silently, MicronetToNMEA also decodes any incoming NMEA sentence from NMEA\_IN serial (the same than NMEA\_OUT and CONSOLE by default) and transmits it to your Micronet network.
+Menu \emph{"4 - Start NMEA conversion"} actually start Micronet/NMEA conversion as suggested by the name. Once you enter in this mode MicronetToNMEA will output NMEA sentences to the NMEA\_EXT link. By default, NMEA\_EXT is routed to the same serial link than the console (USB serial). It means that you will immediately see NMEA sentences beeing written onto console. Additionnaly, MicronetToNMEA also decodes any incoming NMEA sentence from NMEA\_EXT serial and transmits it to your Micronet network.
 You need to be in this mode to see decoded GNSS or NMEA data displayed onto your Micronet displays. You also need to be in this mode for the configuration parameters modified onto your Micronet displays to be memorized by MicronetToNMEA (e.g. speed factor, sounder offset, etc.).
-If attached to a network, MicronetToNMEA will automatically switch to this mode when powered-up. You can leave by just pressing \emph{<ESC>} in the console.
+If attached to a network, MicronetToNMEA will automatically switch to this mode when powered-up. You can leave it by just pressing \emph{<ESC>} in the console.
 \\
 \\
-Here is a summary of all actions realized by MicronetToNMEA in this mode :
+Here is a summary of all actions realized by MicronetToNMEA in this mode, with the default configuration :
 \begin{itemize}
 	\item Collect and decode NMEA sentences from GNSS\_NMEA link
-	\item Collect and decode NMEA sentences from NMEA\_IN link
-	\item Forward NMEA sentences from GNSS\_NMEA link to NMEA\_OUT link
+	\item Collect and decode NMEA sentences from NMEA\_EXT link
+	\item Forward NMEA sentences from GNSS\_NMEA link to NMEA\_EXT link
 	\item Collect and decode data from Micronet devices
 	\item Send all data collected from NMEA links to Micronet network
-	\item Send all data collected from Micronet devices to NMEA\_OUT link
+	\item Send all data collected from Micronet devices to NMEA\_EXT link
 	\item Calculate heading from LSM303DLH(C), if any
-	\item Send heading data to Micronet network and NMEA\_OUT link
+	\item Send heading data to Micronet network and NMEA\_EXT link
 \end{itemize}
+
+It is important to note that the configuration can change this sequence and the way MicronetToNMEA decodes/forwards data. See chapter {\ref{supportednmeasentences}} for more details.
 
 \subsection{NMEA sentences and data flow}\label{supportednmeasentences}
 
