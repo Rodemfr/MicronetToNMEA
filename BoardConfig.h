@@ -71,10 +71,10 @@
 #define GNSS_TX_PIN    1
 #else // Teensy 4.0 Configuration
 #define GNSS_UBLOXM8N  1       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
-#define GNSS_SERIAL    Serial1
+#define GNSS_SERIAL    Serial2
 #define GNSS_BAUDRATE  9600
-#define GNSS_RX_PIN    0
-#define GNSS_TX_PIN    1
+#define GNSS_RX_PIN    7
+#define GNSS_TX_PIN    8
 #endif
 
 // USB UART params
@@ -88,16 +88,15 @@
 #define WIRED_RX_PIN   34
 #define WIRED_TX_PIN   33
 #else // Teensy 4.0 Configuration
-#define WIRED_NMEA     Serial5
+#define WIRED_NMEA     Serial1
 #define WIRED_BAUDRATE 115200
-#define WIRED_RX_PIN   21
-#define WIRED_TX_PIN   20
+#define WIRED_RX_PIN   0
+#define WIRED_TX_PIN   1
 #endif
 
 // The console to use for menu and NMEA output
 #define CONSOLE  USB_NMEA
-#define NMEA_OUT USB_NMEA
-#define NMEA_IN  USB_NMEA
+#define NMEA_EXT USB_NMEA
 
 // Defines with data comes from which link
 // LINK_NMEA_EXT -> data comes from external NMEA link (WIRED_NMEA)
