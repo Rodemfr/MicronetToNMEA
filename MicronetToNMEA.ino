@@ -205,7 +205,7 @@ void setup()
 
 	// Attach callback to GDO0 pin
 	// According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
-	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, RISING);
+	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, HIGH);
 
 	// Display serial menu
 	gMenuManager.PrintMenu();
