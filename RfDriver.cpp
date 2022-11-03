@@ -339,17 +339,13 @@ void RfDriver::TimerHandler()
 
 void RfDriver::TransmitCallback()
 {
-	uint32_t triggerTime;
-	int32_t triggerDelay;
-
 	if (nextTransmitIndex < 0)
 	{
 		RestartReception();
 		return;
 	}
 
-	triggerTime = micros();
-	triggerDelay = triggerTime - transmitList[nextTransmitIndex].startTime_us;
+	int32_t triggerDelay = micros() - transmitList[nextTransmitIndex].startTime_us;
 
 	if (triggerDelay < 0)
 	{
@@ -391,17 +387,20 @@ void RfDriver::TransmitCallback()
 		cc1101Driver.SetFifoThreshold(CC1101_TXFIFOTHR_9);
 		cc1101Driver.FlushTxFifo();
 
-		// Fill FIFO with preamble + sync byte
+		// Fill FIFO with preamble's first byte
 		cc1101Driver.WriteTxFifo(0x55);
 
+		// Start transmission as soon as we have the first byte available in FIFO to minimize latency
+		cc1101Driver.SetTx();
+
+		// Fill FIFO with rest of preamble
 		for (int i = 1; i < MICRONET_RF_PREAMBLE_LENGTH; i++)
 		{
 			cc1101Driver.WriteTxFifo(0x55);
 		}
+		// Fill FIFO with sync byte
 		cc1101Driver.WriteTxFifo(MICRONET_RF_SYNC_BYTE);
 		messageBytesSent = 0;
-		// Start transmission as soon as we have enough data to cross the threshold level
-		cc1101Driver.SetTx();
 	}
 	else
 	{
