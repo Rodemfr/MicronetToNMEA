@@ -162,6 +162,7 @@ private:
 	int freqEstArrayIndex;
 	int8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
 	bool freqEstArrayFilled;
+	int8_t currentOffset;
 
 	void Reset(void);
 	void SetStaticConfig(void);

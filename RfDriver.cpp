@@ -7,6 +7,7 @@
 
 #include "RfDriver.h"
 #include "BoardConfig.h"
+#include "Globals.h"
 #include <Arduino.h>
 
 #include <TeensyTimerTool.h>
@@ -20,7 +21,7 @@ OneShotTimer timerInt;
 RfDriver *RfDriver::rfDriver;
 
 RfDriver::RfDriver() :
-		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_mHz(0)
+		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_mHz(0), freqTrackingNID(0)
 {
 	memset(transmitList, 0, sizeof(transmitList));
 }
@@ -222,8 +223,15 @@ void RfDriver::GDO0RXCallback()
 	message.action = MICRONET_ACTION_RF_NO_ACTION;
 	messageFifo->Push(message);
 
-	// TODO : Find the issue with FREQEST algorithm
-	//cc1101Driver.UpdateFreqOffset();
+	// Only perform frequency tracking if the feature has been explicitly enabled
+	if (freqTrackingNID != 0)
+	{
+		// Only track if message is from master and for out network
+		if ((message.data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST) && (gMicronetCodec.GetNetworkId(&message) == freqTrackingNID))
+		{
+			cc1101Driver.UpdateFreqOffset();
+		}
+	}
 }
 
 void RfDriver::RestartReception()
@@ -406,4 +414,14 @@ void RfDriver::TransmitCallback()
 	{
 		ScheduleTransmit();
 	}
+}
+
+void RfDriver::EnableFrequencyTracking(uint32_t networkId)
+{
+	freqTrackingNID = networkId;
+}
+
+void RfDriver::DisableFrequencyTracking()
+{
+	freqTrackingNID = 0;
 }
