@@ -18,7 +18,8 @@ typedef enum {
 	RF_STATE_RX_WAIT_SYNC = 0,
 	RF_STATE_RX_HEADER,
 	RF_STATE_RX_PAYLOAD,
-	RF_STATE_TX_TRANSMIT
+	RF_STATE_TX_TRANSMIT,
+	RF_STATE_TX_LAST_TRANSMIT
 } RfDriverState_t;
 
 class RfDriver
@@ -52,6 +53,9 @@ private:
 	int GetNextTransmitIndex();
 	int GetFreeTransmitSlot();
 	void TransmitCallback();
+	void GDO0RXCallback();
+	void GDO0TXCallback();
+
 	static void TimerHandler();
 	static RfDriver *rfDriver;
 };

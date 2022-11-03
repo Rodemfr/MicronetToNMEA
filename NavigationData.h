@@ -71,7 +71,8 @@ typedef struct
 typedef struct
 {
 	bool valid;
-	uint8_t name[8];
+	uint8_t name[16];
+	uint8_t nameLength;
 	uint32_t timeStamp;
 } WaypointName_t;
 

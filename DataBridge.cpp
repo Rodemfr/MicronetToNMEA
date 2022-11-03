@@ -334,7 +334,8 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 	{
 		// We look for WP1 ID (target)
 		uint8_t c;
-		for (uint32_t i = 0; i < sizeof(gNavData.waypoint.name); i++)
+		uint32_t i;
+		for (i = 0; i < sizeof(gNavData.waypoint.name); i++)
 		{
 			if (sentence[i] != ',')
 			{
@@ -356,6 +357,7 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 				break;
 			}
 		}
+		gNavData.waypoint.nameLength = i;
 	}
 #if (INVERTED_RMB_WORKAROUND != 1)
 	for (int i = 0; i < 5; i++)
