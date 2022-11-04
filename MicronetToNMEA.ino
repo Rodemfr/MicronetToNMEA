@@ -1074,6 +1074,12 @@ void MenuTestRfQuality()
 				case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
 					CONSOLE.print("Analog Wind Display");
 					break;
+				case MICRONET_DEVICE_TYPE_DUAL_MAXI_DISPLAY:
+					CONSOLE.print("Dual Maxi Display");
+					break;
+				case MICRONET_DEVICE_TYPE_REMOTE_DISPLAY:
+					CONSOLE.print("Remote Display");
+					break;
 				default:
 					CONSOLE.print("Unknown device");
 					break;
