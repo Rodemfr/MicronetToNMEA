@@ -636,6 +636,7 @@ void MenuConvertToNmea()
 	CONSOLE.println("Press ESC key at any time to stop conversion and come back to menu.");
 	CONSOLE.println("");
 
+	gRfReceiver.EnableFrequencyTracking(gConfiguration.networkId);
 	gRxMessageFifo.ResetFifo();
 
 	do

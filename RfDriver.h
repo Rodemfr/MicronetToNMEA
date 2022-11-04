@@ -39,6 +39,8 @@ public:
 	void RestartReception();
 	void Transmit(MicronetMessageFifo *txMessageFifo);
 	void Transmit(MicronetMessage_t *message);
+	void EnableFrequencyTracking(uint32_t networkId);
+	void DisableFrequencyTracking();
 
 private:
 	CC1101Driver cc1101Driver;
@@ -48,6 +50,9 @@ private:
 	int nextTransmitIndex;
 	int messageBytesSent;
 	float frequencyOffset_mHz;
+	uint32_t freqTrackingNID;
+
+	static const uint8_t preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH];
 
 	void ScheduleTransmit();
 	int GetNextTransmitIndex();

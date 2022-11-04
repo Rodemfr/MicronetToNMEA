@@ -49,7 +49,7 @@ uint8_t PA_TABLE[8]
 
 CC1101Driver::CC1101Driver() :
 		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), lastCSHigh(0), freqEstArrayIndex(0), freqEstArrayFilled(
-				false)
+				false), currentOffset(0)
 {
 	SPI.setMOSI(MOSI_PIN);
 	SPI.setMISO(MISO_PIN);
@@ -114,19 +114,13 @@ void CC1101Driver::SpiWriteReg(byte addr, byte value)
 
 void CC1101Driver::SpiWriteBurstReg(byte addr, byte *buffer, byte num)
 {
-	byte i, temp;
-
-	temp = addr | WRITE_BURST;
-
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
-	SPI.transfer(temp);
-	for (i = 0; i < num; i++)
-	{
-		SPI.transfer(buffer[i]);
-	}
+
+	SPI.transfer(addr | WRITE_BURST);
+	SPI.transfer(buffer, nullptr, num);
 
 	ChipDeselect();
 }
@@ -162,19 +156,12 @@ byte CC1101Driver::SpiReadReg(byte addr)
 
 void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
 {
-	byte i, temp;
-
-	temp = addr | READ_BURST;
-
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
-	SPI.transfer(temp);
-	for (i = 0; i < num; i++)
-	{
-		buffer[i] = SPI.transfer(0);
-	}
+	SPI.transfer(addr | READ_BURST);
+	SPI.transfer(nullptr, buffer, num);
 
 	ChipDeselect();
 }
@@ -242,10 +229,10 @@ void CC1101Driver::SetFrequency(float freq_mhz)
 
 void CC1101Driver::Calibrate(void)
 {
-
 	if (rfFreq_mHz >= 779 && rfFreq_mHz <= 899.99)
 	{
-		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 779, 899, freqOffset868[0], freqOffset868[1]));
+		currentOffset = map(rfFreq_mHz, 779, 899, freqOffset868[0], freqOffset868[1]);
+		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		if (rfFreq_mHz < 861)
 		{
 			SpiWriteReg(CC1101_TEST0, 0x0B);
@@ -257,7 +244,8 @@ void CC1101Driver::Calibrate(void)
 	}
 	else if (rfFreq_mHz >= 900 && rfFreq_mHz <= 928)
 	{
-		SpiWriteReg(CC1101_FSCTRL0, map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]));
+		currentOffset = map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]);
+		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		SpiWriteReg(CC1101_TEST0, 0x09);
 	}
 }
@@ -310,6 +298,11 @@ void CC1101Driver::ReadRxFifo(uint8_t *buffer, int nbBytes)
 void CC1101Driver::WriteTxFifo(uint8_t data)
 {
 	SpiWriteReg(CC1101_TXFIFO, data);
+}
+
+void CC1101Driver::WriteTxFifo(uint8_t *buffer, int nbBytes)
+{
+	SpiWriteBurstReg(CC1101_TXFIFO, buffer, nbBytes);
 }
 
 void CC1101Driver::IrqOnTxFifoUnderflow()
@@ -584,30 +577,43 @@ void CC1101Driver::ChipDeselect()
 void CC1101Driver::UpdateFreqOffset()
 {
 	int8_t freqEst;
-	int32_t averageFreqEst;
+	int32_t averageFreqEst, newFreqOff;
 
 	// Read latest frequency offset estimation and store it in averaging array
-	freqEst = SpiReadReg(CC1101_FREQEST);
+	freqEst = SpiReadStatus(CC1101_FREQEST);
 	freqEstArray[freqEstArrayIndex++] = freqEst;
 
-	// Handle array index loop
+	// Only calculate new offset when averaging array is full
 	if (freqEstArrayIndex >= FREQ_ESTIMATION_ARRAY_SIZE)
 	{
 		freqEstArrayIndex = 0;
-		freqEstArrayFilled = true;
-	}
-
-	// Only calculate averaged frequency estimator once array has been entirely filled once
-	if (freqEstArrayFilled)
-	{
-		// Average frequency offset
+		// Calculate accumulated frequency offset
 		averageFreqEst = 0;
 		for (int i = 0; i < FREQ_ESTIMATION_ARRAY_SIZE; i++)
 		{
 			averageFreqEst += freqEstArray[i];
 		}
-		averageFreqEst /= FREQ_ESTIMATION_ARRAY_SIZE;
-		// Write it
-		SpiWriteReg(CC1101_FSCTRL0, averageFreqEst);
+		// Limit offset change rate to 1
+		if (averageFreqEst > (FREQ_ESTIMATION_ARRAY_SIZE / 2))
+		{
+			averageFreqEst = 1;
+		}
+		else if (averageFreqEst < (-FREQ_ESTIMATION_ARRAY_SIZE / 2))
+		{
+			averageFreqEst = -1;
+		}
+		else
+		{
+			averageFreqEst = 0;
+		}
+		// Update offset
+		newFreqOff = averageFreqEst + currentOffset;
+		// Clip value on 8 bit
+		if (newFreqOff >= 127)
+			newFreqOff = 127;
+		if (newFreqOff <= -128)
+			newFreqOff = -128;
+		currentOffset = newFreqOff;
+		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 	}
 }

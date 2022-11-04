@@ -147,6 +147,7 @@ public:
 	int GetTxFifoLevel();
 	void ReadRxFifo(uint8_t *buffer, int nbBytes);
 	void WriteTxFifo(uint8_t data);
+	void WriteTxFifo(uint8_t *buffer, int nbBytes);
 	void IrqOnTxFifoUnderflow();
 	void IrqOnTxFifoThreshold();
 	void IrqOnRxFifoThreshold();
@@ -162,6 +163,7 @@ private:
 	int freqEstArrayIndex;
 	int8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
 	bool freqEstArrayFilled;
+	int8_t currentOffset;
 
 	void Reset(void);
 	void SetStaticConfig(void);
