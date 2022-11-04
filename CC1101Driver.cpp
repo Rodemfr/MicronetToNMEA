@@ -312,14 +312,14 @@ void CC1101Driver::WriteTxFifo(uint8_t data)
 	SpiWriteReg(CC1101_TXFIFO, data);
 }
 
-void CC1101Driver::DeIrqOnTxFifoEmpty()
+void CC1101Driver::IrqOnTxFifoUnderflow()
 {
 	SpiWriteReg(CC1101_IOCFG0, 0x05);
 }
 
-void CC1101Driver::IrqOnTxFifoLow()
+void CC1101Driver::IrqOnTxFifoThreshold()
 {
-	SpiWriteReg(CC1101_IOCFG0, 0x43);
+	SpiWriteReg(CC1101_IOCFG0, 0x42);
 }
 
 void CC1101Driver::IrqOnRxFifoThreshold()

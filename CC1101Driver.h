@@ -116,7 +116,7 @@
 #define CC1101_RXFIFO       0x3F
 
 #define CC1101_RXFIFOTHR_16 0x03
-#define CC1101_TXFIFOTHR_17 0x0B
+#define CC1101_TXFIFOTHR_9  0x0D
 
 //************************************* class **************************************************//
 class CC1101Driver
@@ -147,8 +147,8 @@ public:
 	int GetTxFifoLevel();
 	void ReadRxFifo(uint8_t *buffer, int nbBytes);
 	void WriteTxFifo(uint8_t data);
-	void DeIrqOnTxFifoEmpty();
-	void IrqOnTxFifoLow();
+	void IrqOnTxFifoUnderflow();
+	void IrqOnTxFifoThreshold();
 	void IrqOnRxFifoThreshold();
 	void SetFifoThreshold(uint8_t fifoThreshold);
 	void FlushRxFifo();

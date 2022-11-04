@@ -513,7 +513,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	if ((dataFields & DATA_FIELD_BTW) && ((navData->btw_deg.valid) || (navData->waypoint.valid)))
 	{
 		offset += Add16bitAndSix8bitField(message->data + offset, MICRONET_FIELD_ID_BTW, (short) navData->btw_deg.value,
-				navData->waypoint.name);
+				navData->waypoint.name, navData->waypoint.nameLength);
 	}
 	if ((dataFields & DATA_FIELD_VMGWP) && (navData->vmgwp_kt.valid))
 	{
@@ -525,11 +525,13 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_AWS) && ((navData->aws_kt.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS, (uint32_t) (navData->aws_kt.value * 10.0f / navData->windSpeedFactor_per));
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWS,
+				(uint32_t) (navData->aws_kt.value * 10.0f / navData->windSpeedFactor_per));
 	}
 	if ((dataFields & DATA_FIELD_AWA) && ((navData->awa_deg.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWA, (int16_t) (navData->awa_deg.value - navData->windDirectionOffset_deg));
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_AWA,
+				(int16_t) (navData->awa_deg.value - navData->windDirectionOffset_deg));
 	}
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
@@ -857,9 +859,13 @@ uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint
 	return offset;
 }
 
-uint8_t MicronetCodec::Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t *WPname)
+uint8_t MicronetCodec::Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t *WPname,
+		uint8_t WPnameLength)
 {
+	static int nameOffset = 0;
 	int offset = 0;
+	int nameIndex;
+	uint8_t c;
 
 	buffer[offset++] = 0x0a;
 	buffer[offset++] = fieldCode;
@@ -868,14 +874,32 @@ uint8_t MicronetCodec::Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCod
 	buffer[offset++] = (value1 >> 8) & 0xff;
 	buffer[offset++] = value1 & 0xff;
 
-	char cBuff[4];
-	memcpy(cBuff, WPname, 4);
 	buffer[offset++] = 0;
 	buffer[offset++] = 0;
-	buffer[offset++] = cBuff[0];
-	buffer[offset++] = cBuff[1];
-	buffer[offset++] = cBuff[2];
-	buffer[offset++] = cBuff[3];
+
+	if (nameOffset > WPnameLength)
+	{
+		nameOffset = -3;
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		nameIndex = nameOffset + i;
+		if (nameIndex < 0)
+		{
+			c = ' ';
+		}
+		else if (nameIndex < WPnameLength)
+		{
+			c = WPname[nameIndex];
+		} else
+		{
+			c = ' ';
+		}
+		buffer[offset++] = c;
+	}
+
+	nameOffset++;
 
 	uint8_t crc = 0;
 	for (int i = offset - 11; i < offset; i++)

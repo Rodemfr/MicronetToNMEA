@@ -139,7 +139,7 @@ private:
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
 	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
 	uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
-	uint8_t Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t *wpname);
+	uint8_t Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t *wpname, uint8_t WPnameLength);
 	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 	uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 };
