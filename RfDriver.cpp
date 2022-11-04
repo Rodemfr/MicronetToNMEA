@@ -8,6 +8,7 @@
 #include "RfDriver.h"
 #include "BoardConfig.h"
 #include "Globals.h"
+#include "Micronet.h"
 #include <Arduino.h>
 
 #include <TeensyTimerTool.h>
@@ -20,8 +21,15 @@ OneShotTimer timerInt;
 
 RfDriver *RfDriver::rfDriver;
 
+const uint8_t RfDriver::preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH] =
+{ MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
+MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
+MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
+MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_SYNC_BYTE };
+
 RfDriver::RfDriver() :
-		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_mHz(0), freqTrackingNID(0)
+		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_mHz(0), freqTrackingNID(
+				0)
 {
 	memset(transmitList, 0, sizeof(transmitList));
 }
@@ -93,19 +101,16 @@ void RfDriver::GDO0TXCallback()
 	if (rfState == RF_STATE_TX_TRANSMIT)
 	{
 		int bytesInFifo;
-		int byteToLoad = transmitList[nextTransmitIndex].len - messageBytesSent;
+		int bytesToLoad = transmitList[nextTransmitIndex].len - messageBytesSent;
 
 		bytesInFifo = cc1101Driver.GetTxFifoLevel();
-		if (byteToLoad + bytesInFifo > CC1101_FIFO_MAX_SIZE)
+		if (bytesToLoad + bytesInFifo > CC1101_FIFO_MAX_SIZE)
 		{
-			byteToLoad = CC1101_FIFO_MAX_SIZE - bytesInFifo;
+			bytesToLoad = CC1101_FIFO_MAX_SIZE - bytesInFifo;
 		}
 
-		do
-		{
-			cc1101Driver.WriteTxFifo(transmitList[nextTransmitIndex].data[messageBytesSent++]);
-			byteToLoad--;
-		} while (byteToLoad > 0);
+		cc1101Driver.WriteTxFifo(&transmitList[nextTransmitIndex].data[messageBytesSent], bytesToLoad);
+		messageBytesSent += bytesToLoad;
 
 		if (messageBytesSent >= transmitList[nextTransmitIndex].len)
 		{
@@ -227,7 +232,8 @@ void RfDriver::GDO0RXCallback()
 	if (freqTrackingNID != 0)
 	{
 		// Only track if message is from master and for out network
-		if ((message.data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST) && (gMicronetCodec.GetNetworkId(&message) == freqTrackingNID))
+		if ((message.data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
+				&& (gMicronetCodec.GetNetworkId(&message) == freqTrackingNID))
 		{
 			cc1101Driver.UpdateFreqOffset();
 		}
@@ -396,18 +402,14 @@ void RfDriver::TransmitCallback()
 		cc1101Driver.FlushTxFifo();
 
 		// Fill FIFO with preamble's first byte
-		cc1101Driver.WriteTxFifo(0x55);
+		cc1101Driver.WriteTxFifo(MICRONET_RF_PREAMBLE_BYTE);
 
 		// Start transmission as soon as we have the first byte available in FIFO to minimize latency
 		cc1101Driver.SetTx();
 
-		// Fill FIFO with rest of preamble
-		for (int i = 1; i < MICRONET_RF_PREAMBLE_LENGTH; i++)
-		{
-			cc1101Driver.WriteTxFifo(0x55);
-		}
-		// Fill FIFO with sync byte
-		cc1101Driver.WriteTxFifo(MICRONET_RF_SYNC_BYTE);
+		// Fill FIFO with rest of preamble and sync byte
+		cc1101Driver.WriteTxFifo(((uint8_t*) preambleAndSync), sizeof(preambleAndSync));
+
 		messageBytesSent = 0;
 	}
 	else

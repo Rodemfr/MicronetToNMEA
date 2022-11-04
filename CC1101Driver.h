@@ -147,6 +147,7 @@ public:
 	int GetTxFifoLevel();
 	void ReadRxFifo(uint8_t *buffer, int nbBytes);
 	void WriteTxFifo(uint8_t data);
+	void WriteTxFifo(uint8_t *buffer, int nbBytes);
 	void IrqOnTxFifoUnderflow();
 	void IrqOnTxFifoThreshold();
 	void IrqOnRxFifoThreshold();

@@ -114,19 +114,13 @@ void CC1101Driver::SpiWriteReg(byte addr, byte value)
 
 void CC1101Driver::SpiWriteBurstReg(byte addr, byte *buffer, byte num)
 {
-	byte i, temp;
-
-	temp = addr | WRITE_BURST;
-
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
-	SPI.transfer(temp);
-	for (i = 0; i < num; i++)
-	{
-		SPI.transfer(buffer[i]);
-	}
+
+	SPI.transfer(addr | WRITE_BURST);
+	SPI.transfer(buffer, nullptr, num);
 
 	ChipDeselect();
 }
@@ -162,19 +156,12 @@ byte CC1101Driver::SpiReadReg(byte addr)
 
 void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
 {
-	byte i, temp;
-
-	temp = addr | READ_BURST;
-
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
-	SPI.transfer(temp);
-	for (i = 0; i < num; i++)
-	{
-		buffer[i] = SPI.transfer(0);
-	}
+	SPI.transfer(addr | READ_BURST);
+	SPI.transfer(nullptr, buffer, num);
 
 	ChipDeselect();
 }
@@ -311,6 +298,11 @@ void CC1101Driver::ReadRxFifo(uint8_t *buffer, int nbBytes)
 void CC1101Driver::WriteTxFifo(uint8_t data)
 {
 	SpiWriteReg(CC1101_TXFIFO, data);
+}
+
+void CC1101Driver::WriteTxFifo(uint8_t *buffer, int nbBytes)
+{
+	SpiWriteBurstReg(CC1101_TXFIFO, buffer, nbBytes);
 }
 
 void CC1101Driver::IrqOnTxFifoUnderflow()

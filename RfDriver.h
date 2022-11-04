@@ -52,6 +52,8 @@ private:
 	float frequencyOffset_mHz;
 	uint32_t freqTrackingNID;
 
+	static const uint8_t preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH];
+
 	void ScheduleTransmit();
 	int GetNextTransmitIndex();
 	int GetFreeTransmitSlot();
