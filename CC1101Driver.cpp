@@ -39,11 +39,6 @@
 // Minimum time in microseconds for CC1101 to restart its XTAL when exting power-down mode
 #define XTAL_RESTART_TIME_US 150
 
-byte freqOffset868[2] =
-{ 18, 26 };
-byte freqOffset915[2] =
-{ 77, 79 };
-
 uint8_t PA_TABLE[8]
 { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
@@ -246,10 +241,9 @@ void CC1101Driver::SetFrequency(float freq_mhz)
 
 void CC1101Driver::Calibrate(void)
 {
+	currentOffset = 0;
 	if (rfFreq_mHz >= 779 && rfFreq_mHz <= 899.99)
 	{
-//		currentOffset = map(rfFreq_mHz, 779, 899, freqOffset868[0], freqOffset868[1]);
-		currentOffset = 0;
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		if (rfFreq_mHz < 861)
 		{
@@ -262,8 +256,6 @@ void CC1101Driver::Calibrate(void)
 	}
 	else if (rfFreq_mHz >= 900 && rfFreq_mHz <= 928)
 	{
-//		currentOffset = map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]);
-		currentOffset = 0;
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		SpiWriteReg(CC1101_TEST0, 0x09);
 	}
