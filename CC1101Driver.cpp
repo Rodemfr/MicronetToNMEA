@@ -501,6 +501,11 @@ void CC1101Driver::ActivePower()
 		if (micros() < timeRef)
 			break;
 	}
+
+	// Trigger calibration
+	SpiStrobe(CC1101_SCAL);
+	while ((SpiReadChipStatusByte() & 0x40) != 0)
+		;
 }
 
 int CC1101Driver::GetRssi(void)

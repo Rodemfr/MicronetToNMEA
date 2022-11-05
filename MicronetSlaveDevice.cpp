@@ -100,12 +100,15 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 			firstSlot = message->endTime_us;
 			micronetCodec.GetNetworkMap(message, &networkMap);
 
+			// We schedule the low power mode of CC1101 just at the end of the network cycle
 			txMessage.action = MICRONET_ACTION_RF_LOW_POWER;
 			txMessage.startTime_us = micronetCodec.GetEndOfNetwork(&networkMap);
 			messageFifo->Push(txMessage);
 
+			// We schedule exit of CC1101's low power mode 1ms before actual start of the next network cycle.
+			// It will let time for the PLL calibration loop to complete.
 			txMessage.action = MICRONET_ACTION_RF_ACTIVE_POWER;
-			txMessage.startTime_us = micronetCodec.GetNextStartOfNetwork(&networkMap) - 500;
+			txMessage.startTime_us = micronetCodec.GetNextStartOfNetwork(&networkMap) - 1000;
 			messageFifo->Push(txMessage);
 
 			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
