@@ -641,7 +641,7 @@ void MenuConvertToNmea()
 	CONSOLE.println("");
 
 	// We keep frequency tracking disabled for now since issues are reported by some users
-	//gRfReceiver.EnableFrequencyTracking(gConfiguration.networkId);
+	gRfReceiver.EnableFrequencyTracking(gConfiguration.networkId);
 
 	gRxMessageFifo.ResetFifo();
 
