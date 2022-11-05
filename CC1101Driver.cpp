@@ -259,6 +259,10 @@ void CC1101Driver::Calibrate(void)
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		SpiWriteReg(CC1101_TEST0, 0x09);
 	}
+	// Trigger calibration
+	SpiStrobe(CC1101_SCAL);
+	while ((SpiReadChipStatusByte() & 0x40) != 0)
+		;
 }
 
 bool CC1101Driver::IsConnected(void)
@@ -544,7 +548,7 @@ void CC1101Driver::SetStaticConfig(void)
 	SpiWriteReg(CC1101_CHANNR, 0x00);
 	SpiWriteReg(CC1101_DEVIATN, 0x47);
 	SpiWriteReg(CC1101_FREND1, 0x56);
-	SpiWriteReg(CC1101_MCSM0, 0x18);
+	SpiWriteReg(CC1101_MCSM0, 0x08);
 	SpiWriteReg(CC1101_FOCCFG, 0x16);
 	SpiWriteReg(CC1101_BSCFG, 0x1C);
 	SpiWriteReg(CC1101_AGCCTRL2, 0xC7);
