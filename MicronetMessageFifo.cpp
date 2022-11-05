@@ -53,6 +53,7 @@
 MicronetMessageFifo::MicronetMessageFifo()
 {
 	// Reset packet store
+	memset(store, 0, sizeof(store));
 	writeIndex = 0;
 	readIndex = 0;
 	nbMessages = 0;
@@ -62,7 +63,7 @@ MicronetMessageFifo::~MicronetMessageFifo()
 {
 }
 
-bool MicronetMessageFifo::Push(MicronetMessage_t &message)
+bool MicronetMessageFifo::Push(MicronetMessage_t const &message)
 {
 	// Disable interrupts to avoid race conditions
 	noInterrupts();
@@ -124,7 +125,6 @@ bool MicronetMessageFifo::Pop(MicronetMessage_t *message)
 MicronetMessage_t *MicronetMessageFifo::Peek(int index)
 {
 	MicronetMessage_t *pMessage = nullptr;
-	int bufferIndex;
 
 	// Disable interrupts to avoid race conditions
 	noInterrupts();
@@ -132,7 +132,7 @@ MicronetMessage_t *MicronetMessageFifo::Peek(int index)
 	// Are there messages in the store ?
 	if (nbMessages > index)
 	{
-		bufferIndex = readIndex + index;
+		int bufferIndex = readIndex + index;
 		if (bufferIndex >= MESSAGE_STORE_SIZE)
 			bufferIndex -= MESSAGE_STORE_SIZE;
 		pMessage = &(store[bufferIndex]);

@@ -242,7 +242,6 @@ void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message, Naviga
 
 int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset, NavigationData *dataSet)
 {
-	int8_t value8;
 	int16_t value16;
 	int32_t value_32_1, value32_2;
 
@@ -251,7 +250,7 @@ int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset, Navig
 		uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3];
 		if (crc == message->data[offset + 4])
 		{
-			value8 = message->data[offset + 3];
+			int8_t value8 = message->data[offset + 3];
 			UpdateMicronetData(message->data[offset + 1], value8, dataSet);
 		}
 	}
@@ -859,12 +858,11 @@ uint8_t MicronetCodec::AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint
 	return offset;
 }
 
-uint8_t MicronetCodec::Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t *WPname,
-		uint8_t WPnameLength)
+uint8_t MicronetCodec::Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t const *wpName,
+		uint8_t wpNameLength)
 {
 	static int nameOffset = 0;
 	int offset = 0;
-	int nameIndex;
 	uint8_t c;
 
 	buffer[offset++] = 0x0a;
@@ -877,21 +875,21 @@ uint8_t MicronetCodec::Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCod
 	buffer[offset++] = 0;
 	buffer[offset++] = 0;
 
-	if (nameOffset > WPnameLength)
+	if (nameOffset > wpNameLength)
 	{
 		nameOffset = -3;
 	}
 
 	for (int i = 0; i < 4; i++)
 	{
-		nameIndex = nameOffset + i;
+		int nameIndex = nameOffset + i;
 		if (nameIndex < 0)
 		{
 			c = ' ';
 		}
-		else if (nameIndex < WPnameLength)
+		else if (nameIndex < wpNameLength)
 		{
-			c = WPname[nameIndex];
+			c = wpName[nameIndex];
 		} else
 		{
 			c = ' ';
@@ -985,7 +983,6 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 	uint32_t nbDevices;
 	uint32_t slotDelay_us;
 	uint32_t slotLength_us;
-	uint8_t payloadBytes;
 	uint32_t deviceId;
 	uint32_t slotIndex;
 
@@ -1031,7 +1028,7 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 		deviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 1] << 16;
 		deviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 2] << 8;
 		deviceId |= message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 3];
-		payloadBytes = message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4];
+		uint8_t payloadBytes = message->data[MICRONET_PAYLOAD_OFFSET + i * 5 + 4];
 
 		networkMap->syncSlot[slotIndex].deviceId = deviceId;
 		networkMap->syncSlot[slotIndex].payloadBytes = payloadBytes;

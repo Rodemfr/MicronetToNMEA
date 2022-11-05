@@ -282,19 +282,16 @@ void RfDriver::Transmit(MicronetMessage_t *message)
 
 void RfDriver::ScheduleTransmit()
 {
-	int transmitIndex;
-	int32_t transmitDelay;
-
 	do
 	{
-		transmitIndex = GetNextTransmitIndex();
+		int transmitIndex = GetNextTransmitIndex();
 		if (transmitIndex < 0)
 		{
 			// No transmit to schedule : stop timer and leave
 			timerInt.stop();
 			return;
 		}
-		transmitDelay = transmitList[transmitIndex].startTime_us - micros();
+		int32_t transmitDelay = transmitList[transmitIndex].startTime_us - micros();
 		if ((transmitDelay <= 0) || (transmitDelay > 3000000))
 		{
 			// Transmit already in the past, or invalid : delete it and schedule the next one
@@ -408,7 +405,7 @@ void RfDriver::TransmitCallback()
 		cc1101Driver.SetTx();
 
 		// Fill FIFO with rest of preamble and sync byte
-		cc1101Driver.WriteTxFifo(((uint8_t*) preambleAndSync), sizeof(preambleAndSync));
+		cc1101Driver.WriteTxFifo(static_cast<const uint8_t*>(preambleAndSync), sizeof(preambleAndSync));
 
 		messageBytesSent = 0;
 	}

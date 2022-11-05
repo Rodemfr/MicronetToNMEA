@@ -51,7 +51,7 @@ public:
 	MicronetMessageFifo();
 	virtual ~MicronetMessageFifo();
 
-	bool Push(MicronetMessage_t &message);
+	bool Push(MicronetMessage_t const &message);
 	bool Pop(MicronetMessage_t *message);
 	MicronetMessage_t *Peek(int index);
 	MicronetMessage_t *Peek();

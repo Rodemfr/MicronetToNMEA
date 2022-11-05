@@ -18,10 +18,10 @@ public:
 	LSM303DLHCDriver();
 	virtual ~LSM303DLHCDriver();
 
-	virtual bool Init();
-	virtual string GetDeviceName();
-	virtual void GetMagneticField(float *magX, float *magY, float *magZ);
-	virtual void GetAcceleration(float *accX, float *accY, float *accZ);
+	virtual bool Init() override;
+	virtual string GetDeviceName() override;
+	virtual void GetMagneticField(float *magX, float *magY, float *magZ) override;
+	virtual void GetAcceleration(float *accX, float *accY, float *accZ) override;
 
 private:
 	uint8_t accAddr, magAddr;
