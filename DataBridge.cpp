@@ -74,6 +74,16 @@ DataBridge::DataBridge()
 	nmeaGnssWriteIndex = 0;
 	nmeaGnssBuffer[0] = 0;
 	memset(&nmeaTimeStamps, 0, sizeof(nmeaTimeStamps));
+
+	// Store static link configuration from BoardConfig.h
+	navSourceLink = NAV_SOURCE_LINK;
+	gnssSourceLink = GNSS_SOURCE_LINK;
+	windSourceLink = WIND_SOURCE_LINK;
+	depthSourceLink = DEPTH_SOURCE_LINK;
+	speedSourceLink = SPEED_SOURCE_LINK;
+	voltageSourceLink = VOLTAGE_SOURCE_LINK;
+	seaTempSourceLink = SEATEMP_SOURCE_LINK;
+	compassSourceLink = COMPASS_SOURCE_LINK;
 }
 
 DataBridge::~DataBridge()
@@ -120,13 +130,13 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 				switch (sId)
 				{
 				case NMEA_ID_RMB:
-					if (sourceLink == NAV_SOURCE_LINK)
+					if (sourceLink == navSourceLink)
 					{
 						DecodeRMBSentence(nmeaBuffer);
 					}
 					break;
 				case NMEA_ID_RMC:
-					if (sourceLink == GNSS_SOURCE_LINK)
+					if (sourceLink == gnssSourceLink)
 					{
 						DecodeRMCSentence(nmeaBuffer);
 						if (sourceLink != LINK_NMEA_EXT)
@@ -136,7 +146,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 					}
 					break;
 				case NMEA_ID_GGA:
-					if (sourceLink == GNSS_SOURCE_LINK)
+					if (sourceLink == gnssSourceLink)
 					{
 						DecodeGGASentence(nmeaBuffer);
 						if (sourceLink != LINK_NMEA_EXT)
@@ -146,7 +156,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 					}
 					break;
 				case NMEA_ID_VTG:
-					if (sourceLink == GNSS_SOURCE_LINK)
+					if (sourceLink == gnssSourceLink)
 					{
 						DecodeVTGSentence(nmeaBuffer);
 						if (sourceLink != LINK_NMEA_EXT)
@@ -156,25 +166,25 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 					}
 					break;
 				case NMEA_ID_MWV:
-					if (sourceLink == WIND_SOURCE_LINK)
+					if (sourceLink == windSourceLink)
 					{
 						DecodeMWVSentence(nmeaBuffer);
 					}
 					break;
 				case NMEA_ID_DPT:
-					if (sourceLink == DEPTH_SOURCE_LINK)
+					if (sourceLink == depthSourceLink)
 					{
 						DecodeDPTSentence(nmeaBuffer);
 					}
 					break;
 				case NMEA_ID_VHW:
-					if (sourceLink == SPEED_SOURCE_LINK)
+					if (sourceLink == speedSourceLink)
 					{
 						DecodeVHWSentence(nmeaBuffer);
 					}
 					break;
 				case NMEA_ID_HDG:
-					if (sourceLink == COMPASS_SOURCE_LINK)
+					if (sourceLink == compassSourceLink)
 					{
 						DecodeHDGSentence(nmeaBuffer);
 					}

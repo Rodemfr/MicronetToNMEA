@@ -94,6 +94,14 @@ private:
 	int nmeaExtWriteIndex;
 	int nmeaGnssWriteIndex;
 	NmeaTimeStamps_t nmeaTimeStamps;
+	LinkId_t navSourceLink;
+	LinkId_t gnssSourceLink;
+	LinkId_t windSourceLink;
+	LinkId_t depthSourceLink;
+	LinkId_t speedSourceLink;
+	LinkId_t voltageSourceLink;
+	LinkId_t seaTempSourceLink;
+	LinkId_t compassSourceLink;
 
 	bool IsSentenceValid(char *nmeaBuffer);
 	NmeaId_t SentenceId(char *nmeaBuffer);
