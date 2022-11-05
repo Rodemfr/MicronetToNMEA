@@ -112,11 +112,10 @@ float NavCompass::GetHeading()
 	}
 	shiftAngle = firstQ && lastQ;
 
-	float value;
 	angle = 0.0f;
 	for (int i = 0; i < HEADING_HISTORY_LENGTH; i++)
 	{
-		value = headingHistory[i];
+		float value = headingHistory[i];
 		if (shiftAngle && (value > 270.0))
 			value -= 360.0;
 		angle += value;

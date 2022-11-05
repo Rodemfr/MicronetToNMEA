@@ -56,6 +56,7 @@
 MicronetSlaveDevice::MicronetSlaveDevice() :
 		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0), firstSlot(0), networkStatus(NETWORK_STATUS_NOT_FOUND), lastNetworkMessage_us(0)
 {
+	memset(&networkMap, 0, sizeof(networkMap));
 }
 
 MicronetSlaveDevice::~MicronetSlaveDevice()
@@ -80,7 +81,6 @@ void MicronetSlaveDevice::SetDataFields(uint32_t dataFields)
 void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo)
 {
 	TxSlotDesc_t txSlot;
-	uint32_t payloadLength;
 	MicronetMessage_t txMessage;
 
 	if ((networkStatus == NETWORK_STATUS_FOUND) && ((micros() - lastNetworkMessage_us) > NETWORK_TIMEOUT_MS * 1000))
@@ -113,7 +113,7 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 			if (txSlot.start_us != 0)
 			{
 				// TODO : move NavigationData to MicronetCodec
-				payloadLength = micronetCodec.EncodeDataMessage(&txMessage, latestSignalStrength, networkId, deviceId, &gNavData,
+				uint32_t payloadLength = micronetCodec.EncodeDataMessage(&txMessage, latestSignalStrength, networkId, deviceId, &gNavData,
 						dataFields);
 				if (txSlot.payloadBytes < payloadLength)
 				{

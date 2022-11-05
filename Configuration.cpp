@@ -104,11 +104,10 @@ Configuration::~Configuration()
 
 void Configuration::LoadFromEeprom()
 {
-	ConfigBlock_t configBlock;
-	uint8_t *pConfig = (uint8_t*) (&configBlock);
+	ConfigBlock_t configBlock = {0};
 
-	memset(&configBlock, 0, sizeof(configBlock));
 	EEPROM.get(0, configBlock);
+	uint8_t *pConfig = (uint8_t*) (&configBlock);
 
 	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
 	{
@@ -140,12 +139,13 @@ void Configuration::LoadFromEeprom()
 
 void Configuration::SaveToEeprom()
 {
-	ConfigBlock_t eepromBlock, configBlock;
+	ConfigBlock_t eepromBlock = {0};
+	ConfigBlock_t configBlock = {0};
+
 	uint8_t *pEepromBlock = (uint8_t*) (&eepromBlock);
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
 	uint8_t checksum = 0;
 
-	memset(&eepromBlock, 0, sizeof(eepromBlock));
 	EEPROM.get(0, eepromBlock);
 
 	configBlock.magicWord = CONFIG_MAGIC_NUMBER;

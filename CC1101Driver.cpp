@@ -51,6 +51,8 @@ CC1101Driver::CC1101Driver() :
 		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), lastCSHigh(0), freqEstArrayIndex(0), freqEstArrayFilled(
 				false), currentOffset(0)
 {
+	memset(freqEstArray, 0, sizeof(freqEstArray));
+
 	SPI.setMOSI(MOSI_PIN);
 	SPI.setMISO(MISO_PIN);
 	SPI.setSCK(SCK_PIN);
@@ -577,7 +579,6 @@ void CC1101Driver::ChipDeselect()
 void CC1101Driver::UpdateFreqOffset()
 {
 	int8_t freqEst;
-	int32_t averageFreqEst, newFreqOff;
 
 	// Read latest frequency offset estimation and store it in averaging array
 	freqEst = SpiReadStatus(CC1101_FREQEST);
@@ -586,28 +587,28 @@ void CC1101Driver::UpdateFreqOffset()
 	// Only calculate new offset when averaging array is full
 	if (freqEstArrayIndex >= FREQ_ESTIMATION_ARRAY_SIZE)
 	{
+		int32_t accFreqEst = 0;
 		freqEstArrayIndex = 0;
 		// Calculate accumulated frequency offset
-		averageFreqEst = 0;
 		for (int i = 0; i < FREQ_ESTIMATION_ARRAY_SIZE; i++)
 		{
-			averageFreqEst += freqEstArray[i];
+			accFreqEst += freqEstArray[i];
 		}
 		// Limit offset change rate to 1
-		if (averageFreqEst > (FREQ_ESTIMATION_ARRAY_SIZE / 2))
+		if (accFreqEst > (FREQ_ESTIMATION_ARRAY_SIZE / 2))
 		{
-			averageFreqEst = 1;
+			accFreqEst = 1;
 		}
-		else if (averageFreqEst < (-FREQ_ESTIMATION_ARRAY_SIZE / 2))
+		else if (accFreqEst < (-FREQ_ESTIMATION_ARRAY_SIZE / 2))
 		{
-			averageFreqEst = -1;
+			accFreqEst = -1;
 		}
 		else
 		{
-			averageFreqEst = 0;
+			accFreqEst = 0;
 		}
 		// Update offset
-		newFreqOff = averageFreqEst + currentOffset;
+		int32_t newFreqOff = accFreqEst + currentOffset;
 		// Clip value on 8 bit
 		if (newFreqOff >= 127)
 			newFreqOff = 127;

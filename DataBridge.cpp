@@ -231,7 +231,7 @@ bool DataBridge::IsSentenceValid(char *nmeaBuffer)
 	if (nmeaBuffer[0] != '$')
 		return false;
 
-	char *pCs = strrchr((char*) nmeaBuffer, '*') + 1;
+	char *pCs = strrchr(static_cast<char*>(nmeaBuffer), '*') + 1;
 	if (pCs == nullptr)
 		return false;
 	int16_t Cs = (NibbleValue(pCs[0]) << 4) | NibbleValue(pCs[1]);
@@ -672,17 +672,17 @@ int16_t DataBridge::NibbleValue(char c)
 
 void DataBridge::EncodeMWV_R(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if (WIND_SOURCE_LINK == LINK_MICRONET)
 	{
+		bool update;
+
 		update = (gNavData.awa_deg.timeStamp > nmeaTimeStamps.vwr + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (gNavData.aws_kt.timeStamp > nmeaTimeStamps.vwr + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (gNavData.awa_deg.valid && gNavData.aws_kt.valid);
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			float absAwa = gNavData.awa_deg.value;
 			if (absAwa < 0.0f)
 				absAwa += 360.0f;
@@ -696,17 +696,17 @@ void DataBridge::EncodeMWV_R(NavigationData *micronetData)
 
 void DataBridge::EncodeMWV_T(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if (WIND_SOURCE_LINK == LINK_MICRONET)
 	{
+		bool update;
+
 		update = (gNavData.twa_deg.timeStamp > nmeaTimeStamps.vwt + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (gNavData.tws_kt.timeStamp > nmeaTimeStamps.vwt + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (gNavData.twa_deg.valid && gNavData.tws_kt.valid);
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			float absTwa = gNavData.twa_deg.value;
 			if (absTwa < 0.0f)
 				absTwa += 360.0f;
@@ -720,16 +720,16 @@ void DataBridge::EncodeMWV_T(NavigationData *micronetData)
 
 void DataBridge::EncodeDPT(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if (DEPTH_SOURCE_LINK == LINK_MICRONET)
 	{
+		bool update;
+
 		update = (gNavData.dpt_m.timeStamp > nmeaTimeStamps.dpt + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && gNavData.dpt_m.valid;
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			sprintf(sentence, "$INDPT,%.1f,0.0", gNavData.dpt_m.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.dpt = millis();
@@ -740,16 +740,16 @@ void DataBridge::EncodeDPT(NavigationData *micronetData)
 
 void DataBridge::EncodeMTW(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if (SEATEMP_SOURCE_LINK == LINK_MICRONET)
 	{
+		bool update;
+
 		update = (gNavData.stp_degc.timeStamp > (nmeaTimeStamps.mtw + NMEA_SENTENCE_MIN_PERIOD_MS));
 		update = update && gNavData.stp_degc.valid;
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			sprintf(sentence, "$INMTW,%.1f,C", gNavData.stp_degc.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.mtw = millis();
@@ -760,17 +760,17 @@ void DataBridge::EncodeMTW(NavigationData *micronetData)
 
 void DataBridge::EncodeVLW(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if (SPEED_SOURCE_LINK == LINK_MICRONET)
 	{
+		bool update;
+
 		update = (gNavData.log_nm.timeStamp > nmeaTimeStamps.vlw + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (gNavData.trip_nm.timeStamp > nmeaTimeStamps.vlw + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (gNavData.log_nm.valid && gNavData.trip_nm.valid);
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			sprintf(sentence, "$INVLW,%.1f,N,%.1f,N", gNavData.log_nm.value, gNavData.trip_nm.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.vlw = millis();
@@ -781,17 +781,17 @@ void DataBridge::EncodeVLW(NavigationData *micronetData)
 
 void DataBridge::EncodeVHW(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if (SPEED_SOURCE_LINK == LINK_MICRONET)
 	{
+		bool update;
+
 		update = (gNavData.spd_kt.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update || (gNavData.hdg_deg.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (gNavData.spd_kt.valid || gNavData.hdg_deg.valid);
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			if ((gNavData.hdg_deg.valid) && (gNavData.spd_kt.valid))
 			{
 				sprintf(sentence, "$INVHW,,T,%.0f,M,%.2f,N,,K", gNavData.hdg_deg.value, gNavData.spd_kt.value);
@@ -813,16 +813,16 @@ void DataBridge::EncodeVHW(NavigationData *micronetData)
 
 void DataBridge::EncodeHDG(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if ((COMPASS_SOURCE_LINK == LINK_MICRONET) || (COMPASS_SOURCE_LINK == LINK_COMPASS))
 	{
+		bool update;
+
 		update = (gNavData.hdg_deg.timeStamp > nmeaTimeStamps.hdg + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && gNavData.hdg_deg.valid;
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			sprintf(sentence, "$INHDG,%.0f,,,,", gNavData.hdg_deg.value + gConfiguration.headingOffset_deg);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.hdg = millis();
@@ -833,16 +833,16 @@ void DataBridge::EncodeHDG(NavigationData *micronetData)
 
 void DataBridge::EncodeXDR(NavigationData *micronetData)
 {
-	char sentence[NMEA_SENTENCE_MAX_LENGTH];
-	bool update;
-
 	if (VOLTAGE_SOURCE_LINK == LINK_MICRONET)
 	{
+		bool update;
+
 		update = (gNavData.vcc_v.timeStamp > nmeaTimeStamps.vcc + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && gNavData.vcc_v.valid;
 
 		if (update)
 		{
+			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			sprintf(sentence, "$INXDR,U,%.1f,V,BATTERY#0", gNavData.vcc_v.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.vcc = millis();

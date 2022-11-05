@@ -79,7 +79,7 @@ void MenuManager::PushChar(char c)
 	if ((c > 0x30) && (c <= 0x39))
 	{
 		int entry = c - 0x30;
-		if ((entry > 0) && (entry < menuLength))
+		if (entry < menuLength)
 		{
 			if (menu[entry].entryCallback != nullptr)
 			{
