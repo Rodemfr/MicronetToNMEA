@@ -114,12 +114,13 @@
 
 // Navigation softwares can send a wrong RMB sentence and invert "FROM" and "TO" fields
 // If you see your Micronet display showing the "FROM" waypoint name instead of the "TO"
-// on the DTW & BTW pages, then change the following configuration key to/from 1/0
+// on the DTW & BTW pages, then change the following configuration key to 1
 #define INVERTED_RMB_WORKAROUND 0
 
-// In case your displays would have difficulties to receive data from the Tacktick with a
-// good signal/noise ratio, you can ask MicronetToNMEA to repeat the value on the network
-// by setting MICRONET_WIND_REPEATER to 1. Set it to 0 else.
+// In case your displays would have difficulties to receive data from the Tacktick wind
+// transducer because of a poor signal/noise ratio, you can ask MicronetToNMEA to repeat
+// the values of AWA & AWS on the network by setting MICRONET_WIND_REPEATER to 1. Set it
+// to 0 else.
 #define MICRONET_WIND_REPEATER 0
 
 /***************************************************************************/
