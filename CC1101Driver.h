@@ -168,6 +168,7 @@ private:
 	void Reset(void);
 	void SetStaticConfig(void);
 	void Calibrate(void);
+	byte SpiReadChipStatusByte();
 	byte SpiReadStatus(byte addr);
 	void SpiStrobe(byte strobe);
 	void SpiWriteReg(byte addr, byte value);

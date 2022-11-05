@@ -40,7 +40,7 @@
 #define XTAL_RESTART_TIME_US 150
 
 byte freqOffset868[2] =
-{ 65, 76 };
+{ 18, 26 };
 byte freqOffset915[2] =
 { 77, 79 };
 
@@ -168,6 +168,21 @@ void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
 	ChipDeselect();
 }
 
+byte CC1101Driver::SpiReadChipStatusByte()
+{
+	byte value;
+
+	ChipSelect();
+
+	while (digitalRead(MISO_PIN))
+		;
+	value = SPI.transfer(CC1101_SNOP);
+
+	ChipDeselect();
+
+	return value;
+}
+
 byte CC1101Driver::SpiReadStatus(byte addr)
 {
 	byte value, temp;
@@ -233,7 +248,8 @@ void CC1101Driver::Calibrate(void)
 {
 	if (rfFreq_mHz >= 779 && rfFreq_mHz <= 899.99)
 	{
-		currentOffset = map(rfFreq_mHz, 779, 899, freqOffset868[0], freqOffset868[1]);
+//		currentOffset = map(rfFreq_mHz, 779, 899, freqOffset868[0], freqOffset868[1]);
+		currentOffset = 0;
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		if (rfFreq_mHz < 861)
 		{
@@ -246,7 +262,8 @@ void CC1101Driver::Calibrate(void)
 	}
 	else if (rfFreq_mHz >= 900 && rfFreq_mHz <= 928)
 	{
-		currentOffset = map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]);
+//		currentOffset = map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]);
+		currentOffset = 0;
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		SpiWriteReg(CC1101_TEST0, 0x09);
 	}
