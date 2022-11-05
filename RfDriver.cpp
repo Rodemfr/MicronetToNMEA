@@ -109,7 +109,7 @@ void RfDriver::GDO0TXCallback()
 			bytesToLoad = CC1101_FIFO_MAX_SIZE - bytesInFifo;
 		}
 
-		cc1101Driver.WriteTxFifo(&transmitList[nextTransmitIndex].data[messageBytesSent], bytesToLoad);
+		cc1101Driver.WriteArrayTxFifo(&transmitList[nextTransmitIndex].data[messageBytesSent], bytesToLoad);
 		messageBytesSent += bytesToLoad;
 
 		if (messageBytesSent >= transmitList[nextTransmitIndex].len)
@@ -405,7 +405,7 @@ void RfDriver::TransmitCallback()
 		cc1101Driver.SetTx();
 
 		// Fill FIFO with rest of preamble and sync byte
-		cc1101Driver.WriteTxFifo(static_cast<const uint8_t*>(preambleAndSync), sizeof(preambleAndSync));
+		cc1101Driver.WriteArrayTxFifo(static_cast<const uint8_t*>(preambleAndSync), sizeof(preambleAndSync));
 
 		messageBytesSent = 0;
 	}

@@ -114,7 +114,7 @@ void CC1101Driver::SpiWriteReg(byte addr, byte value)
 	ChipDeselect();
 }
 
-void CC1101Driver::SpiWriteBurstReg(byte addr, byte *buffer, byte num)
+void CC1101Driver::SpiWriteBurstReg(byte addr, byte const *buffer, byte num)
 {
 	ChipSelect();
 
@@ -302,7 +302,7 @@ void CC1101Driver::WriteTxFifo(uint8_t data)
 	SpiWriteReg(CC1101_TXFIFO, data);
 }
 
-void CC1101Driver::WriteTxFifo(uint8_t *buffer, int nbBytes)
+void CC1101Driver::WriteArrayTxFifo(uint8_t const *buffer, int nbBytes)
 {
 	SpiWriteBurstReg(CC1101_TXFIFO, buffer, nbBytes);
 }
