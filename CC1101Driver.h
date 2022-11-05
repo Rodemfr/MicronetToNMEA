@@ -147,7 +147,7 @@ public:
 	int GetTxFifoLevel();
 	void ReadRxFifo(uint8_t *buffer, int nbBytes);
 	void WriteTxFifo(uint8_t data);
-	void WriteTxFifo(uint8_t *buffer, int nbBytes);
+	void WriteArrayTxFifo(uint8_t const *buffer, int nbBytes);
 	void IrqOnTxFifoUnderflow();
 	void IrqOnTxFifoThreshold();
 	void IrqOnRxFifoThreshold();
@@ -171,7 +171,7 @@ private:
 	byte SpiReadStatus(byte addr);
 	void SpiStrobe(byte strobe);
 	void SpiWriteReg(byte addr, byte value);
-	void SpiWriteBurstReg(byte addr, byte *buffer, byte num);
+	void SpiWriteBurstReg(byte addr, byte const *buffer, byte num);
 	byte SpiReadReg(byte addr);
 	void SpiReadBurstReg(byte addr, byte *buffer, byte num);
 	void ChipSelect();
