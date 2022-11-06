@@ -32,6 +32,7 @@
 
 #include "BoardConfig.h"
 #include "Version.h"
+#include "Micronet.h"
 #include "MicronetMessageFifo.h"
 #include "MenuManager.h"
 #include "Configuration.h"
@@ -999,6 +1000,7 @@ void MenuTestRfQuality()
 	float strength;
 	TxSlotDesc_t txSlot;
 	MicronetMessage_t txMessage;
+	uint32_t receivedDid[MICRONET_MAX_DEVICES_PER_NETWORK];
 
 	CONSOLE.println("Starting RF signal quality test.");
 	CONSOLE.println("Press ESC key at any time to stop testing and come back to menu.");
@@ -1022,79 +1024,100 @@ void MenuTestRfQuality()
 					txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
 					txMessage.startTime_us = txSlot.start_us;
 					gRfReceiver.Transmit(&txMessage);
-				}
-				PrintInt(gMicronetCodec.GetDeviceId(message));
-				CONSOLE.print(" Strength=");
-				strength = gMicronetCodec.CalculateSignalFloatStrength(message);
-				CONSOLE.print(strength);
-				CONSOLE.print(" (");
-				if (strength < 1.0)
-				{
-					CONSOLE.print("Very low");
-				}
-				else if (strength < 2.5)
-				{
-					CONSOLE.print("Low");
-				}
-				else if (strength < 5.0)
-				{
-					CONSOLE.print("Medium");
-				}
-				else if (strength < 7.0)
-				{
-					CONSOLE.print("Good");
-				}
-				else if (strength < 9.0)
-				{
-					CONSOLE.print("Very Good");
-				}
-				else
-				{
-					CONSOLE.print("Excellent");
+					memset(receivedDid, 0, sizeof(receivedDid));
 				}
 
-				CONSOLE.print(") ");
-				switch (gMicronetCodec.GetDeviceType(message))
+				bool alreadyReceived = false;
+				for (int i = 0; i < MICRONET_MAX_DEVICES_PER_NETWORK; i++)
 				{
-				case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
-					CONSOLE.print("Hull Transmitter");
-					break;
-				case MICRONET_DEVICE_TYPE_WIND_TRANSDUCER:
-					CONSOLE.print("Wind Transducer");
-					break;
-				case MICRONET_DEVICE_TYPE_NMEA_CONVERTER:
-					CONSOLE.print("NMEA Converter");
-					break;
-				case MICRONET_DEVICE_TYPE_MAST_ROTATION:
-					CONSOLE.print("Mast Rotation Sensor");
-					break;
-				case MICRONET_DEVICE_TYPE_MOB:
-					CONSOLE.print("MOB");
-					break;
-				case MICRONET_DEVICE_TYPE_SDPOD:
-					CONSOLE.print("SDPOD");
-					break;
-				case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
-					CONSOLE.print("Dual Display");
-					break;
-				case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
-					CONSOLE.print("Analog Wind Display");
-					break;
-				case MICRONET_DEVICE_TYPE_DUAL_MAXI_DISPLAY:
-					CONSOLE.print("Dual Maxi Display");
-					break;
-				case MICRONET_DEVICE_TYPE_REMOTE_DISPLAY:
-					CONSOLE.print("Remote Display");
-					break;
-				default:
-					CONSOLE.print("Unknown device");
-					break;
+					uint32_t did = gMicronetCodec.GetDeviceId(message);
+					if (receivedDid[i] == did)
+					{
+						alreadyReceived = true;
+						break;
+					}
+					else if (receivedDid[i] == 0)
+					{
+						receivedDid[i] = did;
+						break;
+					}
 				}
-				if (networkMap.masterDevice == gMicronetCodec.GetDeviceId(message))
+
+				if (!alreadyReceived)
 				{
-					CONSOLE.print(", MASTER");
+					PrintInt(gMicronetCodec.GetDeviceId(message));
+					CONSOLE.print(" Strength=");
+					strength = gMicronetCodec.CalculateSignalFloatStrength(message);
+					CONSOLE.print(strength);
+					CONSOLE.print(" (");
+					if (strength < 1.0)
+					{
+						CONSOLE.print("Very low");
+					}
+					else if (strength < 2.5)
+					{
+						CONSOLE.print("Low");
+					}
+					else if (strength < 5.0)
+					{
+						CONSOLE.print("Medium");
+					}
+					else if (strength < 7.0)
+					{
+						CONSOLE.print("Good");
+					}
+					else if (strength < 9.0)
+					{
+						CONSOLE.print("Very Good");
+					}
+					else
+					{
+						CONSOLE.print("Excellent");
+					}
+
+					CONSOLE.print(") ");
+					switch (gMicronetCodec.GetDeviceType(message))
+					{
+					case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
+						CONSOLE.print("Hull Transmitter");
+						break;
+					case MICRONET_DEVICE_TYPE_WIND_TRANSDUCER:
+						CONSOLE.print("Wind Transducer");
+						break;
+					case MICRONET_DEVICE_TYPE_NMEA_CONVERTER:
+						CONSOLE.print("NMEA Converter");
+						break;
+					case MICRONET_DEVICE_TYPE_MAST_ROTATION:
+						CONSOLE.print("Mast Rotation Sensor");
+						break;
+					case MICRONET_DEVICE_TYPE_MOB:
+						CONSOLE.print("MOB");
+						break;
+					case MICRONET_DEVICE_TYPE_SDPOD:
+						CONSOLE.print("SDPOD");
+						break;
+					case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
+						CONSOLE.print("Dual Display");
+						break;
+					case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
+						CONSOLE.print("Analog Wind Display");
+						break;
+					case MICRONET_DEVICE_TYPE_DUAL_MAXI_DISPLAY:
+						CONSOLE.print("Dual Maxi Display");
+						break;
+					case MICRONET_DEVICE_TYPE_REMOTE_DISPLAY:
+						CONSOLE.print("Remote Display");
+						break;
+					default:
+						CONSOLE.print("Unknown device");
+						break;
+					}
+					if (networkMap.masterDevice == gMicronetCodec.GetDeviceId(message))
+					{
+						CONSOLE.print(", MASTER");
+					}
+					CONSOLE.println("");
 				}
-				CONSOLE.println("");
 			}
 			gRxMessageFifo.DeleteMessage();
 		}
