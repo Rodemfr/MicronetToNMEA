@@ -56,7 +56,8 @@
 #define TEMP_OUT_L_M      0x32
 
 LSM303DLHCDriver::LSM303DLHCDriver() :
-		accAddr(LSM303DLHC_ACC_ADDR), magAddr(LSM303DLHC_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0), LSB_per_Gauss_XY(1100.0f), LSB_per_Gauss_Z(980.0f), mGal_per_LSB(1.0f)
+		accAddr(LSM303DLHC_ACC_ADDR), magAddr(LSM303DLHC_MAG_ADDR), magX(0), magY(0), magZ(0), accX(0), accY(0), accZ(0), LSB_per_Gauss_XY(1100.0f), LSB_per_Gauss_Z(
+				980.0f), mGal_per_LSB(1.0f)
 {
 }
 
@@ -66,7 +67,11 @@ LSM303DLHCDriver::~LSM303DLHCDriver()
 
 bool LSM303DLHCDriver::Init()
 {
-	uint8_t ira, irb, irc, sr, whoami;
+	uint8_t ira = 0;
+	uint8_t irb = 0;
+	uint8_t irc = 0;
+	uint8_t sr = 0;
+	uint8_t whoami = 0;
 
 	NAVCOMPASS_I2C.begin();
 
@@ -132,7 +137,7 @@ void LSM303DLHCDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 void LSM303DLHCDriver::GetAcceleration(float *accX, float *accY, float *accZ)
 {
 	int16_t ax, ay, az;
-	uint8_t regValue;
+	uint8_t regValue = 0;
 
 	I2CRead(accAddr, OUT_X_H_A, &regValue);
 	ax = regValue;
