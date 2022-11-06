@@ -39,11 +39,6 @@
 // Minimum time in microseconds for CC1101 to restart its XTAL when exting power-down mode
 #define XTAL_RESTART_TIME_US 150
 
-byte freqOffset868[2] =
-{ 65, 76 };
-byte freqOffset915[2] =
-{ 77, 79 };
-
 uint8_t PA_TABLE[8]
 { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
@@ -168,6 +163,21 @@ void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
 	ChipDeselect();
 }
 
+byte CC1101Driver::SpiReadChipStatusByte()
+{
+	byte value;
+
+	ChipSelect();
+
+	while (digitalRead(MISO_PIN))
+		;
+	value = SPI.transfer(CC1101_SNOP);
+
+	ChipDeselect();
+
+	return value;
+}
+
 byte CC1101Driver::SpiReadStatus(byte addr)
 {
 	byte value, temp;
@@ -231,9 +241,9 @@ void CC1101Driver::SetFrequency(float freq_mhz)
 
 void CC1101Driver::Calibrate(void)
 {
+	currentOffset = 0;
 	if (rfFreq_mHz >= 779 && rfFreq_mHz <= 899.99)
 	{
-		currentOffset = map(rfFreq_mHz, 779, 899, freqOffset868[0], freqOffset868[1]);
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		if (rfFreq_mHz < 861)
 		{
@@ -246,10 +256,13 @@ void CC1101Driver::Calibrate(void)
 	}
 	else if (rfFreq_mHz >= 900 && rfFreq_mHz <= 928)
 	{
-		currentOffset = map(rfFreq_mHz, 900, 928, freqOffset915[0], freqOffset915[1]);
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 		SpiWriteReg(CC1101_TEST0, 0x09);
 	}
+	// Trigger calibration
+	SpiStrobe(CC1101_SCAL);
+	while ((SpiReadChipStatusByte() & 0x40) != 0)
+		;
 }
 
 bool CC1101Driver::IsConnected(void)
@@ -488,6 +501,9 @@ void CC1101Driver::ActivePower()
 		if (micros() < timeRef)
 			break;
 	}
+
+	// Trigger PLL calibration
+	SpiStrobe(CC1101_SCAL);
 }
 
 int CC1101Driver::GetRssi(void)
@@ -535,7 +551,7 @@ void CC1101Driver::SetStaticConfig(void)
 	SpiWriteReg(CC1101_CHANNR, 0x00);
 	SpiWriteReg(CC1101_DEVIATN, 0x47);
 	SpiWriteReg(CC1101_FREND1, 0x56);
-	SpiWriteReg(CC1101_MCSM0, 0x18);
+	SpiWriteReg(CC1101_MCSM0, 0x08);
 	SpiWriteReg(CC1101_FOCCFG, 0x16);
 	SpiWriteReg(CC1101_BSCFG, 0x1C);
 	SpiWriteReg(CC1101_AGCCTRL2, 0xC7);
@@ -587,33 +603,22 @@ void CC1101Driver::UpdateFreqOffset()
 	// Only calculate new offset when averaging array is full
 	if (freqEstArrayIndex >= FREQ_ESTIMATION_ARRAY_SIZE)
 	{
-		int32_t accFreqEst = 0;
+		int32_t avgFreqEst = 0;
 		freqEstArrayIndex = 0;
-		// Calculate accumulated frequency offset
+		// Calculate average frequency offset
 		for (int i = 0; i < FREQ_ESTIMATION_ARRAY_SIZE; i++)
 		{
-			accFreqEst += freqEstArray[i];
+			avgFreqEst += freqEstArray[i];
 		}
-		// Limit offset change rate to 1
-		if (accFreqEst > (FREQ_ESTIMATION_ARRAY_SIZE / 2))
-		{
-			accFreqEst = 1;
-		}
-		else if (accFreqEst < (-FREQ_ESTIMATION_ARRAY_SIZE / 2))
-		{
-			accFreqEst = -1;
-		}
-		else
-		{
-			accFreqEst = 0;
-		}
-		// Update offset
-		int32_t newFreqOff = accFreqEst + currentOffset;
-		// Clip value on 8 bit
+		avgFreqEst /= FREQ_ESTIMATION_ARRAY_SIZE;
+
+		// Clip value to 8 bit
+		int32_t newFreqOff = currentOffset + avgFreqEst;
 		if (newFreqOff >= 127)
 			newFreqOff = 127;
 		if (newFreqOff <= -128)
 			newFreqOff = -128;
+		// Update offset
 		currentOffset = newFreqOff;
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 	}
