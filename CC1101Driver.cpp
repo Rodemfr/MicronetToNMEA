@@ -502,10 +502,8 @@ void CC1101Driver::ActivePower()
 			break;
 	}
 
-	// Trigger calibration
+	// Trigger PLL calibration
 	SpiStrobe(CC1101_SCAL);
-	while ((SpiReadChipStatusByte() & 0x40) != 0)
-		;
 }
 
 int CC1101Driver::GetRssi(void)
@@ -605,33 +603,22 @@ void CC1101Driver::UpdateFreqOffset()
 	// Only calculate new offset when averaging array is full
 	if (freqEstArrayIndex >= FREQ_ESTIMATION_ARRAY_SIZE)
 	{
-		int32_t accFreqEst = 0;
+		int32_t avgFreqEst = 0;
 		freqEstArrayIndex = 0;
-		// Calculate accumulated frequency offset
+		// Calculate average frequency offset
 		for (int i = 0; i < FREQ_ESTIMATION_ARRAY_SIZE; i++)
 		{
-			accFreqEst += freqEstArray[i];
+			avgFreqEst += freqEstArray[i];
 		}
-		// Limit offset change rate to 1
-		if (accFreqEst > (FREQ_ESTIMATION_ARRAY_SIZE / 2))
-		{
-			accFreqEst = 1;
-		}
-		else if (accFreqEst < (-FREQ_ESTIMATION_ARRAY_SIZE / 2))
-		{
-			accFreqEst = -1;
-		}
-		else
-		{
-			accFreqEst = 0;
-		}
-		// Update offset
-		int32_t newFreqOff = accFreqEst + currentOffset;
-		// Clip value on 8 bit
+		avgFreqEst /= FREQ_ESTIMATION_ARRAY_SIZE;
+
+		// Clip value to 8 bit
+		int32_t newFreqOff = currentOffset + avgFreqEst;
 		if (newFreqOff >= 127)
 			newFreqOff = 127;
 		if (newFreqOff <= -128)
 			newFreqOff = -128;
+		// Update offset
 		currentOffset = newFreqOff;
 		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
 	}

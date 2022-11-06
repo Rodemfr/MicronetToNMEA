@@ -95,6 +95,7 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	{
 		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 		{
+			// If we reach this point, it means we have found our network
 			networkStatus = NETWORK_STATUS_FOUND;
 			lastNetworkMessage_us = message->startTime_us;
 			firstSlot = message->endTime_us;
