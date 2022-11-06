@@ -27,98 +27,67 @@
 #ifndef CC1101DRIVER_H_
 #define CC1101DRIVER_H_
 
+/***************************************************************************/
+/*                              Includes                                   */
+/***************************************************************************/
+
 #include <Arduino.h>
 #include <SPI.h>
 
+/***************************************************************************/
+/*                              Constants                                  */
+/***************************************************************************/
+
+/* Number of samples that will be used to evaluate the frequency deviation
+ * between MicronetToNMEA and Micronet's master device
+ * A value of 32 means that frequency deviation will be averaged on 32 seconds
+ * before applying a correction */
 #define FREQ_ESTIMATION_ARRAY_SIZE 32
 
-#define CC1101_IOCFG2       0x00        // GDO2 output pin configuration
-#define CC1101_IOCFG1       0x01        // GDO1 output pin configuration
-#define CC1101_IOCFG0       0x02        // GDO0 output pin configuration
-#define CC1101_FIFOTHR      0x03        // RX FIFO and TX FIFO thresholds
-#define CC1101_SYNC1        0x04        // Sync word, high INT8U
-#define CC1101_SYNC0        0x05        // Sync word, low INT8U
-#define CC1101_PKTLEN       0x06        // Packet length
-#define CC1101_PKTCTRL1     0x07        // Packet automation control
-#define CC1101_PKTCTRL0     0x08        // Packet automation control
-#define CC1101_ADDR         0x09        // Device address
-#define CC1101_CHANNR       0x0A        // Channel number
-#define CC1101_FSCTRL1      0x0B        // Frequency synthesizer control
-#define CC1101_FSCTRL0      0x0C        // Frequency synthesizer control
-#define CC1101_FREQ2        0x0D        // Frequency control word, high INT8U
-#define CC1101_FREQ1        0x0E        // Frequency control word, middle INT8U
-#define CC1101_FREQ0        0x0F        // Frequency control word, low INT8U
-#define CC1101_MDMCFG4      0x10        // Modem configuration
-#define CC1101_MDMCFG3      0x11        // Modem configuration
-#define CC1101_MDMCFG2      0x12        // Modem configuration
-#define CC1101_MDMCFG1      0x13        // Modem configuration
-#define CC1101_MDMCFG0      0x14        // Modem configuration
-#define CC1101_DEVIATN      0x15        // Modem deviation setting
-#define CC1101_MCSM2        0x16        // Main Radio Control State Machine configuration
-#define CC1101_MCSM1        0x17        // Main Radio Control State Machine configuration
-#define CC1101_MCSM0        0x18        // Main Radio Control State Machine configuration
-#define CC1101_FOCCFG       0x19        // Frequency Offset Compensation configuration
-#define CC1101_BSCFG        0x1A        // Bit Synchronization configuration
-#define CC1101_AGCCTRL2     0x1B        // AGC control
-#define CC1101_AGCCTRL1     0x1C        // AGC control
-#define CC1101_AGCCTRL0     0x1D        // AGC control
-#define CC1101_WOREVT1      0x1E        // High INT8U Event 0 timeout
-#define CC1101_WOREVT0      0x1F        // Low INT8U Event 0 timeout
-#define CC1101_WORCTRL      0x20        // Wake On Radio control
-#define CC1101_FREND1       0x21        // Front end RX configuration
-#define CC1101_FREND0       0x22        // Front end TX configuration
-#define CC1101_FSCAL3       0x23        // Frequency synthesizer calibration
-#define CC1101_FSCAL2       0x24        // Frequency synthesizer calibration
-#define CC1101_FSCAL1       0x25        // Frequency synthesizer calibration
-#define CC1101_FSCAL0       0x26        // Frequency synthesizer calibration
-#define CC1101_RCCTRL1      0x27        // RC oscillator configuration
-#define CC1101_RCCTRL0      0x28        // RC oscillator configuration
-#define CC1101_FSTEST       0x29        // Frequency synthesizer calibration control
-#define CC1101_PTEST        0x2A        // Production test
-#define CC1101_AGCTEST      0x2B        // AGC test
-#define CC1101_TEST2        0x2C        // Various test settings
-#define CC1101_TEST1        0x2D        // Various test settings
-#define CC1101_TEST0        0x2E        // Various test settings
-
-//CC1101 Strobe commands
-#define CC1101_SRES         0x30        // Reset chip.
-#define CC1101_SFSTXON      0x31        // Enable and calibrate frequency synthesizer (if MCSM0.FS_AUTOCAL=1).
-#define CC1101_SXOFF        0x32        // Turn off crystal oscillator.
-#define CC1101_SCAL         0x33        // Calibrate frequency synthesizer and turn it off
-#define CC1101_SRX          0x34        // Enable RX. Perform calibration first if coming from IDLE and
-#define CC1101_STX          0x35        // In IDLE state: Enable TX. Perform calibration first if
-#define CC1101_SIDLE        0x36        // Exit RX / TX, turn off frequency synthesizer and exit
-#define CC1101_SAFC         0x37        // Perform AFC adjustment of the frequency synthesizer
-#define CC1101_SWOR         0x38        // Start automatic RX polling sequence (Wake-on-Radio)
-#define CC1101_SPWD         0x39        // Enter power down mode when CSn goes high.
-#define CC1101_SFRX         0x3A        // Flush the RX FIFO buffer.
-#define CC1101_SFTX         0x3B        // Flush the TX FIFO buffer.
-#define CC1101_SWORRST      0x3C        // Reset real time clock.
-#define CC1101_SNOP         0x3D        // No operation. May be used to pad strobe commands to two
-
-//CC1101 STATUS REGISTER
-#define CC1101_PARTNUM      0x30
-#define CC1101_VERSION      0x31
-#define CC1101_FREQEST      0x32
-#define CC1101_LQI          0x33
-#define CC1101_RSSI         0x34
-#define CC1101_MARCSTATE    0x35
-#define CC1101_WORTIME1     0x36
-#define CC1101_WORTIME0     0x37
-#define CC1101_PKTSTATUS    0x38
-#define CC1101_VCO_VC_DAC   0x39
-#define CC1101_TXBYTES      0x3A
-#define CC1101_RXBYTES      0x3B
-
-//CC1101 PATABLE,TXFIFO,RXFIFO
-#define CC1101_PATABLE      0x3E
-#define CC1101_TXFIFO       0x3F
-#define CC1101_RXFIFO       0x3F
-
+// CC1101 Constants to define RX FIFO thresholds
+#define CC1101_RXFIFOTHR_4  0x00
+#define CC1101_RXFIFOTHR_8  0x01
+#define CC1101_RXFIFOTHR_12 0x02
 #define CC1101_RXFIFOTHR_16 0x03
-#define CC1101_TXFIFOTHR_9  0x0D
+#define CC1101_RXFIFOTHR_20 0x04
+#define CC1101_RXFIFOTHR_24 0x05
+#define CC1101_RXFIFOTHR_28 0x06
+#define CC1101_RXFIFOTHR_32 0x07
+#define CC1101_RXFIFOTHR_36 0x08
+#define CC1101_RXFIFOTHR_40 0x09
+#define CC1101_RXFIFOTHR_44 0x0a
+#define CC1101_RXFIFOTHR_48 0x0b
+#define CC1101_RXFIFOTHR_52 0x0c
+#define CC1101_RXFIFOTHR_56 0x0d
+#define CC1101_RXFIFOTHR_60 0x0e
+#define CC1101_RXFIFOTHR_64 0x0f
 
-//************************************* class **************************************************//
+// CC1101 Constants to define TX FIFO thresholds
+#define CC1101_TXFIFOTHR_61 0x00
+#define CC1101_TXFIFOTHR_57 0x01
+#define CC1101_TXFIFOTHR_53 0x02
+#define CC1101_TXFIFOTHR_49 0x03
+#define CC1101_TXFIFOTHR_45 0x04
+#define CC1101_TXFIFOTHR_41 0x05
+#define CC1101_TXFIFOTHR_37 0x06
+#define CC1101_TXFIFOTHR_33 0x07
+#define CC1101_TXFIFOTHR_29 0x08
+#define CC1101_TXFIFOTHR_25 0x09
+#define CC1101_TXFIFOTHR_21 0x0a
+#define CC1101_TXFIFOTHR_17 0x0b
+#define CC1101_TXFIFOTHR_13 0x0c
+#define CC1101_TXFIFOTHR_9  0x0d
+#define CC1101_TXFIFOTHR_5  0x0e
+#define CC1101_TXFIFOTHR_1  0x0f
+
+/***************************************************************************/
+/*                                Types                                    */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                               Classes                                   */
+/***************************************************************************/
+
 class CC1101Driver
 {
 public:
@@ -134,15 +103,15 @@ public:
 	void SetTx(void);
 	void SetRx(void);
 	int GetRssi(void);
-	byte GetLqi(void);
+	uint8_t GetLqi(void);
 	void SetSidle(void);
 	void LowPower();
 	void ActivePower();
 	bool IsConnected(void);
-	void SetSyncWord(byte sh, byte sl);
+	void SetSyncWord(uint8_t sh, uint8_t sl);
 	void SetPQT(uint8_t pqt);
-	void SetLengthConfig(byte v);
-	void SetPacketLength(byte v);
+	void SetLengthConfig(uint8_t v);
+	void SetPacketLength(uint8_t v);
 	int GetRxFifoLevel();
 	int GetTxFifoLevel();
 	void ReadRxFifo(uint8_t *buffer, int nbBytes);
@@ -162,19 +131,19 @@ private:
 	uint32_t lastCSHigh;
 	int freqEstArrayIndex;
 	int8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
-	bool freqEstArrayFilled;
-	int8_t currentOffset;
+	int8_t currentFreqOff;
+	static const uint8_t PA_TABLE[8];
 
 	void Reset(void);
-	void SetStaticConfig(void);
+	void SetBaseConfiguration(void);
 	void Calibrate(void);
-	byte SpiReadChipStatusByte();
-	byte SpiReadStatus(byte addr);
-	void SpiStrobe(byte strobe);
-	void SpiWriteReg(byte addr, byte value);
-	void SpiWriteBurstReg(byte addr, byte const *buffer, byte num);
-	byte SpiReadReg(byte addr);
-	void SpiReadBurstReg(byte addr, byte *buffer, byte num);
+	uint8_t SpiReadChipStatusByte();
+	uint8_t SpiReadStatus(uint8_t addr);
+	void SpiStrobe(uint8_t strobe);
+	void SpiWriteReg(uint8_t addr, uint8_t value);
+	void SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t num);
+	uint8_t SpiReadReg(uint8_t addr);
+	void SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t num);
 	void ChipSelect();
 	void ChipDeselect();
 };

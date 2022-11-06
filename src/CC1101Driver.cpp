@@ -24,57 +24,192 @@
  ***************************************************************************
  */
 
+/***************************************************************************/
+/*                              Includes                                   */
+/***************************************************************************/
+
 #include "CC1101Driver.h"
 #include "BoardConfig.h"
 
 #include <SPI.h>
 #include <Arduino.h>
 
-#define WRITE_BURST     0x40
-#define READ_SINGLE     0x80
-#define READ_BURST      0xC0
+/***************************************************************************/
+/*                              Constants                                  */
+/***************************************************************************/
+
+// CC1101 Standard registers
+#define CC1101_IOCFG2       0x00        // GDO2 output pin configuration
+#define CC1101_IOCFG1       0x01        // GDO1 output pin configuration
+#define CC1101_IOCFG0       0x02        // GDO0 output pin configuration
+#define CC1101_FIFOTHR      0x03        // RX FIFO and TX FIFO thresholds
+#define CC1101_SYNC1        0x04        // Sync word, high INT8U
+#define CC1101_SYNC0        0x05        // Sync word, low INT8U
+#define CC1101_PKTLEN       0x06        // Packet length
+#define CC1101_PKTCTRL1     0x07        // Packet automation control
+#define CC1101_PKTCTRL0     0x08        // Packet automation control
+#define CC1101_ADDR         0x09        // Device address
+#define CC1101_CHANNR       0x0A        // Channel number
+#define CC1101_FSCTRL1      0x0B        // Frequency synthesizer control
+#define CC1101_FSCTRL0      0x0C        // Frequency synthesizer control
+#define CC1101_FREQ2        0x0D        // Frequency control word, high INT8U
+#define CC1101_FREQ1        0x0E        // Frequency control word, middle INT8U
+#define CC1101_FREQ0        0x0F        // Frequency control word, low INT8U
+#define CC1101_MDMCFG4      0x10        // Modem configuration
+#define CC1101_MDMCFG3      0x11        // Modem configuration
+#define CC1101_MDMCFG2      0x12        // Modem configuration
+#define CC1101_MDMCFG1      0x13        // Modem configuration
+#define CC1101_MDMCFG0      0x14        // Modem configuration
+#define CC1101_DEVIATN      0x15        // Modem deviation setting
+#define CC1101_MCSM2        0x16        // Main Radio Control State Machine configuration
+#define CC1101_MCSM1        0x17        // Main Radio Control State Machine configuration
+#define CC1101_MCSM0        0x18        // Main Radio Control State Machine configuration
+#define CC1101_FOCCFG       0x19        // Frequency Offset Compensation configuration
+#define CC1101_BSCFG        0x1A        // Bit Synchronization configuration
+#define CC1101_AGCCTRL2     0x1B        // AGC control
+#define CC1101_AGCCTRL1     0x1C        // AGC control
+#define CC1101_AGCCTRL0     0x1D        // AGC control
+#define CC1101_WOREVT1      0x1E        // High INT8U Event 0 timeout
+#define CC1101_WOREVT0      0x1F        // Low INT8U Event 0 timeout
+#define CC1101_WORCTRL      0x20        // Wake On Radio control
+#define CC1101_FREND1       0x21        // Front end RX configuration
+#define CC1101_FREND0       0x22        // Front end TX configuration
+#define CC1101_FSCAL3       0x23        // Frequency synthesizer calibration
+#define CC1101_FSCAL2       0x24        // Frequency synthesizer calibration
+#define CC1101_FSCAL1       0x25        // Frequency synthesizer calibration
+#define CC1101_FSCAL0       0x26        // Frequency synthesizer calibration
+#define CC1101_RCCTRL1      0x27        // RC oscillator configuration
+#define CC1101_RCCTRL0      0x28        // RC oscillator configuration
+#define CC1101_FSTEST       0x29        // Frequency synthesizer calibration control
+#define CC1101_PTEST        0x2A        // Production test
+#define CC1101_AGCTEST      0x2B        // AGC test
+#define CC1101_TEST2        0x2C        // Various test settings
+#define CC1101_TEST1        0x2D        // Various test settings
+#define CC1101_TEST0        0x2E        // Various test settings
+
+// CC1101 Strobe commands
+#define CC1101_SRES         0x30        // Reset chip.
+#define CC1101_SFSTXON      0x31        // Enable and calibrate frequency synthesizer (if MCSM0.FS_AUTOCAL=1).
+#define CC1101_SXOFF        0x32        // Turn off crystal oscillator.
+#define CC1101_SCAL         0x33        // Calibrate frequency synthesizer and turn it off
+#define CC1101_SRX          0x34        // Enable RX. Perform calibration first if coming from IDLE and
+#define CC1101_STX          0x35        // In IDLE state: Enable TX. Perform calibration first if
+#define CC1101_SIDLE        0x36        // Exit RX / TX, turn off frequency synthesizer and exit
+#define CC1101_SAFC         0x37        // Perform AFC adjustment of the frequency synthesizer
+#define CC1101_SWOR         0x38        // Start automatic RX polling sequence (Wake-on-Radio)
+#define CC1101_SPWD         0x39        // Enter power down mode when CSn goes high.
+#define CC1101_SFRX         0x3A        // Flush the RX FIFO buffer.
+#define CC1101_SFTX         0x3B        // Flush the TX FIFO buffer.
+#define CC1101_SWORRST      0x3C        // Reset real time clock.
+#define CC1101_SNOP         0x3D        // No operation. May be used to pad strobe commands to two
+
+// CC1101 Status registers
+#define CC1101_PARTNUM      0x30
+#define CC1101_VERSION      0x31
+#define CC1101_FREQEST      0x32
+#define CC1101_LQI          0x33
+#define CC1101_RSSI         0x34
+#define CC1101_MARCSTATE    0x35
+#define CC1101_WORTIME1     0x36
+#define CC1101_WORTIME0     0x37
+#define CC1101_PKTSTATUS    0x38
+#define CC1101_VCO_VC_DAC   0x39
+#define CC1101_TXBYTES      0x3A
+#define CC1101_RXBYTES      0x3B
+
+// CC1101 Register arrays (PA table, RX & TX FIFOs)
+#define CC1101_PATABLE      0x3E
+#define CC1101_TXFIFO       0x3F
+#define CC1101_RXFIFO       0x3F
+
+// CC1101 SPI access flags
+#define WRITE_BURST 0x40
+#define READ_SINGLE 0x80
+#define READ_BURST  0xC0
 
 // Minimum delay in microseconds to enforce between two CS assertions
 #define DELAY_BETWEEN_CS_US 8
-// Minimum time in microseconds for CC1101 to restart its XTAL when exting power-down mode
+// Minimum time in microseconds for CC1101 to restart its XTAL when exiting power-down mode
 #define XTAL_RESTART_TIME_US 150
 
-uint8_t PA_TABLE[8]
+/***************************************************************************/
+/*                             Local types                                 */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                           Local prototypes                              */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
+
+const uint8_t CC1101Driver::PA_TABLE[8] =
 { 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
+/***************************************************************************/
+/*                              Functions                                  */
+/***************************************************************************/
+
+/*
+ * Constructor of CC1101Driver
+ * Initialize class attributes, SPI HW and pins
+ */
 CC1101Driver::CC1101Driver() :
-		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), lastCSHigh(0), freqEstArrayIndex(0), freqEstArrayFilled(
-				false), currentOffset(0)
+		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), lastCSHigh(0), freqEstArrayIndex(0), currentFreqOff(0)
 {
 	memset(freqEstArray, 0, sizeof(freqEstArray));
 
+	// Set SPI pins as per BoardConfig.h configuration
 	SPI.setMOSI(MOSI_PIN);
 	SPI.setMISO(MISO_PIN);
 	SPI.setSCK(SCK_PIN);
 	SPI.setCS(CS0_PIN);
 
+	// Set pins to the right configuration
 	pinMode(SCK_PIN, OUTPUT);
 	pinMode(MOSI_PIN, OUTPUT);
 	pinMode(MISO_PIN, INPUT);
 	pinMode(CS0_PIN, OUTPUT);
 	pinMode(GDO0_PIN, INPUT);
 
+	// Pins startup state
 	digitalWrite(CS0_PIN, HIGH);
 	digitalWrite(SCK_PIN, HIGH);
 	digitalWrite(MOSI_PIN, LOW);
 
+	// Start SPI driver
 	SPI.begin();
+	// In  the context of MicronetToNMEA, only CC1101 driver is using SPI, so we can
+	// transaction once for all here and end the transaction in the destructor
+	// In case CC1101 would share the SPI bus with other ICs, beginTransaction should
+	// be moved into each SPI access member to avoid race conditions.
 	SPI.beginTransaction(spiSettings);
 }
 
+/*
+ * Destructor of CC1101Driver
+ * Release SPI bus and reset pin config
+ */
 CC1101Driver::~CC1101Driver()
 {
 	SPI.endTransaction();
 	SPI.end();
+
+	// Set all pins to input mode
+	pinMode(SCK_PIN, INPUT);
+	pinMode(MOSI_PIN, INPUT);
+	pinMode(MISO_PIN, INPUT);
+	pinMode(CS0_PIN, INPUT);
+	pinMode(GDO0_PIN, INPUT);
 }
 
+/*
+ * Reset CC1101 IC
+ */
 void CC1101Driver::Reset(void)
 {
+	// Apply datasheet's procedure (§19.1.2)
 	ChipSelect();
 	delay(1);
 	ChipDeselect();
@@ -88,16 +223,27 @@ void CC1101Driver::Reset(void)
 	ChipDeselect();
 }
 
+/*
+ * Initialize CC1101
+ */
 void CC1101Driver::Init(void)
 {
+	// Set SPI pins initial state
 	digitalWrite(CS0_PIN, HIGH);
 	digitalWrite(SCK_PIN, HIGH);
 	digitalWrite(MOSI_PIN, LOW);
+	// Reset CC1101
 	Reset();
-	SetStaticConfig();
+	// Set base configuration
+	SetBaseConfiguration();
 }
 
-void CC1101Driver::SpiWriteReg(byte addr, byte value)
+/*
+ * Write one CC1101 register
+ *   IN addr -> register address
+ *   IN value -> value to be written
+ */
+void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value)
 {
 	ChipSelect();
 
@@ -109,7 +255,13 @@ void CC1101Driver::SpiWriteReg(byte addr, byte value)
 	ChipDeselect();
 }
 
-void CC1101Driver::SpiWriteBurstReg(byte addr, byte const *buffer, byte num)
+/*
+ * Write several consecutive CC1101 registers with a burst SPI access
+ *   IN addr -> address of the first register
+ *   IN buffer -> pointer to the array of bytes to be written
+ *   IN num -> number of bytes to be written
+ */
+void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t num)
 {
 	ChipSelect();
 
@@ -122,7 +274,11 @@ void CC1101Driver::SpiWriteBurstReg(byte addr, byte const *buffer, byte num)
 	ChipDeselect();
 }
 
-void CC1101Driver::SpiStrobe(byte strobe)
+/*
+ * Send a strobe command to CC1101
+ *   IN strobe -> strobe command byte
+ */
+void CC1101Driver::SpiStrobe(uint8_t strobe)
 {
 	ChipSelect();
 
@@ -133,25 +289,32 @@ void CC1101Driver::SpiStrobe(byte strobe)
 	ChipDeselect();
 }
 
-byte CC1101Driver::SpiReadReg(byte addr)
+/*
+ * Read one CC1101 register
+ *   IN addr -> register address
+ *   RETURN -> value of the register
+ */
+uint8_t CC1101Driver::SpiReadReg(uint8_t addr)
 {
-	byte temp, value;
-
-	temp = addr | READ_SINGLE;
-
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
-	SPI.transfer(temp);
-	value = SPI.transfer(0);
+	SPI.transfer(addr | READ_SINGLE);
+	uint8_t value = SPI.transfer(0);
 
 	ChipDeselect();
 
 	return value;
 }
 
-void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
+/*
+ * Read several consecutive CC1101 registers with a burst SPI access
+ *   IN addr -> address of the first register
+ *   OUT buffer -> pointer to the array of bytes where to store read data
+ *   IN num -> number of bytes to be read
+ */
+void CC1101Driver::SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t num)
 {
 	ChipSelect();
 
@@ -163,62 +326,69 @@ void CC1101Driver::SpiReadBurstReg(byte addr, byte *buffer, byte num)
 	ChipDeselect();
 }
 
-byte CC1101Driver::SpiReadChipStatusByte()
+/*
+ * Read CC1101 chip status byte
+ */
+uint8_t CC1101Driver::SpiReadChipStatusByte()
 {
-	byte value;
-
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
-	value = SPI.transfer(CC1101_SNOP);
+	uint8_t value = SPI.transfer(CC1101_SNOP);
 
 	ChipDeselect();
 
 	return value;
 }
 
-byte CC1101Driver::SpiReadStatus(byte addr)
+/*
+ * Read one CC1101 status register
+ *   IN addr -> register address
+ *   RETURN -> value of the register
+ */
+uint8_t CC1101Driver::SpiReadStatus(uint8_t addr)
 {
-	byte value, temp;
-
-	temp = addr | READ_BURST;
-
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
-	SPI.transfer(temp);
-	value = SPI.transfer(0);
+	SPI.transfer(addr | READ_BURST);
+	uint8_t value = SPI.transfer(0);
 
 	ChipDeselect();
 
 	return value;
 }
 
-void CC1101Driver::SetFrequency(float freq_mhz)
+/*
+ * Set the frequency of CC1101 down converter
+ *   IN frq_MHz -> Frequency in MHz
+ */
+void CC1101Driver::SetFrequency(float freq_Mhz)
 {
-	byte freq2 = 0;
-	byte freq1 = 0;
-	byte freq0 = 0;
+	uint8_t freq2 = 0;
+	uint8_t freq1 = 0;
+	uint8_t freq0 = 0;
 
-	rfFreq_mHz = freq_mhz;
+	rfFreq_mHz = freq_Mhz;
 
+	// TODO : rewrite with a faster algorithm
 	for (bool i = 0; i == 0;)
 	{
-		if (freq_mhz >= 26)
+		if (freq_Mhz >= 26)
 		{
-			freq_mhz -= 26;
+			freq_Mhz -= 26;
 			freq2 += 1;
 		}
-		else if (freq_mhz >= 0.1015625)
+		else if (freq_Mhz >= 0.1015625)
 		{
-			freq_mhz -= 0.1015625;
+			freq_Mhz -= 0.1015625;
 			freq1 += 1;
 		}
-		else if (freq_mhz >= 0.00039675)
+		else if (freq_Mhz >= 0.00039675)
 		{
-			freq_mhz -= 0.00039675;
+			freq_Mhz -= 0.00039675;
 			freq0 += 1;
 		}
 		else
@@ -228,6 +398,7 @@ void CC1101Driver::SetFrequency(float freq_mhz)
 	}
 	if (freq0 > 255)
 	{
+		// TODO : bug, freq1 can also overflow
 		freq1 += 1;
 		freq0 -= 256;
 	}
@@ -236,35 +407,32 @@ void CC1101Driver::SetFrequency(float freq_mhz)
 	SpiWriteReg(CC1101_FREQ1, freq1);
 	SpiWriteReg(CC1101_FREQ0, freq0);
 
+	// Launch PLL calibration
 	Calibrate();
 }
 
+/*
+ * Calibrate CC1101's PLL
+ */
 void CC1101Driver::Calibrate(void)
 {
-	currentOffset = 0;
-	if (rfFreq_mHz >= 779 && rfFreq_mHz <= 899.99)
-	{
-		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
-		if (rfFreq_mHz < 861)
-		{
-			SpiWriteReg(CC1101_TEST0, 0x0B);
-		}
-		else
-		{
-			SpiWriteReg(CC1101_TEST0, 0x09);
-		}
-	}
-	else if (rfFreq_mHz >= 900 && rfFreq_mHz <= 928)
-	{
-		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
-		SpiWriteReg(CC1101_TEST0, 0x09);
-	}
+	currentFreqOff = 0;
+
+	// We consider here that frequencies can not be others than the ones
+	// used by Micronet : 869.840 or 915.915 Mhz. Don't use this driver
+	// for other frequencies
+	SpiWriteReg(CC1101_TEST0, 0x09);
+	SpiWriteReg(CC1101_FSCTRL0, currentFreqOff);
 	// Trigger calibration
 	SpiStrobe(CC1101_SCAL);
+	// Wait for calibration to end. Can last 700-800us
 	while ((SpiReadChipStatusByte() & 0x40) != 0)
 		;
 }
 
+/*
+ * Checks if CC1101 is present on SPI bus
+ */
 bool CC1101Driver::IsConnected(void)
 {
 	if (SpiReadStatus(0x31) > 0)
@@ -273,12 +441,19 @@ bool CC1101Driver::IsConnected(void)
 		return 0;
 }
 
-void CC1101Driver::SetSyncWord(byte sh, byte sl)
+/*
+ * Set sync word of packet handler
+ */
+void CC1101Driver::SetSyncWord(uint8_t msb, uint8_t lsb)
 {
-	SpiWriteReg(CC1101_SYNC1, sh);
-	SpiWriteReg(CC1101_SYNC0, sl);
+	SpiWriteReg(CC1101_SYNC1, msb);
+	SpiWriteReg(CC1101_SYNC0, lsb);
 }
 
+/*
+ * Set Preamble Quality Threshold
+ *   IN pqt -> quality threshold
+ */
 void CC1101Driver::SetPQT(uint8_t pqt)
 {
 	SpiWriteReg(CC1101_PKTCTRL1, pqt << 5);
@@ -290,7 +465,7 @@ void CC1101Driver::SetLengthConfig(uint8_t config)
 	SpiWriteReg(CC1101_PKTCTRL0, PKTCTRL0 | config);
 }
 
-void CC1101Driver::SetPacketLength(byte v)
+void CC1101Driver::SetPacketLength(uint8_t v)
 {
 	SpiWriteReg(CC1101_PKTLEN, v);
 }
@@ -387,9 +562,9 @@ void CC1101Driver::SetBw(float bw_kHz)
 
 void CC1101Driver::SetRate(float br)
 {
-	byte m4DaRa;
+	uint8_t m4DaRa;
 	float c = br;
-	byte MDMCFG3 = 0;
+	uint8_t MDMCFG3 = 0;
 	if (c > 1621.83)
 	{
 		c = 1621.83;
@@ -521,14 +696,14 @@ int CC1101Driver::GetRssi(void)
 	return rssi;
 }
 
-byte CC1101Driver::GetLqi(void)
+uint8_t CC1101Driver::GetLqi(void)
 {
-	byte lqi;
+	uint8_t lqi;
 	lqi = SpiReadStatus(CC1101_LQI);
 	return lqi;
 }
 
-void CC1101Driver::SetStaticConfig(void)
+void CC1101Driver::SetBaseConfiguration(void)
 {
 	SpiWriteReg(CC1101_FSCTRL1, 0x08);
 
@@ -613,13 +788,13 @@ void CC1101Driver::UpdateFreqOffset()
 		avgFreqEst /= FREQ_ESTIMATION_ARRAY_SIZE;
 
 		// Clip value to 8 bit
-		int32_t newFreqOff = currentOffset + avgFreqEst;
+		int32_t newFreqOff = currentFreqOff + avgFreqEst;
 		if (newFreqOff >= 127)
 			newFreqOff = 127;
 		if (newFreqOff <= -128)
 			newFreqOff = -128;
 		// Update offset
-		currentOffset = newFreqOff;
-		SpiWriteReg(CC1101_FSCTRL0, currentOffset);
+		currentFreqOff = newFreqOff;
+		SpiWriteReg(CC1101_FSCTRL0, currentFreqOff);
 	}
 }
