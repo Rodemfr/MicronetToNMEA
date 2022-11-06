@@ -365,12 +365,11 @@ void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap)
 
 void PrintMessageFifo(MicronetMessageFifo &messageFifo)
 {
-	MicronetMessage_t *message;
 	if (messageFifo.GetNbMessages() > 0)
 	{
 		for (int i = 0; i < messageFifo.GetNbMessages(); i++)
 		{
-			message = messageFifo.Peek(i);
+			MicronetMessage_t *message = messageFifo.Peek(i);
 			CONSOLE.print("MSG ");
 			CONSOLE.print(i);
 			CONSOLE.print(" : ");
@@ -769,7 +768,6 @@ void MenuCalibrateMagnetoMeter()
 	bool exitLoop = false;
 	uint32_t pDisplayTime = 0;
 	uint32_t pSampleTime = 0;
-	uint32_t currentTime;
 	float mx, my, mz;
 	float xMin = 1000;
 	float xMax = -1000;
@@ -789,7 +787,7 @@ void MenuCalibrateMagnetoMeter()
 
 	do
 	{
-		currentTime = millis();
+		uint32_t currentTime = millis();
 		if ((currentTime - pSampleTime) > 100)
 		{
 			gNavCompass.GetMagneticField(&mx, &my, &mz);
@@ -872,7 +870,6 @@ void MenuCalibrateRfFrequency()
 
 	bool exitTuneLoop;
 	bool updateFreq;
-	MicronetMessage_t *rxMessage;
 	uint32_t lastMessageTime = millis();
 	float currentFreq_mHz = MICRONET_RF_CENTER_FREQUENCY_MHZ - (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f);
 	float firstWorkingFreq_mHz = 100000;
@@ -907,6 +904,7 @@ void MenuCalibrateRfFrequency()
 	gRxMessageFifo.ResetFifo();
 	do
 	{
+		MicronetMessage_t *rxMessage;
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
 			if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
@@ -1006,9 +1004,10 @@ void MenuTestRfQuality()
 
 	gRxMessageFifo.ResetFifo();
 
-	MicronetMessage_t *message;
 	do
 	{
+		MicronetMessage_t *message;
+
 		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
 			if (gMicronetCodec.VerifyHeaderCrc(message))
