@@ -127,6 +127,11 @@
 #define READ_SINGLE 0x80
 #define READ_BURST  0xC0
 
+// CC1101 packet length configurations
+#define CC1101_PACKET_LENGTH_MODE_FIXED    0
+#define CC1101_PACKET_LENGTH_MODE_VARIABLE 1
+#define CC1101_PACKET_LENGTH_MODE_INFINITE 2
+
 // Minimum delay in microseconds to enforce between two CS assertions
 #define DELAY_BETWEEN_CS_US 8
 // Minimum time in microseconds for CC1101 to restart its XTAL when exiting power-down mode
@@ -209,7 +214,7 @@ CC1101Driver::~CC1101Driver()
  */
 void CC1101Driver::Reset(void)
 {
-	// Apply datasheet's procedure (§19.1.2)
+	// Apply datasheet's procedure (ï¿½19.1.2)
 	ChipSelect();
 	delay(1);
 	ChipDeselect();
@@ -261,7 +266,7 @@ void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value)
  *   IN buffer -> pointer to the array of bytes to be written
  *   IN num -> number of bytes to be written
  */
-void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t num)
+void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t nbBytes)
 {
 	ChipSelect();
 
@@ -269,7 +274,7 @@ void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t
 		;
 
 	SPI.transfer(addr | WRITE_BURST);
-	SPI.transfer(buffer, nullptr, num);
+	SPI.transfer(buffer, nullptr, nbBytes);
 
 	ChipDeselect();
 }
@@ -314,14 +319,14 @@ uint8_t CC1101Driver::SpiReadReg(uint8_t addr)
  *   OUT buffer -> pointer to the array of bytes where to store read data
  *   IN num -> number of bytes to be read
  */
-void CC1101Driver::SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t num)
+void CC1101Driver::SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t nbBytes)
 {
 	ChipSelect();
 
 	while (digitalRead(MISO_PIN))
 		;
 	SPI.transfer(addr | READ_BURST);
-	SPI.transfer(nullptr, buffer, num);
+	SPI.transfer(nullptr, buffer, nbBytes);
 
 	ChipDeselect();
 }
@@ -459,76 +464,133 @@ void CC1101Driver::SetPQT(uint8_t pqt)
 	SpiWriteReg(CC1101_PKTCTRL1, pqt << 5);
 }
 
+/*
+ * Set packet handler length configuration
+ *   IN config -> 0 : Fixed packet length
+ *                1 : Variable packet length
+ *                2 : infinite packet length
+ */
 void CC1101Driver::SetLengthConfig(uint8_t config)
 {
 	uint8_t PKTCTRL0 = SpiReadReg(CC1101_PKTCTRL0) & 0xfc;
 	SpiWriteReg(CC1101_PKTCTRL0, PKTCTRL0 | config);
 }
 
-void CC1101Driver::SetPacketLength(uint8_t v)
+/*
+ * Set packet length when in fixed packet mode
+ *   IN length -> packet length in bytes
+ */
+void CC1101Driver::SetPacketLength(uint8_t length)
 {
-	SpiWriteReg(CC1101_PKTLEN, v);
+	SpiWriteReg(CC1101_PKTLEN, length);
 }
 
+/*
+ * Get the current RX FIFO level
+ *   RETURN level of RX the FIFO in bytes
+ */
 int CC1101Driver::GetRxFifoLevel()
 {
 	return SpiReadStatus(CC1101_RXBYTES);
 }
 
+/*
+ * Get the current RX FIFO level
+ *   RETURN level of RX the FIFO in bytes
+ */
 int CC1101Driver::GetTxFifoLevel()
 {
 	return SpiReadStatus(CC1101_TXBYTES);
 }
 
+/*
+ * Read data from RX FIFO
+ *   OUT buffer -> pointer to the buffer to write FIFO data to
+ *   IN nbBytes -> number of bytes to be read
+ */
 void CC1101Driver::ReadRxFifo(uint8_t *buffer, int nbBytes)
 {
 	SpiReadBurstReg(CC1101_RXFIFO, buffer, nbBytes);
 }
 
+/*
+ * Write one byte to TX FIFO
+ *   IN data -> byte to be written
+ */
 void CC1101Driver::WriteTxFifo(uint8_t data)
 {
 	SpiWriteReg(CC1101_TXFIFO, data);
 }
 
+/*
+ * Write multiple bytes of data to TX FIFO
+ *   IN buffer -> pointer to the buffer with data to be sent
+ *   IN nbBytes -> number of bytes to be written
+ */
 void CC1101Driver::WriteArrayTxFifo(uint8_t const *buffer, int nbBytes)
 {
 	SpiWriteBurstReg(CC1101_TXFIFO, buffer, nbBytes);
 }
 
+/*
+ * Configure CC1101 to trigger GDO0 IRQ when TX FIFO underflows
+ */
 void CC1101Driver::IrqOnTxFifoUnderflow()
 {
 	SpiWriteReg(CC1101_IOCFG0, 0x05);
 }
 
+/*
+ * Configure CC1101 to trigger GDO0 IRQ when TX FIFO is below FIFO threshold
+ */
 void CC1101Driver::IrqOnTxFifoThreshold()
 {
 	SpiWriteReg(CC1101_IOCFG0, 0x42);
 }
 
+/*
+ * Configure CC1101 to trigger GDO0 IRQ when RX FIFO is above FIFO threshold
+ * or when packet has been entirely received
+ */
 void CC1101Driver::IrqOnRxFifoThreshold()
 {
 	SpiWriteReg(CC1101_IOCFG0, 0x01);
 }
 
+/*
+ * Configure RX/TX FIFO threshold
+ */
 void CC1101Driver::SetFifoThreshold(uint8_t fifoThreshold)
 {
 	SpiWriteReg(CC1101_FIFOTHR, fifoThreshold);
 }
 
+/*
+ * Flush RX FIFO
+ */
 void CC1101Driver::FlushRxFifo()
 {
 	SpiStrobe(CC1101_SFRX);
 }
 
+/*
+ * Flush TX FIFO
+ */
 void CC1101Driver::FlushTxFifo()
 {
 	SpiStrobe(CC1101_SFTX);
 }
 
+/*
+ * Set down converter bandwidth
+ *   IN bw_kHz -> Bandwidth in kHz
+ */
 void CC1101Driver::SetBw(float bw_kHz)
 {
 	int s1 = 3;
 	int s2 = 3;
+
+	// TODO : check algorithm against datasheet.
 	for (int i = 0; i < 3; i++)
 	{
 		if (bw_kHz > 101.5625)
@@ -560,11 +622,17 @@ void CC1101Driver::SetBw(float bw_kHz)
 	SpiWriteReg(CC1101_MDMCFG4, MDMCFG4 | s1 | s2);
 }
 
-void CC1101Driver::SetRate(float br)
+/*
+ * Sets demodulator data rate
+ *   IN baudrate -> baudrate in baud
+ */
+void CC1101Driver::SetRate(float bitrate)
 {
 	uint8_t m4DaRa;
-	float c = br;
+	float c = bitrate;
 	uint8_t MDMCFG3 = 0;
+
+	// TODO : verify algorithm
 	if (c > 1621.83)
 	{
 		c = 1621.83;
@@ -600,18 +668,24 @@ void CC1101Driver::SetRate(float br)
 	SpiWriteReg(CC1101_MDMCFG3, MDMCFG3);
 }
 
-void CC1101Driver::SetDeviation(float d)
+/*
+ * Set demodulator's 2-FSK deviation
+ *   IN deviation_kHz -> deviation in kHz
+ */
+void CC1101Driver::SetDeviation(float deviation_kHz)
 {
 	float f = 1.586914;
 	float v = 0.19836425;
 	int c = 0;
-	if (d > 380.859375)
+
+	//TODO : Check algorithm
+	if (deviation_kHz > 380.859375)
 	{
-		d = 380.859375;
+		deviation_kHz = 380.859375;
 	}
-	if (d < 1.586914)
+	if (deviation_kHz < 1.586914)
 	{
-		d = 1.586914;
+		deviation_kHz = 1.586914;
 	}
 	for (int i = 0; i < 255; i++)
 	{
@@ -622,45 +696,71 @@ void CC1101Driver::SetDeviation(float d)
 			c = -1;
 			i += 8;
 		}
-		if (f >= d)
+		if (f >= deviation_kHz)
 		{
 			c = i;
 			i = 255;
 		}
 		c++;
 	}
-	SpiWriteReg(21, c);
+	SpiWriteReg(CC1101_DEVIATN, c);
 }
 
+/*
+ * Set Sync Word detection qualifier word
+ *   IN mode -> sync mode as per MDMCFG2 definition in datasheet
+ */
 void CC1101Driver::SetSyncMode(uint8_t mode)
 {
 	// TODO : Add enum for mode
 	SpiWriteReg(CC1101_MDMCFG2, mode);
 }
 
+/*
+ * Switch CC1101 to TX mode
+ * CC1101 start sending data in the TX FIFO after this call
+ */
 void CC1101Driver::SetTx(void)
 {
 	SpiStrobe(CC1101_SIDLE);
 	SpiStrobe(CC1101_STX);
 }
 
+/*
+ * Switch CC1101 to RX mode
+ * CC1101 start listening for incoming preamble/sync word after this call
+ */
 void CC1101Driver::SetRx(void)
 {
 	SpiStrobe(CC1101_SIDLE);
-	SpiStrobe(CC1101_SRX);        //start receive
+	SpiStrobe(CC1101_SRX);
 }
 
+/*
+ * Switch CC1101 to idle mode
+ * CC1101 stops receivig or tyransmitting data after this call
+ */
 void CC1101Driver::SetSidle(void)
 {
 	SpiStrobe(CC1101_SIDLE);
 }
 
+/*
+ * Switch CC1101 to low power mode
+ * Disables XTAL input to reduce power consumption
+ */
 void CC1101Driver::LowPower()
 {
 	SpiStrobe(CC1101_SIDLE);
 	SpiStrobe(CC1101_SXOFF);
 }
 
+/*
+ * Switch CC1101 to active mode
+ * this function must be called to exit low power mode and restore
+ * XTAL input. be carefull that it can take up to 800-900us to
+ * complete
+ */
 void CC1101Driver::ActivePower()
 {
 	uint32_t timeRef, timeLimit;
@@ -681,6 +781,10 @@ void CC1101Driver::ActivePower()
 	SpiStrobe(CC1101_SCAL);
 }
 
+/*
+ * Get RSSI of latest packet reception
+ * RETURN RSSI value in dbm
+ */
 int CC1101Driver::GetRssi(void)
 {
 	int rssi;
@@ -696,6 +800,10 @@ int CC1101Driver::GetRssi(void)
 	return rssi;
 }
 
+/*
+ * Get Line Quality Indicator of latest packet reception
+ * RETURN LQI value
+ */
 uint8_t CC1101Driver::GetLqi(void)
 {
 	uint8_t lqi;
