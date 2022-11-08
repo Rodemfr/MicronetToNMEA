@@ -626,7 +626,7 @@ void CC1101Driver::SetBw(float bw_kHz)
  * Sets demodulator data rate
  *   IN baudrate -> baudrate in baud
  */
-void CC1101Driver::SetRate(float bitrate)
+void CC1101Driver::SetBitrate(float bitrate)
 {
 	uint8_t m4DaRa;
 	float c = bitrate;
@@ -811,54 +811,66 @@ uint8_t CC1101Driver::GetLqi(void)
 	return lqi;
 }
 
+/*
+ * Define the base configuration of CC1101
+ * Note that this driver is dedicated to Micronet RF talking so its
+ * configuration is entirely specific to Micronet.
+ */
 void CC1101Driver::SetBaseConfiguration(void)
 {
-	SpiWriteReg(CC1101_FSCTRL1, 0x08);
+	SpiWriteReg(CC1101_FSCTRL1, 0x08); // IF frequency
 
 	// CC Mode
-	SpiWriteReg(CC1101_IOCFG2, 0x6F);
-	SpiWriteReg(CC1101_IOCFG1, 0x6F);
-	SpiWriteReg(CC1101_IOCFG0, 0x06);
-	SpiWriteReg(CC1101_PKTCTRL0, 0x05);
-	SpiWriteReg(CC1101_MDMCFG3, 0xF8);
+	SpiWriteReg(CC1101_IOCFG2, 0x6F);   // GDO2 unused
+	SpiWriteReg(CC1101_IOCFG1, 0x6F);   // GDO1 unused
+	SpiWriteReg(CC1101_IOCFG0, 0x01);   // GDO0 on RX FIFO by default
+	SpiWriteReg(CC1101_PKTCTRL0, 0x02); // Infinite packet length by default
+	SpiWriteReg(CC1101_MDMCFG3, 0xF8);  // Default bitrate
 
 	// 2-FSK
-	SetSyncMode(2);
-	SpiWriteReg(CC1101_FREND0, 0x10);
+	SetSyncMode(2);                     // 16/16 Sync mode
+	SpiWriteReg(CC1101_FREND0, 0x10);   // Value given by SmartRF studio
 
 	// RF Frequency
-	SetFrequency(rfFreq_mHz);
+	SetFrequency(rfFreq_mHz);			// Set down converter frequency
 
-	SpiWriteReg(CC1101_MDMCFG1, 0x02);
-	SpiWriteReg(CC1101_MDMCFG0, 0xF8);
-	SpiWriteReg(CC1101_CHANNR, 0x00);
-	SpiWriteReg(CC1101_DEVIATN, 0x47);
-	SpiWriteReg(CC1101_FREND1, 0x56);
-	SpiWriteReg(CC1101_MCSM0, 0x08);
-	SpiWriteReg(CC1101_FOCCFG, 0x16);
-	SpiWriteReg(CC1101_BSCFG, 0x1C);
-	SpiWriteReg(CC1101_AGCCTRL2, 0xC7);
-	SpiWriteReg(CC1101_AGCCTRL1, 0x00);
-	SpiWriteReg(CC1101_AGCCTRL0, 0xB2);
-	SpiWriteReg(CC1101_FSCAL3, 0xE9);
-	SpiWriteReg(CC1101_FSCAL2, 0x2A);
-	SpiWriteReg(CC1101_FSCAL1, 0x00);
-	SpiWriteReg(CC1101_FSCAL0, 0x1F);
-	SpiWriteReg(CC1101_FSTEST, 0x59);
-	SpiWriteReg(CC1101_TEST2, 0x81);
-	SpiWriteReg(CC1101_TEST1, 0x35);
-	SpiWriteReg(CC1101_TEST0, 0x09);
-	SpiWriteReg(CC1101_PKTCTRL1, 0x80);
-	SpiWriteReg(CC1101_ADDR, 0x00);
-	SpiWriteReg(CC1101_PKTLEN, 0x00);
+	SpiWriteReg(CC1101_MDMCFG1, 0x02);  // Channel spacing (unused with Micronet)
+	SpiWriteReg(CC1101_MDMCFG0, 0xF8);  // Channel spacing (unused with Micronet)
+	SpiWriteReg(CC1101_CHANNR, 0x00);   // We don't use channels : set to 0
+	SpiWriteReg(CC1101_DEVIATN, 0x47);  // Default deviation. Will be overwritten later at init
+	SpiWriteReg(CC1101_FREND1, 0x56);   // Front-end : value given by Smart RF studio
+	SpiWriteReg(CC1101_MCSM0, 0x08);    // PO_TIMEOUT = 2 -> ~150us for XOSC to stabilize
+	SpiWriteReg(CC1101_FOCCFG, 0x16);   // Frequency offset algorithm coefs
+	SpiWriteReg(CC1101_BSCFG, 0x1C);    // No bitrate compensation
+	SpiWriteReg(CC1101_AGCCTRL2, 0xC7); // AGC : value from SmartRF studio
+	SpiWriteReg(CC1101_AGCCTRL1, 0x00); // AGC : value from SmartRF studio
+	SpiWriteReg(CC1101_AGCCTRL0, 0xB2); // AGC : value from SmartRF studio
+	SpiWriteReg(CC1101_FSCAL3, 0xE9);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSCAL2, 0x2A);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSCAL1, 0x00);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSCAL0, 0x1F);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSTEST, 0x59);   // ?
+	SpiWriteReg(CC1101_TEST2, 0x81);    // Value from SMartRF studio
+	SpiWriteReg(CC1101_TEST1, 0x35);    // Value from SMartRF studio
+	SpiWriteReg(CC1101_TEST0, 0x09);    // Value from SMartRF studio
+	SpiWriteReg(CC1101_PKTCTRL1, 0x80); // PQT = 4, packet handler disabled
+	SpiWriteReg(CC1101_ADDR, 0x00);     // No address handling
+	SpiWriteReg(CC1101_PKTLEN, 0x00);   // No packet length
 
+	// Full power in TX mode (12dbm@869MHz 11dbm@915MHz)
 	SpiWriteBurstReg(CC1101_PATABLE, PA_TABLE, 8);
 }
 
+/*
+ * Assert CC1101 CS line
+ */
 void CC1101Driver::ChipSelect()
 {
 	uint32_t nextCSLow = lastCSHigh + DELAY_BETWEEN_CS_US;
 
+	// Before asserting CS, we check that will let enough time to
+	// CC1101 to process the previous SPI command. If necessary, we
+	// wait the required amount of time.
 	while (micros() < nextCSLow)
 	{
 		// Exit loop in case micros() counter loops on 2^32
@@ -869,17 +881,27 @@ void CC1101Driver::ChipSelect()
 	digitalWrite(CS0_PIN, LOW);
 }
 
+/*
+ * Release CC1101 CS line
+ */
 void CC1101Driver::ChipDeselect()
 {
 	digitalWrite(CS0_PIN, HIGH);
+	// We store the time at which we release CS to allow the next CS
+	// assertion to ensure enough time has been let to CC1101 to
+	// process the command.
 	lastCSHigh = micros();
 }
 
+/*
+ * Update CC1101 frequency offset compensation by checking
+ * the result of the internal frequency estimator
+ */
 void CC1101Driver::UpdateFreqOffset()
 {
 	int8_t freqEst;
 
-	// Read latest frequency offset estimation and store it in averaging array
+	// Read latest frequency offset estimation and store it in the averaging array
 	freqEst = SpiReadStatus(CC1101_FREQEST);
 	freqEstArray[freqEstArrayIndex++] = freqEst;
 
