@@ -97,7 +97,7 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 	cc1101Driver.Init();
 	cc1101Driver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_mHz); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
 	cc1101Driver.SetDeviation(MICRONET_RF_DEVIATION_KHZ); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
-	cc1101Driver.SetRate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
+	cc1101Driver.SetBitrate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
 	cc1101Driver.SetBw(250);
 	cc1101Driver.SetSyncWord(0x55, 0x99); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
 	cc1101Driver.SetLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved

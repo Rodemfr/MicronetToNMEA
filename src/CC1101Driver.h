@@ -98,7 +98,7 @@ public:
 	void SetFrequency(float freq_mhz);
 	void SetSyncMode(uint8_t mode);
 	void SetBw(float bw);
-	void SetRate(float br);
+	void SetBitrate(float br);
 	void SetDeviation(float d);
 	void SetTx(void);
 	void SetRx(void);
