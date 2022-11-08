@@ -535,8 +535,8 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	if ((dataFields & DATA_FIELD_NODE_INFO))
 	{
 		offset += AddQuad8bitField(message->data + offset, MICRONET_FIELD_ID_NODE_INFO,
-		MNET2NMEA_SW_MAJOR_VERSION,
-		MNET2NMEA_SW_MINOR_VERSION, 0x33, signalStrength);
+		MNET2NMEA_SW_MINOR_VERSION,
+		MNET2NMEA_SW_MAJOR_VERSION, 0x33, signalStrength);
 	}
 	if ((dataFields & DATA_FIELD_DPT) && ((navData->dpt_m.valid)))
 	{
