@@ -72,8 +72,9 @@ void MenuScanAllMicronetTraffic();
 void MenuCalibrateMagnetoMeter();
 void MenuCalibrateRfFrequency();
 void MenuTestRfQuality();
-void SaveCalibration();
-void LoadCalibration();
+void SaveCalibration(MicronetCodec &micronetCodec);
+void LoadCalibration(MicronetCodec &micronetCodec);
+void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice);
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -102,7 +103,6 @@ void setup()
 {
 	// Load configuration from EEPROM
 	gConfiguration.LoadFromEeprom();
-	LoadCalibration();
 
 	// Init USB serial link
 	USB_NMEA.begin(USB_BAUDRATE);
@@ -119,33 +119,6 @@ void setup()
 
 	// Let time for serial drivers to set-up
 	delay(250);
-
-	// Configure Micronet's slave devices
-	gMicronetDevice.SetNetworkId(gConfiguration.networkId);
-	gMicronetDevice.SetDeviceId(gConfiguration.deviceId);
-	gMicronetDevice.SetDataFields(
-			DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_DATE | DATA_FIELD_POSITION
-					| DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_NODE_INFO);
-
-	if (DEPTH_SOURCE_LINK != LINK_MICRONET)
-	{
-		gMicronetDevice.AddDataFields(DATA_FIELD_HDG);
-	}
-
-	if (DEPTH_SOURCE_LINK != LINK_MICRONET)
-	{
-		gMicronetDevice.AddDataFields(DATA_FIELD_DPT);
-	}
-
-	if (SPEED_SOURCE_LINK != LINK_MICRONET)
-	{
-		gMicronetDevice.AddDataFields(DATA_FIELD_SPD);
-	}
-
-	if ((MICRONET_WIND_REPEATER == 1) || (WIND_SOURCE_LINK != LINK_MICRONET))
-	{
-		gMicronetDevice.AddDataFields(DATA_FIELD_AWS | DATA_FIELD_AWA);
-	}
 
 #if (GNSS_UBLOXM8N == 1)
 	CONSOLE.println("Configuring UBlox M8N GNSS");
@@ -432,6 +405,7 @@ void MenuScanNetworks()
 	MicronetMessage_t *message;
 	uint32_t nidArray[MAX_SCANNED_NETWORKS];
 	int16_t rssiArray[MAX_SCANNED_NETWORKS];
+	MicronetCodec micronetCodec;
 
 	memset(nidArray, 0, sizeof(nidArray));
 	memset(rssiArray, 0, sizeof(rssiArray));
@@ -445,9 +419,9 @@ void MenuScanNetworks()
 		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
 			// Only consider messages with a valid CRC
-			if (gMicronetCodec.VerifyHeaderCrc(message))
+			if (micronetCodec.VerifyHeaderCrc(message))
 			{
-				uint32_t nid = gMicronetCodec.GetNetworkId(message);
+				uint32_t nid = micronetCodec.GetNetworkId(message);
 				int16_t rssi = message->rssi;
 				// Store the network in the array by order of reception power
 				for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
@@ -599,7 +573,6 @@ void MenuAttachNetwork()
 		CONSOLE.print("Now attached to NetworkID ");
 		CONSOLE.println(newNetworkId, HEX);
 		gConfiguration.SaveToEeprom();
-		gMicronetDevice.SetNetworkId(gConfiguration.networkId);
 	}
 }
 
@@ -609,7 +582,11 @@ void MenuConvertToNmea()
 	MicronetMessage_t *rxMessage;
 	MicronetMessageFifo txMessageFifo;
 	uint32_t lastHeadingTime = millis();
+	MicronetCodec micronetCodec;
+	DataBridge dataBridge(&micronetCodec);
+	MicronetSlaveDevice micronetDevice(&micronetCodec);
 
+	// Check that we have been attached to a network
 	if (gConfiguration.networkId == 0)
 	{
 		CONSOLE.println("No Micronet network has been attached.");
@@ -622,6 +599,12 @@ void MenuConvertToNmea()
 	CONSOLE.println("Press ESC key at any time to stop conversion and come back to menu.");
 	CONSOLE.println("");
 
+	// Load sensor calibration data into Micronet codec
+	LoadCalibration(micronetCodec);
+
+	// Configure Micronet device according to board configuration
+	ConfigureSlaveDevice(micronetDevice);
+
 	// We keep frequency tracking disabled for now since issues are reported by some users
 	gRfReceiver.EnableFrequencyTracking(gConfiguration.networkId);
 
@@ -631,15 +614,15 @@ void MenuConvertToNmea()
 	{
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			gMicronetDevice.ProcessMessage(rxMessage, &txMessageFifo);
+			micronetDevice.ProcessMessage(rxMessage, &txMessageFifo);
 			gRfReceiver.Transmit(&txMessageFifo);
 
-			gDataBridge.UpdateMicronetData();
+			dataBridge.UpdateMicronetData();
 
-			if (gNavData.calibrationUpdated)
+			if (micronetCodec.navData.calibrationUpdated)
 			{
-				gNavData.calibrationUpdated = false;
-				SaveCalibration();
+				micronetCodec.navData.calibrationUpdated = false;
+				SaveCalibration(micronetCodec);
 			}
 
 			gRxMessageFifo.DeleteMessage();
@@ -647,7 +630,7 @@ void MenuConvertToNmea()
 
 		while (GNSS_SERIAL.available() > 0)
 		{
-			gDataBridge.PushNmeaChar(GNSS_SERIAL.read(), LINK_NMEA_GNSS);
+			dataBridge.PushNmeaChar(GNSS_SERIAL.read(), LINK_NMEA_GNSS);
 		}
 
 		char c;
@@ -659,7 +642,7 @@ void MenuConvertToNmea()
 				CONSOLE.println("ESC key pressed, stopping conversion.");
 				exitNmeaLoop = true;
 			}
-			gDataBridge.PushNmeaChar(c, LINK_NMEA_EXT);
+			dataBridge.PushNmeaChar(c, LINK_NMEA_EXT);
 		}
 
 		// Only execute magnetic heading code if navigation compass is available
@@ -670,7 +653,7 @@ void MenuConvertToNmea()
 			if ((millis() - lastHeadingTime) > 100)
 			{
 				lastHeadingTime = millis();
-				gDataBridge.UpdateCompassData(gNavCompass.GetHeading());
+				dataBridge.UpdateCompassData(gNavCompass.GetHeading());
 			}
 		}
 
@@ -686,7 +669,7 @@ void MenuConvertToNmea()
 			}
 		}
 
-		gNavData.UpdateValidity();
+		micronetCodec.navData.UpdateValidity();
 
 		yield();
 
@@ -705,6 +688,7 @@ void MenuScanAllMicronetTraffic()
 	bool exitSniffLoop = false;
 	uint32_t lastMasterRequest_us = 0;
 	MicronetCodec::NetworkMap networkMap;
+	MicronetCodec micronetCodec;
 
 	CONSOLE.println("Starting Micronet traffic scanning.");
 	CONSOLE.println("Press ESC key at any time to stop scanning and come back to menu.");
@@ -717,13 +701,13 @@ void MenuScanAllMicronetTraffic()
 	{
 		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetCodec.VerifyHeaderCrc(message))
+			if (micronetCodec.VerifyHeaderCrc(message))
 			{
 				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 				{
 					CONSOLE.println("");
 					lastMasterRequest_us = message->endTime_us;
-					gMicronetCodec.GetNetworkMap(message, &networkMap);
+					micronetCodec.GetNetworkMap(message, &networkMap);
 					PrintNetworkMap(&networkMap);
 				}
 				PrintRawMessage(message, lastMasterRequest_us);
@@ -856,6 +840,7 @@ void MenuCalibrateRfFrequency()
 	float lastWorkingFreq_MHz = 0;
 	float range_kHz, centerFrequency_MHz;
 	char c;
+	MicronetCodec micronetCodec;
 
 	CONSOLE.println("");
 	CONSOLE.println("To tune RF frequency, you must start your Micronet network and");
@@ -887,7 +872,7 @@ void MenuCalibrateRfFrequency()
 		MicronetMessage_t *rxMessage;
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
+			if (micronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 			{
 				lastMessageTime = millis();
 				CONSOLE.print("*");
@@ -982,6 +967,7 @@ void MenuTestRfQuality()
 	TxSlotDesc_t txSlot;
 	MicronetMessage_t txMessage;
 	uint32_t receivedDid[MICRONET_MAX_DEVICES_PER_NETWORK];
+	MicronetCodec micronetCodec;
 
 	CONSOLE.println("Starting RF signal quality test.");
 	CONSOLE.println("Press ESC key at any time to stop testing and come back to menu.");
@@ -995,14 +981,14 @@ void MenuTestRfQuality()
 
 		if ((message = gRxMessageFifo.Peek()) != nullptr)
 		{
-			if (gMicronetCodec.VerifyHeaderCrc(message))
+			if (micronetCodec.VerifyHeaderCrc(message))
 			{
 				if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 				{
 					CONSOLE.println("");
-					gMicronetCodec.GetNetworkMap(message, &networkMap);
-					txSlot = gMicronetCodec.GetAsyncTransmissionSlot(&networkMap);
-					gMicronetCodec.EncodePingMessage(&txMessage, 9, networkMap.networkId, gConfiguration.deviceId);
+					micronetCodec.GetNetworkMap(message, &networkMap);
+					txSlot = micronetCodec.GetAsyncTransmissionSlot(&networkMap);
+					micronetCodec.EncodePingMessage(&txMessage, 9, networkMap.networkId, gConfiguration.deviceId);
 					txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
 					txMessage.startTime_us = txSlot.start_us;
 					gRfReceiver.Transmit(&txMessage);
@@ -1012,7 +998,7 @@ void MenuTestRfQuality()
 				bool alreadyReceived = false;
 				for (int i = 0; i < MICRONET_MAX_DEVICES_PER_NETWORK; i++)
 				{
-					uint32_t did = gMicronetCodec.GetDeviceId(message);
+					uint32_t did = micronetCodec.GetDeviceId(message);
 					if (receivedDid[i] == did)
 					{
 						alreadyReceived = true;
@@ -1027,9 +1013,9 @@ void MenuTestRfQuality()
 
 				if (!alreadyReceived)
 				{
-					PrintInt(gMicronetCodec.GetDeviceId(message));
+					PrintInt(micronetCodec.GetDeviceId(message));
 					CONSOLE.print(" Strength=");
-					strength = gMicronetCodec.CalculateSignalFloatStrength(message);
+					strength = micronetCodec.CalculateSignalFloatStrength(message);
 					CONSOLE.print(strength);
 					CONSOLE.print(" (");
 					if (strength < 1.0)
@@ -1058,7 +1044,7 @@ void MenuTestRfQuality()
 					}
 
 					CONSOLE.print(") ");
-					switch (gMicronetCodec.GetDeviceType(message))
+					switch (micronetCodec.GetDeviceType(message))
 					{
 					case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
 						CONSOLE.print("Hull Transmitter");
@@ -1094,7 +1080,7 @@ void MenuTestRfQuality()
 						CONSOLE.print("Unknown device");
 						break;
 					}
-					if (networkMap.masterDevice == gMicronetCodec.GetDeviceId(message))
+					if (networkMap.masterDevice == micronetCodec.GetDeviceId(message))
 					{
 						CONSOLE.print(", MASTER");
 					}
@@ -1116,28 +1102,58 @@ void MenuTestRfQuality()
 	} while (!exitTestLoop);
 }
 
-void SaveCalibration()
+void SaveCalibration(MicronetCodec &micronetCodec)
 {
-	gConfiguration.waterSpeedFactor_per = gNavData.waterSpeedFactor_per;
-	gConfiguration.waterTemperatureOffset_C = gNavData.waterTemperatureOffset_degc;
-	gConfiguration.depthOffset_m = gNavData.depthOffset_m;
-	gConfiguration.windSpeedFactor_per = gNavData.windSpeedFactor_per;
-	gConfiguration.windDirectionOffset_deg = gNavData.windDirectionOffset_deg;
-	gConfiguration.headingOffset_deg = gNavData.headingOffset_deg;
-	gConfiguration.magneticVariation_deg = gNavData.magneticVariation_deg;
-	gConfiguration.windShift = gNavData.windShift_min;
+	gConfiguration.waterSpeedFactor_per = micronetCodec.navData.waterSpeedFactor_per;
+	gConfiguration.waterTemperatureOffset_C = micronetCodec.navData.waterTemperatureOffset_degc;
+	gConfiguration.depthOffset_m = micronetCodec.navData.depthOffset_m;
+	gConfiguration.windSpeedFactor_per = micronetCodec.navData.windSpeedFactor_per;
+	gConfiguration.windDirectionOffset_deg = micronetCodec.navData.windDirectionOffset_deg;
+	gConfiguration.headingOffset_deg = micronetCodec.navData.headingOffset_deg;
+	gConfiguration.magneticVariation_deg = micronetCodec.navData.magneticVariation_deg;
+	gConfiguration.windShift = micronetCodec.navData.windShift_min;
 
 	gConfiguration.SaveToEeprom();
 }
 
-void LoadCalibration()
+void LoadCalibration(MicronetCodec &micronetCodec)
 {
-	gNavData.waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
-	gNavData.waterTemperatureOffset_degc = gConfiguration.waterTemperatureOffset_C;
-	gNavData.depthOffset_m = gConfiguration.depthOffset_m;
-	gNavData.windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
-	gNavData.windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
-	gNavData.headingOffset_deg = gConfiguration.headingOffset_deg;
-	gNavData.magneticVariation_deg = gConfiguration.magneticVariation_deg;
-	gNavData.windShift_min = gConfiguration.windShift;
+	micronetCodec.navData.waterSpeedFactor_per = gConfiguration.waterSpeedFactor_per;
+	micronetCodec.navData.waterTemperatureOffset_degc = gConfiguration.waterTemperatureOffset_C;
+	micronetCodec.navData.depthOffset_m = gConfiguration.depthOffset_m;
+	micronetCodec.navData.windSpeedFactor_per = gConfiguration.windSpeedFactor_per;
+	micronetCodec.navData.windDirectionOffset_deg = gConfiguration.windDirectionOffset_deg;
+	micronetCodec.navData.headingOffset_deg = gConfiguration.headingOffset_deg;
+	micronetCodec.navData.magneticVariation_deg = gConfiguration.magneticVariation_deg;
+	micronetCodec.navData.windShift_min = gConfiguration.windShift;
+}
+
+void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice)
+{
+	// Configure Micronet's slave devices
+	micronetDevice.SetNetworkId(gConfiguration.networkId);
+	micronetDevice.SetDeviceId(gConfiguration.deviceId);
+	micronetDevice.SetDataFields(
+			DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_DATE | DATA_FIELD_POSITION
+					| DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_NODE_INFO);
+
+	if (DEPTH_SOURCE_LINK != LINK_MICRONET)
+	{
+		micronetDevice.AddDataFields(DATA_FIELD_HDG);
+	}
+
+	if (DEPTH_SOURCE_LINK != LINK_MICRONET)
+	{
+		micronetDevice.AddDataFields(DATA_FIELD_DPT);
+	}
+
+	if (SPEED_SOURCE_LINK != LINK_MICRONET)
+	{
+		micronetDevice.AddDataFields(DATA_FIELD_SPD);
+	}
+
+	if ((MICRONET_WIND_REPEATER == 1) || (WIND_SOURCE_LINK != LINK_MICRONET))
+	{
+		micronetDevice.AddDataFields(DATA_FIELD_AWS | DATA_FIELD_AWA);
+	}
 }

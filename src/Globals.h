@@ -57,13 +57,9 @@
 extern RfDriver gRfReceiver;
 extern MenuManager gMenuManager;
 extern MicronetMessageFifo gRxMessageFifo;
-extern MicronetCodec gMicronetCodec;
 extern Configuration gConfiguration;
-extern DataBridge gDataBridge;
-extern NavigationData gNavData;
 extern NavCompass gNavCompass;
 extern M8NDriver gM8nDriver;
-extern MicronetSlaveDevice gMicronetDevice;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

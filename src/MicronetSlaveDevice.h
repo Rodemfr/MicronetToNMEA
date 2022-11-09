@@ -59,17 +59,18 @@ typedef enum
 class MicronetSlaveDevice
 {
 public:
-	MicronetSlaveDevice();
+	MicronetSlaveDevice(MicronetCodec *micronetCodec);
 	virtual ~MicronetSlaveDevice();
 
 	void SetDeviceId(uint32_t deviceId);
 	void SetNetworkId(uint32_t networkId);
 	void SetDataFields(uint32_t dataMask);
 	void AddDataFields(uint32_t dataMask);
+	NavigationData *GetNavigationData();
 	void ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo);
 
 private:
-	MicronetCodec micronetCodec;
+	MicronetCodec *micronetCodec;
 	MicronetCodec::NetworkMap networkMap;
 	uint32_t deviceId;
 	uint32_t networkId;

@@ -31,8 +31,10 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <stdint.h>
 #include "NavigationData.h"
+#include "MicronetCodec.h"
+
+#include <stdint.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -80,7 +82,7 @@ typedef struct {
 class DataBridge
 {
 public:
-	DataBridge();
+	DataBridge(MicronetCodec *micronetCodec);
 	virtual ~DataBridge();
 
 	void PushNmeaChar(char c, LinkId_t sourceLink);
@@ -102,6 +104,7 @@ private:
 	LinkId_t voltageSourceLink;
 	LinkId_t seaTempSourceLink;
 	LinkId_t compassSourceLink;
+	MicronetCodec *micronetCodec;
 
 	bool IsSentenceValid(char *nmeaBuffer);
 	NmeaId_t SentenceId(char *nmeaBuffer);
@@ -115,14 +118,14 @@ private:
 	void DecodeHDGSentence(char *sentence);
 	int16_t NibbleValue(char c);
 
-	void EncodeMWV_R(NavigationData *micronetData);
-	void EncodeMWV_T(NavigationData *micronetData);
-	void EncodeDPT(NavigationData *micronetData);
-	void EncodeMTW(NavigationData *micronetData);
-	void EncodeVLW(NavigationData *micronetData);
-	void EncodeVHW(NavigationData *micronetData);
-	void EncodeHDG(NavigationData *micronetData);
-	void EncodeXDR(NavigationData *micronetData);
+	void EncodeMWV_R();
+	void EncodeMWV_T();
+	void EncodeDPT();
+	void EncodeMTW();
+	void EncodeVLW();
+	void EncodeVHW();
+	void EncodeHDG();
+	void EncodeXDR();
 
 	uint8_t AddNmeaChecksum(char *sentence);
 };

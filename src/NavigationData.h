@@ -37,8 +37,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define VALIDITY_TIME_FAST_MS   3000
-#define VALIDITY_TIME_SLOW_MS   10000
+#define WAYPOINT_NAME_LENGTH  16
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -71,7 +70,7 @@ typedef struct
 typedef struct
 {
 	bool valid;
-	uint8_t name[16];
+	uint8_t name[WAYPOINT_NAME_LENGTH];
 	uint8_t nameLength;
 	uint32_t timeStamp;
 } WaypointName_t;

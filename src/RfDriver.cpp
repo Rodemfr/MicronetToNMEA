@@ -71,8 +71,8 @@ MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
 /***************************************************************************/
 
 RfDriver::RfDriver() :
-		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_MHz(0), freqTrackingNID(
-				0)
+		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_MHz(
+				0), freqTrackingNID(0)
 {
 	memset(transmitList, 0, sizeof(transmitList));
 }
@@ -119,7 +119,7 @@ void RfDriver::SetFrequency(float frequency_MHz)
 
 void RfDriver::SetBandwidth(RfBandwidth_t bandwidth)
 {
-	switch(bandwidth)
+	switch (bandwidth)
 	{
 	case RF_BANDWIDTH_LOW:
 		cc1101Driver.SetBw(95);
@@ -279,9 +279,13 @@ void RfDriver::RfIsr_Rx()
 	// Only perform frequency tracking if the feature has been explicitly enabled
 	if (freqTrackingNID != 0)
 	{
-		// Only track if message is from master and for out network
-		if ((message.data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
-				&& (gMicronetCodec.GetNetworkId(&message) == freqTrackingNID))
+		unsigned int networkId = message.data[MICRONET_NUID_OFFSET];
+		networkId = (networkId << 8) | message.data[MICRONET_NUID_OFFSET + 1];
+		networkId = (networkId << 8) | message.data[MICRONET_NUID_OFFSET + 2];
+		networkId = (networkId << 8) | message.data[MICRONET_NUID_OFFSET + 3];
+
+		// Only track if message is from the master of our network
+		if ((message.data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST) && (networkId == freqTrackingNID))
 		{
 			cc1101Driver.UpdateFreqOffset();
 		}
