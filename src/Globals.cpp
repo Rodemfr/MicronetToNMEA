@@ -59,10 +59,7 @@ DataBridge gDataBridge;
 NavigationData gNavData;
 NavCompass gNavCompass;
 M8NDriver gM8nDriver;
-MicronetSlaveDevice gMicronetDevice1;
-MicronetSlaveDevice gMicronetDevice2;
-MicronetSlaveDevice gMicronetDevice3;
-MicronetSlaveDevice gMicronetDevice4;
+MicronetSlaveDevice gMicronetDevice;
 
 /***************************************************************************/
 /*                              Functions                                  */

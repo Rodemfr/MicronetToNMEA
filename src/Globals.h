@@ -63,10 +63,7 @@ extern DataBridge gDataBridge;
 extern NavigationData gNavData;
 extern NavCompass gNavCompass;
 extern M8NDriver gM8nDriver;
-extern MicronetSlaveDevice gMicronetDevice1;
-extern MicronetSlaveDevice gMicronetDevice2;
-extern MicronetSlaveDevice gMicronetDevice3;
-extern MicronetSlaveDevice gMicronetDevice4;
+extern MicronetSlaveDevice gMicronetDevice;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

@@ -120,46 +120,31 @@ void setup()
 	// Let time for serial drivers to set-up
 	delay(250);
 
-	// Configure the four virtual slave devices. Each device will send a specific subset of data fields.
-	// This avoids having long Micronet messages while keeping a refresh frequency of 1Hz for all fields.
-	// Long messages are often missed by other devices because of baudrate deviations between
-	// MicronetToNMEA's CC1101 and Tacktick's CC1000
-	gMicronetDevice1.SetNetworkId(gConfiguration.networkId);
-	gMicronetDevice1.SetDeviceId(gConfiguration.deviceId);
-	gMicronetDevice1.SetDataFields(DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_HDG);
+	// Configure Micronet's slave devices
+	gMicronetDevice.SetNetworkId(gConfiguration.networkId);
+	gMicronetDevice.SetDeviceId(gConfiguration.deviceId);
+	gMicronetDevice.SetDataFields(
+			DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_DATE | DATA_FIELD_POSITION
+					| DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_NODE_INFO);
 
-	gMicronetDevice2.SetNetworkId(gConfiguration.networkId);
-	gMicronetDevice2.SetDeviceId(gConfiguration.deviceId + 1);
 	if (DEPTH_SOURCE_LINK != LINK_MICRONET)
 	{
-		gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_DPT);
-	}
-	else
-	{
-		gMicronetDevice2.SetDataFields(DATA_FIELD_DATE | DATA_FIELD_POSITION);
+		gMicronetDevice.AddDataFields(DATA_FIELD_HDG);
 	}
 
-	gMicronetDevice3.SetNetworkId(gConfiguration.networkId);
-	gMicronetDevice3.SetDeviceId(gConfiguration.deviceId + 2);
+	if (DEPTH_SOURCE_LINK != LINK_MICRONET)
+	{
+		gMicronetDevice.AddDataFields(DATA_FIELD_DPT);
+	}
+
 	if (SPEED_SOURCE_LINK != LINK_MICRONET)
 	{
-		gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO | DATA_FIELD_SPD);
+		gMicronetDevice.AddDataFields(DATA_FIELD_SPD);
 	}
-	else
-	{
-		gMicronetDevice3.SetDataFields(DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_NODE_INFO);
-	}
-
-	gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
-	gMicronetDevice4.SetDeviceId(gConfiguration.deviceId + 3);
 
 	if ((MICRONET_WIND_REPEATER == 1) || (WIND_SOURCE_LINK != LINK_MICRONET))
 	{
-		gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_AWS | DATA_FIELD_AWA);
-	}
-	else
-	{
-		gMicronetDevice4.SetDataFields(DATA_FIELD_BTW | DATA_FIELD_VMGWP);
+		gMicronetDevice.AddDataFields(DATA_FIELD_AWS | DATA_FIELD_AWA);
 	}
 
 #if (GNSS_UBLOXM8N == 1)
@@ -614,10 +599,7 @@ void MenuAttachNetwork()
 		CONSOLE.print("Now attached to NetworkID ");
 		CONSOLE.println(newNetworkId, HEX);
 		gConfiguration.SaveToEeprom();
-		gMicronetDevice1.SetNetworkId(gConfiguration.networkId);
-		gMicronetDevice2.SetNetworkId(gConfiguration.networkId);
-		gMicronetDevice3.SetNetworkId(gConfiguration.networkId);
-		gMicronetDevice4.SetNetworkId(gConfiguration.networkId);
+		gMicronetDevice.SetNetworkId(gConfiguration.networkId);
 	}
 }
 
@@ -649,10 +631,7 @@ void MenuConvertToNmea()
 	{
 		if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
 		{
-			gMicronetDevice1.ProcessMessage(rxMessage, &txMessageFifo);
-			gMicronetDevice2.ProcessMessage(rxMessage, &txMessageFifo);
-			gMicronetDevice3.ProcessMessage(rxMessage, &txMessageFifo);
-			gMicronetDevice4.ProcessMessage(rxMessage, &txMessageFifo);
+			gMicronetDevice.ProcessMessage(rxMessage, &txMessageFifo);
 			gRfReceiver.Transmit(&txMessageFifo);
 
 			gDataBridge.UpdateMicronetData();
@@ -953,7 +932,9 @@ void MenuCalibrateRfFrequency()
 					CONSOLE.print("Deviation to real frequency = ");
 					CONSOLE.print((centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) * 1000);
 					CONSOLE.print("kHz (");
-					CONSOLE.print((int) (1000000.0 * (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) / MICRONET_RF_CENTER_FREQUENCY_MHZ));
+					CONSOLE.print(
+							(int) (1000000.0 * (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ)
+									/ MICRONET_RF_CENTER_FREQUENCY_MHZ));
 					CONSOLE.println(" ppm)");
 
 					CONSOLE.println("Do you want to save the new RF calibration values (y/n) ?");
