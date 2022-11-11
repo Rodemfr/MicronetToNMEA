@@ -52,6 +52,7 @@ public:
 	virtual ~MicronetMessageFifo();
 
 	bool Push(MicronetMessage_t const &message);
+	bool PushIsr(MicronetMessage_t const &message);
 	bool Pop(MicronetMessage_t *message);
 	MicronetMessage_t *Peek(int index);
 	MicronetMessage_t *Peek();
@@ -60,9 +61,9 @@ public:
 	int GetNbMessages();
 
 private:
-	int writeIndex;
-	int readIndex;
-	int nbMessages;
+	volatile int writeIndex;
+	volatile int readIndex;
+	volatile int nbMessages;
 	MicronetMessage_t store[MESSAGE_STORE_SIZE];
 };
 

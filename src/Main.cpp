@@ -391,13 +391,6 @@ void MenuAbout()
 		CONSOLE.print(" ");
 		CONSOLE.println(gConfiguration.zMagOffset);
 	}
-	CONSOLE.println("Provides the following NMEA sentences :");
-	CONSOLE.println(" - INDPT (Depth below transducer. T121 with depth sounder required)");
-	CONSOLE.println(" - INMWV (Apparent wind. T120 required)");
-	CONSOLE.println(" - INMWV (True wind. T120 and T121 with Speedo/Temp sensor required)");
-	CONSOLE.println(" - INMTW (Water temperature. T121 with Speedo/Temp sensor required)");
-	CONSOLE.println(" - INVHW (Speed on water. T121 with Speedo/Temp sensor required)");
-	CONSOLE.println(" - INVLW (Distance log T121 with Speedo/Temp sensor required)");
 }
 
 void MenuScanNetworks()

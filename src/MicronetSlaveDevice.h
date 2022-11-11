@@ -46,12 +46,6 @@
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef enum
-{
-	NETWORK_STATUS_NOT_FOUND = 0,
-	NETWORK_STATUS_FOUND
-} NetworkStatus_t;
-
 /***************************************************************************/
 /*                               Classes                                   */
 /***************************************************************************/
@@ -77,9 +71,6 @@ private:
 	uint32_t dataFields;
 	uint32_t splitDataFields[NUMBER_OF_VIRTUAL_SLAVES];
 	uint8_t latestSignalStrength;
-	uint32_t firstSlot;
-	NetworkStatus_t networkStatus;
-	uint32_t lastNetworkMessage_us;
 
 	void SplitDataFields();
 	uint8_t GetShortestSlave();

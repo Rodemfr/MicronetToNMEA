@@ -274,7 +274,7 @@ void RfDriver::RfIsr_Rx()
 	message.startTime_us = startTime_us;
 	message.endTime_us = startTime_us + PREAMBLE_LENGTH_IN_US + packetLength * BYTE_LENGTH_IN_US + GUARD_TIME_IN_US;
 	message.action = MICRONET_ACTION_RF_NO_ACTION;
-	messageFifo->Push(message);
+	messageFifo->PushIsr(message);
 
 	// Only perform frequency tracking if the feature has been explicitly enabled
 	if (freqTrackingNID != 0)
@@ -325,11 +325,18 @@ void RfDriver::Transmit(MicronetMessage_t *message)
 		transmitList[transmitIndex].action = message->action;
 		transmitList[transmitIndex].startTime_us = message->startTime_us;
 		transmitList[transmitIndex].len = message->len;
-		memcpy(transmitList[transmitIndex].data, message->data, message->len);
+		if ((message->len > 0) && (message->len <= MICRONET_MAX_MESSAGE_LENGTH))
+		{
+			memcpy(transmitList[transmitIndex].data, message->data, message->len);
+		}
+		else
+		{
+			message->len = 0;
+		}
 	}
-	interrupts();
 
 	ScheduleTransmit();
+	interrupts();
 }
 
 void RfDriver::ScheduleTransmit()
@@ -434,9 +441,9 @@ void RfDriver::TransmitCallback()
 		nextTransmitIndex = -1;
 
 		cc1101Driver.ActivePower();
+		RestartReception();
 
 		ScheduleTransmit();
-		RestartReception();
 	}
 	else if (rfState == RF_STATE_RX_WAIT_SYNC)
 	{

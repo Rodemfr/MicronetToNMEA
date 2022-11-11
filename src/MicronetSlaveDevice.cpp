@@ -36,8 +36,6 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define NETWORK_TIMEOUT_MS 3000
-
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
@@ -55,8 +53,7 @@
 /***************************************************************************/
 
 MicronetSlaveDevice::MicronetSlaveDevice(MicronetCodec *micronetCodec) :
-		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0), firstSlot(0), networkStatus(
-				NETWORK_STATUS_NOT_FOUND), lastNetworkMessage_us(0)
+		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0)
 {
 	memset(&networkMap, 0, sizeof(networkMap));
 	this->micronetCodec = micronetCodec;
@@ -95,33 +92,23 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	TxSlotDesc_t txSlot;
 	MicronetMessage_t txMessage;
 
-	if ((networkStatus == NETWORK_STATUS_FOUND) && ((micros() - lastNetworkMessage_us) > NETWORK_TIMEOUT_MS * 1000))
-	{
-		networkStatus = NETWORK_STATUS_NOT_FOUND;
-		txMessage.action = MICRONET_ACTION_RF_ACTIVE_POWER;
-		txMessage.startTime_us = micros() + 100000;
-		messageFifo->Push(txMessage);
-	}
-
 	if ((micronetCodec->GetNetworkId(message) == networkId) && (micronetCodec->VerifyHeaderCrc(message)))
 	{
 		if (micronetCodec->GetMessageId(message) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 		{
-			// If we reach this point, it means we have found our network
-			networkStatus = NETWORK_STATUS_FOUND;
-			lastNetworkMessage_us = message->startTime_us;
-			firstSlot = message->endTime_us;
 			micronetCodec->GetNetworkMap(message, &networkMap);
 
 			// We schedule the low power mode of CC1101 just at the end of the network cycle
 			txMessage.action = MICRONET_ACTION_RF_LOW_POWER;
 			txMessage.startTime_us = micronetCodec->GetEndOfNetwork(&networkMap);
+			txMessage.len = 0;
 			messageFifo->Push(txMessage);
 
 			// We schedule exit of CC1101's low power mode 1ms before actual start of the next network cycle.
 			// It will let time for the PLL calibration loop to complete.
 			txMessage.action = MICRONET_ACTION_RF_ACTIVE_POWER;
 			txMessage.startTime_us = micronetCodec->GetNextStartOfNetwork(&networkMap) - 1000;
+			txMessage.len = 0;
 			messageFifo->Push(txMessage);
 
 			latestSignalStrength = micronetCodec->CalculateSignalStrength(message);

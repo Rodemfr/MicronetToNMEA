@@ -86,10 +86,10 @@ public:
 private:
 	CC1101Driver cc1101Driver;
 	MicronetMessageFifo *messageFifo;
-	RfDriverState_t rfState;
+	volatile RfDriverState_t rfState;
 	MicronetMessage_t transmitList[TRANSMIT_LIST_SIZE];
-	int nextTransmitIndex;
-	int messageBytesSent;
+	volatile int nextTransmitIndex;
+	volatile int messageBytesSent;
 	float frequencyOffset_MHz;
 	uint32_t freqTrackingNID;
 
