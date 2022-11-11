@@ -8,17 +8,18 @@ understand Micronet wireless protocol and to be able to record wind and
 speed data on a PC. The understanding of the protocol went so well that
 MicronetToNMEA is now doing a lot more. It can:
 
-  - Send NMEA stream to your PC/Tablet with data on depth, water speed,
-    wind, magnetic heading, GNSS positioning, speed, time, etc.
+  - Send or receive a NMEA stream to or from your PC/Tablet with data on
+    depth, water speed, wind, magnetic heading, GNSS positioning, speed,
+    time, etc.
 
-  - Send Heading data from the navigation compass to your Micronet’s
-    displays (HDG).
+  - Send Heading data from the LSM303 navigation compass to your
+    Micronet’s displays (HDG).
 
   - Send GNSS data to your Micronet displays (LAT, LON, TIME, DATE, COG,
-    SOG).
+    SOG) and to your PC/Tablet.
 
-  - Send navigation data from OpenCPN or qtVlm to your Micronet displays
-    (BTW, DTW, XTE, ETA).
+  - Send navigation data from your PC/Tablet (OpenCPN, qtVlm, avnav,
+    etc.) to your Micronet displays (BTW, DTW, XTE, ETA).
 
 ## What is NOT MicronetToNMEA
 
@@ -48,12 +49,12 @@ Raymarine/TackTick reseller.
 
 ## Required hardware
 
-To work properly, MicronetToNMEA needs at least a Teensy 3.5 board and a
-CC1101 based breakout board.
+To work properly, MicronetToNMEA needs at least a Teensy 3.5, 3.6, 4.0
+or 4.1 board and a CC1101 based breakout board.
 
 ### Teensy micro-controller
 
-Teensy 3.5 has been chosen as the core micro-controller of the
+Teensy board has been chosen as the core micro-controller of the
 MicronetToNMEA system. This choice has been led by one main reason : I
 had one available when I started investigating Micronet protocol. That’s
 indeed a good reason but with time this board has also proven to be
@@ -68,7 +69,8 @@ pretty well adapted :
   - Teensy 3.5 GPIOs are 5V tolerant (important to connect 5V modules
     \!)
 
-  - Teensy 3.6 and 4.1 have a MicroSD slot for future recording features
+  - Teensy 3.5, 3.6 and 4.1 have a MicroSD slot for future recording
+    features
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino
 compatible board. Practically, this might be a different story. Several
@@ -76,9 +78,6 @@ people got into troubles trying to use ESP32 boards. While this is
 technically feasible, Arduino’s library implementation between Teensy &
 Esp32 board can be slightly different in some sensitive areas like
 interrupt handling. This makes porting complex.
-
-Teensy 3.6, 4.0 and 4.1 boards have been successfully used with minimal
-software adaptations.
 
 Teensy boards can be ordered here : <https://www.pjrc.com/teensy/>
 
@@ -163,10 +162,10 @@ Here are the steps to compile MicronetToNMEA with Arduino IDE:
   - Get the source code from MicronetToNMEA repository
     (<https://github.com/Rodemfr/MicronetToNMEA>)
 
-  - Double-click on MicronetToNMEA.ino. This should open Arduino IDE.
+  - Double-click on src/src.ino. This should open Arduino IDE.
 
-  - In Arduino IDE, select e.g. Teensy 3.5 target HW with menu
-    “Tools-\>Board-\>Teensyduino-\>Teensy3.5”
+  - In Arduino IDE, select the appropriate Teensy board with menu
+    “Tools-\>Board-\>Teensyduino-\>Teensy4.0”
 
   - Go to menu “Tools-\>Manage Libraries...” and install TeensyTimerTool
     library
@@ -174,9 +173,9 @@ Here are the steps to compile MicronetToNMEA with Arduino IDE:
   - Click on “Verify” button in the button bar, this should compile the
     project without error.
 
-  - Connect your Teensy 3.5 board onto USB port of your PC and Click
-    “Upload” button to upload MicronetToNMEA binary into Teensy flash
-    memory
+  - Connect your Teensy board onto USB port of your PC and Click
+    “Upload” button to upload MicronetToNMEA binary into Teensy
+    flash memory
 
 ## With Sloeber
 
@@ -205,13 +204,13 @@ Here are the steps to compile MicronetToNMEA with Sloeber IDE:
 
   - Select Teensy’s platform folder in the corresponding drop down menu
 
-  - Select "Teensy 3.5" board
+  - Select "Teensy 4.0" board
 
   - Select "Faster" optimization
 
   - Select "Serial" USB Type
 
-  - Select 120MHz CPU Speed
+  - Select 600MHz CPU Speed
 
   - Click "Next"
 
@@ -261,14 +260,14 @@ and their meaning.
 | WIRED\_TX\_PIN            | Defines serial TX pin used for wired NMEA                                                                                                                                          |
 | CONSOLE                   | Defines on which serial port is displayed the console (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than NMEA\_EXT                                             |
 | NMEA\_EXT                 | Defines to which serial port is connected the external NMEA stream. (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than CONSOLE and NMEA\_IN.                   |
-| NAV\_SOURCE\_LINK         | Defines where navigation data is coming from (related to RMB sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.            |
-| GNSS\_SOURCE\_LINK        | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values. |
-| WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                   |
-| DEPTH\_SOURCE\_LINK       | Defines where depth data is coming from (related to DPT sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                  |
-| SPEED\_SOURCE\_LINK       | Defines where speed data is coming from (related to SPD, LOG sentences). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.            |
-| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDR sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.                |
-| SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.            |
-| COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Section <span>[5.1.6](#supportednmeasentences)</span> for more details on possible values.           |
+| NAV\_SOURCE\_LINK         | Defines where navigation data is coming from (related to RMB sentences). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.            |
+| GNSS\_SOURCE\_LINK        | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values. |
+| WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.                   |
+| DEPTH\_SOURCE\_LINK       | Defines where depth data is coming from (related to DPT sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.                  |
+| SPEED\_SOURCE\_LINK       | Defines where speed data is coming from (related to SPD, LOG sentences). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.            |
+| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDR sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.                |
+| SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.            |
+| COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.           |
 | INVERTED\_RMB\_WORKAROUND | Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software wrongly inverts them.                                                          |
 | MICRONET\_WIND\_REPEATER  | If set to 1, MicronetToNMEA will repeat the wind values on the micronet network to help in case of poor RF connection with wind tranduscer.                                        |
 
@@ -337,13 +336,13 @@ in a boat. It is more usual to get two wires with an unstable battery
 voltage between 11V and 15V. In that case, you will need a voltage
 regulator or a DC-DC converter which will be used to produce a stable 5V
 for the system. This 5V source can then be connected to the Vin pin of
-Teensy 3.5. The on-board regulator will then produce 3.3V from this
-input. When Vin pin is connected to an external source of power, you
-must not connect an USB cable to avoid short circuit between Vin and
-Vusb which are connected together on Teensy by default. The Vin pin can
-handle voltages from 3.6 to 6V but it is strongly recommended to use 5V
-here. This way, if you accidentally connect a USB cable while powering
-Vin, there will be no short circuit.
+Teensy. The on-board regulator will then produce 3.3V from this input.
+When Vin pin is connected to an external source of power, you must not
+connect an USB cable to avoid short circuit between Vin and Vusb which
+are connected together on Teensy by default. The Vin pin can handle
+voltages from 3.6 to 6V but it is strongly recommended to use 5V here.
+This way, if you accidentally connect a USB cable while powering Vin,
+there will be no heavy short circuit.
 
 ![Powering Teensy with a DC-DC converter](MicronetToNMEA_DC_Power.png)
 
@@ -428,22 +427,22 @@ are racing and using carbon sails. If the sails are between your wind
 vane and MicronetToNMEA, you will likely not receive wind data. Carbon
 disturbs RF transmissions. It is generally considered not to be a good
 idea to use wireless electronics in a carbon boat or with carbon sails.
-Fibreglass doesn’t attenuates the signal too much (only a little), so it
-is safe to attach your device inside a GRP hull.
+Fibreglass attenuates only a little the signal, so it is safe to attach
+your device inside a GRP hull.
 
 The quality of CC1101’s antenna is critical to maximize RF performance
 and operational range. Antennas provided with low cost breakout boards
 are often designed to be small at the cost of RF performance. An easy
 way to get a good quality antenna is to use a simple electrical wire
-with the adequate length (half wavelength): 173mm for 869MHz or 164mm
-for 915MHz. With such an antenna you can reach an operating range close
-to original TackTick devices.
+with the adequate length (half wavelength: 173mm for 869MHz or 164mm for
+915MHz). With such an antenna you can reach an operating range close to
+original TackTick devices.
 
 ### Magnetic compass disturbances
 
 If your are using LSM303 to get magnetic heading, it is very important
 to put your MicronetToNMEA assembly far from other electrical devices,
-especially those carrying a bit of power. This can highly disturbs
+especially those carrying a bit of power. This can highly disturb
 magnetic compass. As an example, a running 24" TV monitor can deviate
 the compass by 20° at 50cm and still a few degrees at 1m. Also, metal
 must be avoided : it deviates magnetic field. The bigger the piece of
@@ -464,6 +463,16 @@ power supply. Once calibrated, get it back to your boat and fix it in a
 proper place, following the above recommendations. This should give good
 results.
 
+### CPU frequency and power consumption
+
+The latest Teensy boards have powerful CPUs running up to 600MHz. This
+power has a cost : power consumption. MicronetToNMEA doesn’t need so
+much power so it is advised to reduce the CPU speed to 24MHz. It will
+significantly reduce power consumption. On a system with a Teensy
+4.0@24MHz, a NEO M8M GNSS, a HC-06 Bluetooth transceiver, a CC1101, a
+LSM303DLH and a oversized DC-DC converter, the complete power
+consumption at 12V connector is averaging around 850mW (700-1000mW).
+
 # Usage
 
 ## Configuring MicronetToNMEA
@@ -475,8 +484,8 @@ configuration menu displayed on the serial console. By default, this
 console is connected to the USB serial port of Teensy. So you just have
 to find a terminal software to connect to it. A good open source
 terminal is [Tera Term](http://www.teraterm.org/). Note that when using
-Teensy USB connection, you can use any baud-rate, this as no real
-effect.
+Teensy USB connection, you can use any baud-rate on PC side, this as no
+real effect.
 
 At the first power-up, before having configured MicronetToNMEA, console
 should go directly to the configuration menu. If this is not the case,
@@ -497,6 +506,7 @@ The menu should look like this :
     5 - Scan surrounding Micronet traffic
     6 - Calibrate RF frequency
     7 - Calibrate magnetometer
+    8 - Test RF quality
 
 ### Attaching your Micronet network to MicronetToNMEA
 
@@ -505,12 +515,12 @@ to recognize it and to discard other devices that may be in you
 vicinity. You will typically find several networks when in a marina with
 many sailing boats. To identify your network, you have to power-up your
 Micronet display and to ensure that your master device, the one you used
-to power-up the network, is close to MicronetToNMEA. Once done, enter
-*"2 - Scan Micronet networks"* menu by pressing 2 in the console. This
-will start a five second scanning sequence which listens to every
-network in the area. At the end of this sequence, every network found
-will be listed in the console. If there are several networks, they are
-listed in decreasing order of power.
+to power-up the network, is close to MicronetToNMEA, let say, 2 or 3
+meters maximum. Once done, enter *"2 - Scan Micronet networks"* menu by
+pressing 2 in the console. This will start a five second scanning
+sequence which listens to every network in the area. At the end of this
+sequence, every network found will be listed in the console. If there
+are several networks, they are listed in decreasing order of power.
 
     Network - 83038F54 (very strong)
     Network - 810278A6 (low)
@@ -606,6 +616,29 @@ however be very different.
 Once achieved, just press *\<ESC\>* and tell MicronetToNMEA to save the
 value in EEPROM. Your compass is calibrated.
 
+### Testing RF performance
+
+Menu *"8 - Test RF quality"* will help you to evaluate the quality of
+the connection with each Micronet devices individually. This will be
+critical to fix your MicronetToNMEA assembly at the right place in your
+boat. When entering this menu, you will see the list of devices of your
+network with a indicator of the connection quality :
+
+    81071E60 Strength=10.60 (Excellent) Dual Display, MASTER
+    01071E77 Strength=11.40 (Excellent) Hull Transmitter
+    81037082 Strength=3.40 (Medium) Dual Display
+    83037737 Strength=3.80 (Medium) Analog Wind Display
+    830AB252 Strength=7.80 (Very Good) Analog Wind Display
+
+The list is refreshed every second and you can ensure that every device
+has a correct connection with MicronetToNMEA. The problematic device is
+generally the wind transducer which is shadowed by the mast. Placing
+MicronetToNMEA outside this shadow will ensure a good wind reception. If
+some of your other Micronet devices have difficulties to receive wind
+data, you can also configure MicronetToNMEA to repeat wind data to the
+complete network by enabling MICRONET\_WIND\_REPEATER option in
+BoardConfig.h (See chapter [3.3](#compile-time-configuration)).
+
 ### Starting NMEA conversion
 
 Menu *"4 - Start NMEA conversion"* actually start Micronet/NMEA
@@ -626,11 +659,13 @@ just pressing *\<ESC\>* in the console.
 Here is a summary of all actions realized by MicronetToNMEA in this
 mode, with the default configuration :
 
-  - Collect and decode NMEA sentences from GNSS\_NMEA link
+  - Collect and decode GNSS related NMEA sentences from GNSS\_NMEA link
 
-  - Collect and decode NMEA sentences from NMEA\_EXT link
+  - Collect and decode navigation related NMEA sentences from NMEA\_EXT
+    link
 
-  - Forward NMEA sentences from GNSS\_NMEA link to NMEA\_EXT link
+  - Forward GNSS related NMEA sentences from GNSS\_NMEA link to
+    NMEA\_EXT link
 
   - Collect and decode data from Micronet devices
 
@@ -638,13 +673,13 @@ mode, with the default configuration :
 
   - Send all data collected from Micronet devices to NMEA\_EXT link
 
-  - Calculate heading from LSM303DLH(C), if any
+  - Calculate heading from LSM303DLH(C)
 
   - Send heading data to Micronet network and NMEA\_EXT link
 
 It is important to note that the configuration can change this sequence
 and the way MicronetToNMEA decodes/forwards data. See chapter
-<span>[5.1.6](#supportednmeasentences)</span> for more details.
+<span>[5.1.7](#supportednmeasentences)</span> for more details.
 
 ### NMEA sentences and data flow
 
@@ -681,19 +716,19 @@ corresponding Micronet data and the possible source links:
 
 <div id="table:nmeasentences">
 
-| **Sentence** |    **Action**    | **Corresponding Micronet data** | **Possible sources**                         |
-| :----------- | :--------------: | :-----------------------------: | :------------------------------------------- |
-| RMB          |     Decoded      |        XTE DTW BTW VMGWP        | LINK\_NMEA\_EXT                              |
-| RMC          | Decoded/Forwared |            TIME DATE            | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| GGA          | Decoded/Forwared |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| VTG          | Decoded/Forwared |             COG SOG             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| MWV          | Decoded/Encoded  |         AWA AWS TWA TWS         | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| DPT          | Decoded/Encoded  |               DPT               | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| MTW          | Decoded/Encoded  |               STP               | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| VLW          | Decoded/Encoded  |            LOG TRIP             | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| VHW          | Decoded/Encoded  |               SPD               | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| HDG          | Decoded/Encoded  |               HDG               | LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS |
-| XDR          |     Decoded      |               VCC               | LINK\_MICRONET                               |
+| **Sentence** |    **Action**     | **Corresponding Micronet data** | **Possible sources**                         |
+| :----------- | :---------------: | :-----------------------------: | :------------------------------------------- |
+| RMB          |      Decoded      |        XTE DTW BTW VMGWP        | LINK\_NMEA\_EXT                              |
+| RMC          | Decoded/Forwarded |            TIME DATE            | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
+| GGA          | Decoded/Forwarded |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
+| VTG          | Decoded/Forwarded |             COG SOG             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
+| MWV          |  Decoded/Encoded  |         AWA AWS TWA TWS         | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| DPT          |  Decoded/Encoded  |               DPT               | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| MTW          |  Decoded/Encoded  |               STP               | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| VLW          |  Decoded/Encoded  |            LOG TRIP             | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| VHW          |  Decoded/Encoded  |               SPD               | LINK\_MICRONET LINK\_NMEA\_EXT               |
+| HDG          |  Decoded/Encoded  |               HDG               | LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS |
+| XDR          |      Decoded      |               VCC               | LINK\_MICRONET                               |
 
 Supported NMEA sentences
 

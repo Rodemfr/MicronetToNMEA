@@ -6,7 +6,7 @@ MicronetToNMEA is a Teensy/Arduino project aiming at converting data from Raymar
 
 The project requires the following hardware :
 - A boat with Raymarine Wireless system. (The boat is not strictly required)
-- A Teensy 3.5 board. Teensy 3.6, 4.0 & 4.1 have also been successfully tested.
+- A Teensy 3.5, 3.6, 4.0 or 4.1 board.
 - A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU. Take care to order a board with an antenna for 868 or 915MHz operations, not 433MHz.
 
 Optionally, you can add :
@@ -23,7 +23,7 @@ better go to your nearest Raymarine/Tacktick reseller.
 ## Author & Contributors
 
 * **Ronan Demoment** - [Rodemfr](https://github.com/Rodemfr) - Main author 
-* **Dietmar Warning** - [dwarning](https://github.com/dwarning) - LSM303 Compass and bugfixes
+* **Dietmar Warning** - [dwarning](https://github.com/dwarning) - LSM303 Compass, bugfixes & testing.
 * **[j-lang](https://github.com/j-lang)** - UBLOX M8N Initialization code
 
 ## License
@@ -32,7 +32,7 @@ MicronetToNMEA is licensed under GPLv3. See LICENSE.txt file for more details.
 
 ## Compilation
 
-The source code compiles with [Arduino IDE](https://www.arduino.cc/en/software) extended by [Teensyduino](https://www.pjrc.com/teensy/td_download.html) software package. You just have to configure the right target (Teensy 3.5@120MHz) and to import the required libraries (TeensyTimerTool). If you plan to develop/extend MicronetToNMEA, you probably should use a more professional IDE like [Sloeber](http://eclipse.baeyens.it/). It is way beyond Arduino IDE in term of productivity but is harder to set up.
+The source code compiles with [Arduino IDE](https://www.arduino.cc/en/software) extended by [Teensyduino](https://www.pjrc.com/teensy/td_download.html) software package. You just have to configure the right Teensy board and to import the required libraries (TeensyTimerTool). If you plan to develop/extend MicronetToNMEA, you probably should use a more professional IDE like [Sloeber](http://eclipse.baeyens.it/). It is way beyond Arduino IDE in term of productivity but is harder to set up.
 
 ## Acknowledgments
 
@@ -82,7 +82,7 @@ If you want to use a different MCU board and/or pinout, you have to edit the rel
 
 ## Quick Start & general guidance
 
-Power up your Teensy/Arduino board through USB. Use a terminal software like [Tera Term](http://www.teraterm.org/) to reach the menu on the serial console. Baudrate is meaningless on a USB bridge.
+Power up your Teensy board through USB. Use a terminal software like [Tera Term](http://www.teraterm.org/) to reach the menu on the serial console. Baudrate is meaningless on a USB bridge.
 
 Power up your Micronet network.
 
