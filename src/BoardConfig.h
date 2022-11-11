@@ -96,7 +96,7 @@
 
 // The console to use for menu and NMEA output
 #define CONSOLE  USB_NMEA
-#define NMEA_EXT WIRED_NMEA
+#define NMEA_EXT USB_NMEA
 
 // Defines with data comes from which link
 // LINK_NMEA_EXT -> data comes from external NMEA link (WIRED_NMEA)
