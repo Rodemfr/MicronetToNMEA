@@ -78,7 +78,7 @@
 #endif
 
 // USB UART params
-#define USB_NMEA     Serial
+#define USB_NMEA     SerialUSB
 #define USB_BAUDRATE 115200
 
 // Wired UART params
@@ -96,7 +96,7 @@
 
 // The console to use for menu and NMEA output
 #define CONSOLE  USB_NMEA
-#define NMEA_EXT USB_NMEA
+#define NMEA_EXT WIRED_NMEA
 
 // Defines with data comes from which link
 // LINK_NMEA_EXT -> data comes from external NMEA link (WIRED_NMEA)
@@ -104,24 +104,24 @@
 // LINK_MICRONET -> data comes from Micronet network
 // LINK_COMPASS -> data comes from LSM303 (NAVCOMPASS_I2C)
 #define NAV_SOURCE_LINK     LINK_NMEA_EXT  // Navigation data (RMB)
-#define GNSS_SOURCE_LINK    LINK_NMEA_GNSS // Positionning data (RMC, GGA, VTG)
-#define WIND_SOURCE_LINK    LINK_MICRONET  // Wind data (MWV)
-#define DEPTH_SOURCE_LINK   LINK_MICRONET  // Depth data (DPT)
-#define SPEED_SOURCE_LINK   LINK_MICRONET  // Speed data (SPD, LOG)
-#define VOLTAGE_SOURCE_LINK LINK_MICRONET  // Battery voltage data (XDG)
-#define SEATEMP_SOURCE_LINK LINK_MICRONET  // Temperature data (STP)
-#define COMPASS_SOURCE_LINK LINK_COMPASS   // Heading data (HDG)
+#define GNSS_SOURCE_LINK    LINK_NMEA_EXT // Positionning data (RMC, GGA, VTG)
+#define WIND_SOURCE_LINK    LINK_NMEA_EXT  // Wind data (MWV)
+#define DEPTH_SOURCE_LINK   LINK_NMEA_EXT  // Depth data (DPT)
+#define SPEED_SOURCE_LINK   LINK_NMEA_EXT  // Speed data (SPD, LOG)
+#define VOLTAGE_SOURCE_LINK LINK_NMEA_EXT  // Battery voltage data (XDG)
+#define SEATEMP_SOURCE_LINK LINK_NMEA_EXT  // Temperature data (STP)
+#define COMPASS_SOURCE_LINK LINK_NMEA_EXT   // Heading data (HDG)
 
 // Navigation softwares can send a wrong RMB sentence and invert "FROM" and "TO" fields
 // If you see your Micronet display showing the "FROM" waypoint name instead of the "TO"
 // on the DTW & BTW pages, then change the following configuration key to 1
-#define INVERTED_RMB_WORKAROUND 0
+#define INVERTED_RMB_WORKAROUND 1
 
 // In case your displays would have difficulties to receive data from the Tacktick wind
 // transducer because of a poor signal/noise ratio, you can ask MicronetToNMEA to repeat
 // the values of AWA & AWS on the network by setting MICRONET_WIND_REPEATER to 1. Set it
 // to 0 else.
-#define MICRONET_WIND_REPEATER 0
+#define MICRONET_WIND_REPEATER 1
 
 /***************************************************************************/
 /*                                Types                                    */

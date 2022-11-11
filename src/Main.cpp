@@ -637,7 +637,7 @@ void MenuConvertToNmea()
 		while (NMEA_EXT.available() > 0)
 		{
 			c = NMEA_EXT.read();
-			if ((CONSOLE == NMEA_EXT) && (c == 0x1b))
+			if (((void *)(&CONSOLE) == (void *)(&NMEA_EXT)) && (c == 0x1b))
 			{
 				CONSOLE.println("ESC key pressed, stopping conversion.");
 				exitNmeaLoop = true;
@@ -657,7 +657,7 @@ void MenuConvertToNmea()
 			}
 		}
 
-		if (CONSOLE != NMEA_EXT)
+		if ((void *)(&CONSOLE) != (void *)(&NMEA_EXT))
 		{
 			while (CONSOLE.available() > 0)
 			{

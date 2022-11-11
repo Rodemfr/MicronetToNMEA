@@ -124,9 +124,10 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 			txMessage.startTime_us = micronetCodec->GetNextStartOfNetwork(&networkMap) - 1000;
 			messageFifo->Push(txMessage);
 
+			latestSignalStrength = micronetCodec->CalculateSignalStrength(message);
+
 			for (int i = 0; i < NUMBER_OF_VIRTUAL_SLAVES; i++)
 			{
-				latestSignalStrength = micronetCodec->CalculateSignalStrength(message);
 				txSlot = micronetCodec->GetSyncTransmissionSlot(&networkMap, deviceId + i);
 				if (txSlot.start_us != 0)
 				{
