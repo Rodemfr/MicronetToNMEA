@@ -598,7 +598,7 @@ void MenuConvertToNmea()
 	// Configure Micronet device according to board configuration
 	ConfigureSlaveDevice(micronetDevice);
 
-	// We keep frequency tracking disabled for now since issues are reported by some users
+	// Enable frequency tracking to keep master's frequency as reference in case of XTAL/PLL drift
 	gRfReceiver.EnableFrequencyTracking(gConfiguration.networkId);
 
 	gRxMessageFifo.ResetFifo();
@@ -674,6 +674,8 @@ void MenuConvertToNmea()
 #endif
 
 	} while (!exitNmeaLoop);
+
+	gRfReceiver.DisableFrequencyTracking();
 }
 
 void MenuScanAllMicronetTraffic()
@@ -852,6 +854,7 @@ void MenuCalibrateRfFrequency()
 	CONSOLE.println("Press ESC key at any time to stop tuning and come back to menu.");
 	CONSOLE.println("");
 
+	gRfReceiver.DisableFrequencyTracking();
 	gRfReceiver.SetFrequencyOffset(0);
 	gRfReceiver.SetBandwidth(RfDriver::RF_BANDWIDTH_LOW);
 	gRfReceiver.SetFrequency(currentFreq_MHz);
