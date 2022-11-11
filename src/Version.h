@@ -24,111 +24,27 @@
  ***************************************************************************
  */
 
-#ifndef DATABRIDGE_H_
-#define DATABRIDGE_H_
+#ifndef VERSION_H_
+#define VERSION_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <stdint.h>
-#include "NavigationData.h"
-
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define NMEA_SENTENCE_MAX_LENGTH   128
-#define NMEA_SENTENCE_HISTORY_SIZE 24
+// MicronetToNMEA SW version
+#define MNET2NMEA_SW_MAJOR_VERSION 1
+#define MNET2NMEA_SW_MINOR_VERSION 3
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef enum {
-		LINK_NMEA_EXT,
-		LINK_NMEA_GNSS,
-		LINK_MICRONET,
-		LINK_COMPASS
-} LinkId_t;
-
-typedef enum {
-	NMEA_ID_UNKNOWN,
-	NMEA_ID_RMB,
-	NMEA_ID_RMC,
-	NMEA_ID_GGA,
-	NMEA_ID_VTG,
-	NMEA_ID_MWV,
-	NMEA_ID_DPT,
-	NMEA_ID_VHW,
-	NMEA_ID_HDG
-} NmeaId_t;
-
-typedef struct {
-	uint32_t vwr;
-	uint32_t vwt;
-	uint32_t dpt;
-	uint32_t mtw;
-	uint32_t vlw;
-	uint32_t vhw;
-	uint32_t hdg;
-	uint32_t vcc;
-} NmeaTimeStamps_t;
-
-#define NMEA_SENTENCE_MIN_PERIOD_MS 500
-
-class DataBridge
-{
-public:
-	DataBridge();
-	virtual ~DataBridge();
-
-	void PushNmeaChar(char c, LinkId_t sourceLink);
-	void UpdateCompassData(float heading_deg);
-	void UpdateMicronetData();
-
-private:
-	static const uint8_t asciiTable[128];
-	char nmeaExtBuffer[NMEA_SENTENCE_MAX_LENGTH];
-	char nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
-	int nmeaExtWriteIndex;
-	int nmeaGnssWriteIndex;
-	NmeaTimeStamps_t nmeaTimeStamps;
-	LinkId_t navSourceLink;
-	LinkId_t gnssSourceLink;
-	LinkId_t windSourceLink;
-	LinkId_t depthSourceLink;
-	LinkId_t speedSourceLink;
-	LinkId_t voltageSourceLink;
-	LinkId_t seaTempSourceLink;
-	LinkId_t compassSourceLink;
-
-	bool IsSentenceValid(char *nmeaBuffer);
-	NmeaId_t SentenceId(char *nmeaBuffer);
-	void DecodeRMBSentence(char *sentence);
-	void DecodeRMCSentence(char *sentence);
-	void DecodeGGASentence(char *sentence);
-	void DecodeVTGSentence(char *sentence);
-	void DecodeMWVSentence(char *sentence);
-	void DecodeDPTSentence(char *sentence);
-	void DecodeVHWSentence(char *sentence);
-	void DecodeHDGSentence(char *sentence);
-	int16_t NibbleValue(char c);
-
-	void EncodeMWV_R(NavigationData *micronetData);
-	void EncodeMWV_T(NavigationData *micronetData);
-	void EncodeDPT(NavigationData *micronetData);
-	void EncodeMTW(NavigationData *micronetData);
-	void EncodeVLW(NavigationData *micronetData);
-	void EncodeVHW(NavigationData *micronetData);
-	void EncodeHDG(NavigationData *micronetData);
-	void EncodeXDR(NavigationData *micronetData);
-
-	uint8_t AddNmeaChecksum(char *sentence);
-};
-
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
 
-#endif /* DATABRIDGE_H_ */
+#endif /* VERSION_H_ */

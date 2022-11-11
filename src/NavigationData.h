@@ -24,52 +24,103 @@
  ***************************************************************************
  */
 
-#ifndef GNSSDECODER_H_
-#define GNSSDECODER_H_
+#ifndef NAVIGATIONDATA_H_
+#define NAVIGATIONDATA_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "MenuManager.h"
-#include "MicronetMessageFifo.h"
-#include "MicronetCodec.h"
-#include "Configuration.h"
-#include "DataBridge.h"
-#include "NavigationData.h"
-#include "NavCompass.h"
-#include "RfDriver.h"
-#include "M8NDriver.h"
-#include "MicronetSlaveDevice.h"
+#include <stdint.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
+#define WAYPOINT_NAME_LENGTH  16
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
+typedef struct
+{
+	bool valid;
+	float value;
+	uint32_t timeStamp;
+} FloatValue_t;
+
+typedef struct
+{
+	bool valid;
+	uint8_t hour;
+	uint8_t minute;
+	uint32_t timeStamp;
+} TimeValue_t;
+
+typedef struct
+{
+	bool valid;
+	uint8_t day;
+	uint8_t month;
+	uint8_t year;
+	uint32_t timeStamp;
+} DateValue_t;
+
+typedef struct
+{
+	bool valid;
+	uint8_t name[WAYPOINT_NAME_LENGTH];
+	uint8_t nameLength;
+	uint32_t timeStamp;
+} WaypointName_t;
+
 /***************************************************************************/
-/*                               Globals                                   */
+/*                               Classes                                   */
 /***************************************************************************/
 
-extern RfDriver gRfReceiver;
-extern MenuManager gMenuManager;
-extern MicronetMessageFifo gRxMessageFifo;
-extern MicronetCodec gMicronetCodec;
-extern Configuration gConfiguration;
-extern DataBridge gDataBridge;
-extern NavigationData gNavData;
-extern NavCompass gNavCompass;
-extern M8NDriver gM8nDriver;
-extern MicronetSlaveDevice gMicronetDevice1;
-extern MicronetSlaveDevice gMicronetDevice2;
-extern MicronetSlaveDevice gMicronetDevice3;
-extern MicronetSlaveDevice gMicronetDevice4;
+class NavigationData
+{
+public:
+	NavigationData();
+	virtual ~NavigationData();
 
-/***************************************************************************/
-/*                              Prototypes                                 */
-/***************************************************************************/
+	void UpdateValidity();
 
-#endif /* GNSSDECODER_H_ */
+	FloatValue_t spd_kt;
+	FloatValue_t awa_deg;
+	FloatValue_t aws_kt;
+	FloatValue_t twa_deg;
+	FloatValue_t tws_kt;
+	FloatValue_t dpt_m;
+	FloatValue_t vcc_v;
+	FloatValue_t log_nm;
+	FloatValue_t trip_nm;
+	FloatValue_t stp_degc;
+
+	TimeValue_t time;
+	DateValue_t date;
+	FloatValue_t latitude_deg;
+	FloatValue_t longitude_deg;
+	FloatValue_t cog_deg;
+	FloatValue_t sog_kt;
+	FloatValue_t xte_nm;
+	FloatValue_t dtw_nm;
+	FloatValue_t btw_deg;
+	WaypointName_t waypoint;
+	FloatValue_t vmgwp_kt;
+
+	FloatValue_t hdg_deg;
+
+	bool calibrationUpdated;
+	float waterSpeedFactor_per;
+	float waterTemperatureOffset_degc;
+	float depthOffset_m;
+	float windSpeedFactor_per;
+	float windDirectionOffset_deg;
+	float headingOffset_deg;
+	float magneticVariation_deg;
+	float windShift_min;
+};
+
+#endif /* NAVIGATIONDATA_H_ */

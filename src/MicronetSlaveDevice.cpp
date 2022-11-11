@@ -30,12 +30,11 @@
 
 #include "MicronetSlaveDevice.h"
 #include "Globals.h"
+#include "BoardConfig.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
-
-#define NETWORK_TIMEOUT_MS 3000
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -53,10 +52,11 @@
 /*                              Functions                                  */
 /***************************************************************************/
 
-MicronetSlaveDevice::MicronetSlaveDevice() :
-		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0), firstSlot(0), networkStatus(NETWORK_STATUS_NOT_FOUND), lastNetworkMessage_us(0)
+MicronetSlaveDevice::MicronetSlaveDevice(MicronetCodec *micronetCodec) :
+		deviceId(0), networkId(0), dataFields(0), latestSignalStrength(0)
 {
 	memset(&networkMap, 0, sizeof(networkMap));
+	this->micronetCodec = micronetCodec;
 }
 
 MicronetSlaveDevice::~MicronetSlaveDevice()
@@ -76,6 +76,15 @@ void MicronetSlaveDevice::SetNetworkId(uint32_t networkId)
 void MicronetSlaveDevice::SetDataFields(uint32_t dataFields)
 {
 	this->dataFields = dataFields;
+
+	SplitDataFields();
+}
+
+void MicronetSlaveDevice::AddDataFields(uint32_t dataFields)
+{
+	this->dataFields |= dataFields;
+
+	SplitDataFields();
 }
 
 void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo)
@@ -83,63 +92,105 @@ void MicronetSlaveDevice::ProcessMessage(MicronetMessage_t *message, MicronetMes
 	TxSlotDesc_t txSlot;
 	MicronetMessage_t txMessage;
 
-	if ((networkStatus == NETWORK_STATUS_FOUND) && ((micros() - lastNetworkMessage_us) > NETWORK_TIMEOUT_MS * 1000))
+	if ((micronetCodec->GetNetworkId(message) == networkId) && (micronetCodec->VerifyHeaderCrc(message)))
 	{
-		networkStatus = NETWORK_STATUS_NOT_FOUND;
-		txMessage.action = MICRONET_ACTION_RF_ACTIVE_POWER;
-		txMessage.startTime_us = micros() + 100000;
-		messageFifo->Push(txMessage);
-	}
-
-	if ((micronetCodec.GetNetworkId(message) == networkId) && (micronetCodec.VerifyHeaderCrc(message)))
-	{
-		if (micronetCodec.GetMessageId(message) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
+		if (micronetCodec->GetMessageId(message) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
 		{
-			networkStatus = NETWORK_STATUS_FOUND;
-			lastNetworkMessage_us = message->startTime_us;
-			firstSlot = message->endTime_us;
-			micronetCodec.GetNetworkMap(message, &networkMap);
+			micronetCodec->GetNetworkMap(message, &networkMap);
 
+			// We schedule the low power mode of CC1101 just at the end of the network cycle
 			txMessage.action = MICRONET_ACTION_RF_LOW_POWER;
-			txMessage.startTime_us = micronetCodec.GetEndOfNetwork(&networkMap);
+			txMessage.startTime_us = micronetCodec->GetEndOfNetwork(&networkMap);
+			txMessage.len = 0;
 			messageFifo->Push(txMessage);
 
+			// We schedule exit of CC1101's low power mode 1ms before actual start of the next network cycle.
+			// It will let time for the PLL calibration loop to complete.
 			txMessage.action = MICRONET_ACTION_RF_ACTIVE_POWER;
-			txMessage.startTime_us = micronetCodec.GetNextStartOfNetwork(&networkMap) - 500;
+			txMessage.startTime_us = micronetCodec->GetNextStartOfNetwork(&networkMap) - 1000;
+			txMessage.len = 0;
 			messageFifo->Push(txMessage);
 
-			latestSignalStrength = micronetCodec.CalculateSignalStrength(message);
-			txSlot = micronetCodec.GetSyncTransmissionSlot(&networkMap, deviceId);
-			if (txSlot.start_us != 0)
+			latestSignalStrength = micronetCodec->CalculateSignalStrength(message);
+
+			for (int i = 0; i < NUMBER_OF_VIRTUAL_SLAVES; i++)
 			{
-				// TODO : move NavigationData to MicronetCodec
-				uint32_t payloadLength = micronetCodec.EncodeDataMessage(&txMessage, latestSignalStrength, networkId, deviceId, &gNavData,
-						dataFields);
-				if (txSlot.payloadBytes < payloadLength)
+				txSlot = micronetCodec->GetSyncTransmissionSlot(&networkMap, deviceId + i);
+				if (txSlot.start_us != 0)
 				{
-					txSlot = micronetCodec.GetAsyncTransmissionSlot(&networkMap);
-					micronetCodec.EncodeSlotUpdateMessage(&txMessage, latestSignalStrength, networkId, deviceId, payloadLength);
+					uint32_t payloadLength = micronetCodec->EncodeDataMessage(&txMessage, latestSignalStrength,
+							networkId, deviceId + i, splitDataFields[i]);
+					if (txSlot.payloadBytes < payloadLength)
+					{
+						txSlot = micronetCodec->GetAsyncTransmissionSlot(&networkMap);
+						micronetCodec->EncodeSlotUpdateMessage(&txMessage, latestSignalStrength, networkId, deviceId + i,
+								payloadLength);
+					}
 				}
-			}
-			else
-			{
-				txSlot = micronetCodec.GetAsyncTransmissionSlot(&networkMap);
-				micronetCodec.EncodeSlotRequestMessage(&txMessage, latestSignalStrength, networkId, deviceId, micronetCodec.GetDataMessageLength(dataFields));
-			}
+				else
+				{
+					txSlot = micronetCodec->GetAsyncTransmissionSlot(&networkMap);
+					micronetCodec->EncodeSlotRequestMessage(&txMessage, latestSignalStrength, networkId, deviceId + i,
+							micronetCodec->GetDataMessageLength(splitDataFields[i]));
+				}
 
-			txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
-			txMessage.startTime_us = txSlot.start_us;
-			messageFifo->Push(txMessage);
-		} else {
-			// TODO : look for the best place where to put Nav data
-			if (gMicronetCodec.DecodeMessage(message, &gNavData))
-			{
-				txSlot = micronetCodec.GetAckTransmissionSlot(&networkMap, deviceId);
-				micronetCodec.EncodeAckParamMessage(&txMessage, latestSignalStrength, networkId, deviceId);
 				txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
 				txMessage.startTime_us = txSlot.start_us;
 				messageFifo->Push(txMessage);
 			}
 		}
+		else
+		{
+			if (micronetCodec->DecodeMessage(message))
+			{
+				for (int i = 0; i < NUMBER_OF_VIRTUAL_SLAVES; i++)
+				{
+					txSlot = micronetCodec->GetAckTransmissionSlot(&networkMap, deviceId + i);
+					micronetCodec->EncodeAckParamMessage(&txMessage, latestSignalStrength, networkId, deviceId + i);
+					txMessage.action = MICRONET_ACTION_RF_NO_ACTION;
+					txMessage.startTime_us = txSlot.start_us;
+					messageFifo->Push(txMessage);
+				}
+			}
+		}
 	}
+}
+
+// Distribute requested data fields to the virtual slave devices
+// This distribution is made to balance the size of the data message of each slave
+void MicronetSlaveDevice::SplitDataFields()
+{
+	// Clear current split data fields
+	for (int i = 0; i < NUMBER_OF_VIRTUAL_SLAVES; i++)
+	{
+		splitDataFields[i] = 0;
+	}
+
+	// Spread fields onto the virtual slave devices
+	for (int i = 0; i < 32; i++)
+	{
+		if ((dataFields >> i) & 0x1)
+		{
+			splitDataFields[GetShortestSlave()] |= (1 << i);
+		}
+	}
+}
+
+// Returns the index of the virtual slave with the shortest data message
+uint8_t MicronetSlaveDevice::GetShortestSlave()
+{
+	uint8_t minSlaveSize = 255;
+	uint32_t minSlaveIndex = 0;
+
+	for (int i = 0; i < NUMBER_OF_VIRTUAL_SLAVES; i++)
+	{
+		uint8_t size = micronetCodec->GetDataMessageLength(splitDataFields[i]);
+		if (size < minSlaveSize)
+		{
+			minSlaveSize = size;
+			minSlaveIndex = i;
+		}
+	}
+
+	return minSlaveIndex;
 }

@@ -78,7 +78,7 @@
 #endif
 
 // USB UART params
-#define USB_NMEA     Serial
+#define USB_NMEA     SerialUSB
 #define USB_BAUDRATE 115200
 
 // Wired UART params
@@ -121,7 +121,7 @@
 // transducer because of a poor signal/noise ratio, you can ask MicronetToNMEA to repeat
 // the values of AWA & AWS on the network by setting MICRONET_WIND_REPEATER to 1. Set it
 // to 0 else.
-#define MICRONET_WIND_REPEATER 0
+#define MICRONET_WIND_REPEATER 1
 
 /***************************************************************************/
 /*                                Types                                    */

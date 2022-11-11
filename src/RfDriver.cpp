@@ -1,21 +1,60 @@
-/*
- * RfDriver.cpp
- *
- *  Created on: 18 sept. 2021
- *      Author: Ronan
+/***************************************************************************
+ *                                                                         *
+ * Project:  MicronetToNMEA                                                *
+ * Purpose:  Driver for CC1101                                             *
+ * Author:   Ronan Demoment heavily based on ELECHOUSE's driver            *
+ *                                                                         *
+ ***************************************************************************
+ *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************
  */
+
+/***************************************************************************/
+/*                              Includes                                   */
+/***************************************************************************/
 
 #include "RfDriver.h"
 #include "BoardConfig.h"
 #include "Globals.h"
 #include "Micronet.h"
-#include <Arduino.h>
 
+#include <Arduino.h>
 #include <TeensyTimerTool.h>
 
 using namespace TeensyTimerTool;
 
+/***************************************************************************/
+/*                              Constants                                  */
+/***************************************************************************/
+
 #define CC1101_FIFO_MAX_SIZE 60
+
+/***************************************************************************/
+/*                             Local types                                 */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                           Local prototypes                              */
+/***************************************************************************/
+
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
 
 OneShotTimer timerInt;
 
@@ -27,9 +66,13 @@ MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
 MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
 MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_SYNC_BYTE };
 
+/***************************************************************************/
+/*                              Functions                                  */
+/***************************************************************************/
+
 RfDriver::RfDriver() :
-		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_mHz(0), freqTrackingNID(
-				0)
+		messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_MHz(
+				0), freqTrackingNID(0)
 {
 	memset(transmitList, 0, sizeof(transmitList));
 }
@@ -45,7 +88,7 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 		return false;
 	}
 
-	this->frequencyOffset_mHz = frequencyOffset_mHz;
+	this->frequencyOffset_MHz = frequencyOffset_mHz;
 	this->messageFifo = messageFifo;
 	rfDriver = this;
 
@@ -54,7 +97,7 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 	cc1101Driver.Init();
 	cc1101Driver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_mHz); // Here you can set your basic frequency. The lib calculates the frequency automatically (default = 433.92).The cc1101 can: 300-348 MHZ, 387-464MHZ and 779-928MHZ. Read More info from datasheet.
 	cc1101Driver.SetDeviation(MICRONET_RF_DEVIATION_KHZ); // Set the Frequency deviation in kHz. Value from 1.58 to 380.85. Default is 47.60 kHz.
-	cc1101Driver.SetRate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
+	cc1101Driver.SetBitrate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
 	cc1101Driver.SetBw(250);
 	cc1101Driver.SetSyncWord(0x55, 0x99); // Set sync word. Must be the same for the transmitter and receiver. (Syncword high, Syncword low)
 	cc1101Driver.SetLengthConfig(0); // 0 = Fixed packet length mode. 1 = Variable packet length mode. 2 = Infinite packet length mode. 3 = Reserved
@@ -66,37 +109,44 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
 
 void RfDriver::SetFrequencyOffset(float offset_MHz)
 {
-	frequencyOffset_mHz = offset_MHz;
+	frequencyOffset_MHz = offset_MHz;
 }
 
-void RfDriver::SetFrequency(float freq_MHz)
+void RfDriver::SetFrequency(float frequency_MHz)
 {
-	cc1101Driver.SetFrequency(freq_MHz + frequencyOffset_mHz);
+	cc1101Driver.SetFrequency(frequency_MHz + frequencyOffset_MHz);
 }
 
-void RfDriver::SetDeviation(float freq_KHz)
+void RfDriver::SetBandwidth(RfBandwidth_t bandwidth)
 {
-	cc1101Driver.SetDeviation(freq_KHz);
+	switch (bandwidth)
+	{
+	case RF_BANDWIDTH_LOW:
+		cc1101Driver.SetBw(95);
+		break;
+	case RF_BANDWIDTH_MEDIUM:
+		cc1101Driver.SetBw(125);
+		break;
+	default:
+		cc1101Driver.SetBw(250);
+		break;
+	}
+
 }
 
-void RfDriver::SetBandwidth(float bw_KHz)
-{
-	cc1101Driver.SetBw(bw_KHz);
-}
-
-void RfDriver::GDO0Callback()
+void RfDriver::RfIsr()
 {
 	if ((rfState == RF_STATE_TX_TRANSMIT) || (rfState == RF_STATE_TX_LAST_TRANSMIT))
 	{
-		GDO0TXCallback();
+		RfIsr_Tx();
 	}
 	else
 	{
-		GDO0RXCallback();
+		RfIsr_Rx();
 	}
 }
 
-void RfDriver::GDO0TXCallback()
+void RfDriver::RfIsr_Tx()
 {
 	if (rfState == RF_STATE_TX_TRANSMIT)
 	{
@@ -128,7 +178,7 @@ void RfDriver::GDO0TXCallback()
 	}
 }
 
-void RfDriver::GDO0RXCallback()
+void RfDriver::RfIsr_Rx()
 {
 	static MicronetMessage_t message;
 	static int dataOffset;
@@ -178,7 +228,7 @@ void RfDriver::GDO0RXCallback()
 	}
 
 	// Are there new bytes in the FIFO ?
-	while ((nbBytes > 0) && ((dataOffset < packetLength) || (packetLength < 0)))
+	if ((nbBytes > 0) && ((dataOffset < packetLength) || (packetLength < 0)))
 	{
 		// Yes : read them
 		if (dataOffset + nbBytes > MICRONET_MAX_MESSAGE_LENGTH)
@@ -209,8 +259,6 @@ void RfDriver::GDO0RXCallback()
 				return;
 			}
 		}
-
-		nbBytes = cc1101Driver.GetRxFifoLevel();
 	}
 
 	if ((dataOffset < packetLength) || (packetLength < 0))
@@ -226,14 +274,18 @@ void RfDriver::GDO0RXCallback()
 	message.startTime_us = startTime_us;
 	message.endTime_us = startTime_us + PREAMBLE_LENGTH_IN_US + packetLength * BYTE_LENGTH_IN_US + GUARD_TIME_IN_US;
 	message.action = MICRONET_ACTION_RF_NO_ACTION;
-	messageFifo->Push(message);
+	messageFifo->PushIsr(message);
 
 	// Only perform frequency tracking if the feature has been explicitly enabled
 	if (freqTrackingNID != 0)
 	{
-		// Only track if message is from master and for out network
-		if ((message.data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
-				&& (gMicronetCodec.GetNetworkId(&message) == freqTrackingNID))
+		unsigned int networkId = message.data[MICRONET_NUID_OFFSET];
+		networkId = (networkId << 8) | message.data[MICRONET_NUID_OFFSET + 1];
+		networkId = (networkId << 8) | message.data[MICRONET_NUID_OFFSET + 2];
+		networkId = (networkId << 8) | message.data[MICRONET_NUID_OFFSET + 3];
+
+		// Only track if message is from the master of our network
+		if ((message.data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST) && (networkId == freqTrackingNID))
 		{
 			cc1101Driver.UpdateFreqOffset();
 		}
@@ -273,11 +325,18 @@ void RfDriver::Transmit(MicronetMessage_t *message)
 		transmitList[transmitIndex].action = message->action;
 		transmitList[transmitIndex].startTime_us = message->startTime_us;
 		transmitList[transmitIndex].len = message->len;
-		memcpy(transmitList[transmitIndex].data, message->data, message->len);
+		if ((message->len > 0) && (message->len <= MICRONET_MAX_MESSAGE_LENGTH))
+		{
+			memcpy(transmitList[transmitIndex].data, message->data, message->len);
+		}
+		else
+		{
+			message->len = 0;
+		}
 	}
-	interrupts();
 
 	ScheduleTransmit();
+	interrupts();
 }
 
 void RfDriver::ScheduleTransmit()
@@ -382,9 +441,9 @@ void RfDriver::TransmitCallback()
 		nextTransmitIndex = -1;
 
 		cc1101Driver.ActivePower();
+		RestartReception();
 
 		ScheduleTransmit();
-		RestartReception();
 	}
 	else if (rfState == RF_STATE_RX_WAIT_SYNC)
 	{

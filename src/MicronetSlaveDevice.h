@@ -40,15 +40,11 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+#define NUMBER_OF_VIRTUAL_SLAVES 3
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
-
-typedef enum
-{
-	NETWORK_STATUS_NOT_FOUND = 0,
-	NETWORK_STATUS_FOUND
-} NetworkStatus_t;
 
 /***************************************************************************/
 /*                               Classes                                   */
@@ -57,24 +53,27 @@ typedef enum
 class MicronetSlaveDevice
 {
 public:
-	MicronetSlaveDevice();
+	MicronetSlaveDevice(MicronetCodec *micronetCodec);
 	virtual ~MicronetSlaveDevice();
 
 	void SetDeviceId(uint32_t deviceId);
 	void SetNetworkId(uint32_t networkId);
 	void SetDataFields(uint32_t dataMask);
+	void AddDataFields(uint32_t dataMask);
+	NavigationData *GetNavigationData();
 	void ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo);
 
 private:
-	MicronetCodec micronetCodec;
+	MicronetCodec *micronetCodec;
 	MicronetCodec::NetworkMap networkMap;
 	uint32_t deviceId;
 	uint32_t networkId;
 	uint32_t dataFields;
+	uint32_t splitDataFields[NUMBER_OF_VIRTUAL_SLAVES];
 	uint8_t latestSignalStrength;
-	uint32_t firstSlot;
-	NetworkStatus_t networkStatus;
-	uint32_t lastNetworkMessage_us;
+
+	void SplitDataFields();
+	uint8_t GetShortestSlave();
 };
 
 #endif /* MICRONETSLAVEDEVICE_H_ */

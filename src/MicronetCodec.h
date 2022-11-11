@@ -74,6 +74,10 @@ typedef struct
 	uint8_t payloadBytes;
 } TxSlotDesc_t;
 
+/***************************************************************************/
+/*                               Classes                                   */
+/***************************************************************************/
+
 class MicronetCodec
 {
 public:
@@ -93,6 +97,8 @@ public:
 		TxSlotDesc_t ackSlot[MAX_DEVICES_PER_NETWORK];
 	};
 
+	NavigationData navData;
+
 	MicronetCodec();
 	virtual ~MicronetCodec();
 
@@ -105,7 +111,7 @@ public:
 	uint8_t GetHeaderCrc(MicronetMessage_t *message);
 	bool VerifyHeaderCrc(MicronetMessage_t *message);
 
-	bool DecodeMessage(MicronetMessage_t *message, NavigationData *dataSet);
+	bool DecodeMessage(MicronetMessage_t *message);
 	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap *networkMap);
 	TxSlotDesc_t GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
 	TxSlotDesc_t GetAsyncTransmissionSlot(NetworkMap *networkMap);
@@ -117,7 +123,7 @@ public:
 	float CalculateSignalFloatStrength(MicronetMessage_t *message);
 	uint8_t GetDataMessageLength(uint32_t dataFields);
 	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
-			NavigationData *navData, uint32_t dataFields);
+			uint32_t dataFields);
 	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
 			uint8_t payloadLength);
 	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
@@ -125,15 +131,15 @@ public:
 	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 	uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
 	uint8_t EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
-	void CalculateTrueWind(NavigationData *dataSet);
+	void CalculateTrueWind();
 
 private:
-	void DecodeSendDataMessage(MicronetMessage_t *message, NavigationData *dataSet);
-	void DecodeSetParameterMessage(MicronetMessage_t *message, NavigationData *dataSet);
-	int DecodeDataField(MicronetMessage_t *message, int offset, NavigationData *dataSet);
-	void UpdateMicronetData(uint8_t fieldId, int8_t value, NavigationData *dataSet);
-	void UpdateMicronetData(uint8_t fieldId, int16_t value, NavigationData *dataSet);
-	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2, NavigationData *dataSet);
+	void DecodeSendDataMessage(MicronetMessage_t *message);
+	void DecodeSetParameterMessage(MicronetMessage_t *message);
+	int DecodeDataField(MicronetMessage_t *message, int offset);
+	void UpdateMicronetData(uint8_t fieldId, int8_t value);
+	void UpdateMicronetData(uint8_t fieldId, int16_t value);
+	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
 	void WriteHeaderLengthAndCrc(MicronetMessage_t *message);
 	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
 	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);

@@ -94,6 +94,33 @@ bool MicronetMessageFifo::Push(MicronetMessage_t const &message)
 	return true;
 }
 
+bool MicronetMessageFifo::PushIsr(MicronetMessage_t const &message)
+{
+	// Check if there is space in store. If not, the message is just dropped/ignored.
+	if (nbMessages < MESSAGE_STORE_SIZE)
+	{
+		// Yes : copy message to the store and update store's status
+		store[writeIndex].action = message.action;
+		store[writeIndex].len = message.len;
+		store[writeIndex].rssi = message.rssi;
+		store[writeIndex].startTime_us = message.startTime_us;
+		store[writeIndex].endTime_us = message.endTime_us;
+		memcpy(store[writeIndex].data, message.data, message.len);
+		writeIndex++;
+		nbMessages++;
+		if (writeIndex >= MESSAGE_STORE_SIZE)
+		{
+			writeIndex = 0;
+		}
+	}
+	else
+	{
+		return false;
+	}
+
+	return true;
+}
+
 bool MicronetMessageFifo::Pop(MicronetMessage_t *message)
 {
 	// Disable interrupts to avoid race conditions
