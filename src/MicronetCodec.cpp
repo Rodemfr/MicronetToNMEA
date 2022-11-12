@@ -348,6 +348,14 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
 		navData.awa_deg.valid = true;
 		navData.awa_deg.timeStamp = millis();
 		break;
+	case MICRONET_FIELD_ID_HDG:
+		newValue = ((float) value) + navData.headingOffset_deg + navData.magneticVariation_deg;
+		if (newValue < 0.0f)
+			newValue += 360.0f;
+		navData.hdg_deg.value = newValue;
+		navData.hdg_deg.valid = true;
+		navData.hdg_deg.timeStamp = millis();
+		break;
 	case MICRONET_FIELD_ID_VCC:
 		navData.vcc_v.value = ((float) value) / 10.0f;
 		navData.vcc_v.valid = true;
@@ -520,7 +528,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_HDG) && (navData.hdg_deg.valid))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData.hdg_deg.value);
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, navData.hdg_deg.value - navData.headingOffset_deg - navData.magneticVariation_deg);
 	}
 	if ((dataFields & DATA_FIELD_AWS) && ((navData.aws_kt.valid)))
 	{
@@ -545,7 +553,7 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	}
 	if ((dataFields & DATA_FIELD_SPD) && ((navData.spd_kt.valid)))
 	{
-		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_SPD, (short) (navData.spd_kt.value * 100.0f));
+		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_SPD, (short) (navData.spd_kt.value * 100.0f / navData.waterSpeedFactor_per));
 	}
 
 	message->len = offset;
