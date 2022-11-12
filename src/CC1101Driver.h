@@ -128,7 +128,7 @@ public:
 private:
 	float rfFreq_mHz;
 	SPISettings spiSettings;
-	uint32_t lastCSHigh;
+	uint32_t nextCSHigh;
 	int freqEstArrayIndex;
 	int8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
 	int8_t currentFreqOff;
@@ -139,13 +139,13 @@ private:
 	void Calibrate(void);
 	uint8_t SpiReadChipStatusByte();
 	uint8_t SpiReadStatus(uint8_t addr);
-	void SpiStrobe(uint8_t strobe);
-	void SpiWriteReg(uint8_t addr, uint8_t value);
-	void SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t num);
+	void SpiStrobe(uint8_t strobe, uint32_t guardTime_us);
+	void SpiWriteReg(uint8_t addr, uint8_t value, uint32_t guardTime_us);
+	void SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t num, uint32_t guardTime_us);
 	uint8_t SpiReadReg(uint8_t addr);
 	void SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t num);
 	void ChipSelect();
-	void ChipDeselect();
+	void ChipDeselect(uint32_t guardTime_us);
 };
 
 #endif

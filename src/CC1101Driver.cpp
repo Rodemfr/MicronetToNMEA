@@ -132,8 +132,6 @@
 #define CC1101_PACKET_LENGTH_MODE_VARIABLE 1
 #define CC1101_PACKET_LENGTH_MODE_INFINITE 2
 
-// Minimum delay in microseconds to enforce between two CS assertions
-#define DELAY_BETWEEN_CS_US 8
 // Minimum time in microseconds for CC1101 to restart its XTAL when exiting power-down mode
 #define XTAL_RESTART_TIME_US 150
 
@@ -161,7 +159,7 @@ const uint8_t CC1101Driver::PA_TABLE[8] =
  * Initialize class attributes, SPI HW and pins
  */
 CC1101Driver::CC1101Driver() :
-		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), lastCSHigh(0), freqEstArrayIndex(0), currentFreqOff(0)
+		rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), nextCSHigh(0), freqEstArrayIndex(0), currentFreqOff(0)
 {
 	memset(freqEstArray, 0, sizeof(freqEstArray));
 
@@ -217,7 +215,7 @@ void CC1101Driver::Reset(void)
 	// Apply datasheet's procedure (�19.1.2)
 	ChipSelect();
 	delay(1);
-	ChipDeselect();
+	ChipDeselect(1);
 	delay(1);
 	ChipSelect();
 	while (digitalRead(MISO_PIN))
@@ -225,7 +223,7 @@ void CC1101Driver::Reset(void)
 	SPI.transfer(CC1101_SRES);
 	while (digitalRead(MISO_PIN))
 		;
-	ChipDeselect();
+	ChipDeselect(8);
 }
 
 /*
@@ -248,7 +246,7 @@ void CC1101Driver::Init(void)
  *   IN addr -> register address
  *   IN value -> value to be written
  */
-void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value)
+void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value, uint32_t guardTime_us)
 {
 	ChipSelect();
 
@@ -257,7 +255,7 @@ void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value)
 	SPI.transfer(addr);
 	SPI.transfer(value);
 
-	ChipDeselect();
+	ChipDeselect(guardTime_us);
 }
 
 /*
@@ -266,7 +264,7 @@ void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value)
  *   IN buffer -> pointer to the array of bytes to be written
  *   IN num -> number of bytes to be written
  */
-void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t nbBytes)
+void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t nbBytes, uint32_t guardTime_us)
 {
 	ChipSelect();
 
@@ -276,14 +274,14 @@ void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t
 	SPI.transfer(addr | WRITE_BURST);
 	SPI.transfer(buffer, nullptr, nbBytes);
 
-	ChipDeselect();
+	ChipDeselect(guardTime_us);
 }
 
 /*
  * Send a strobe command to CC1101
  *   IN strobe -> strobe command byte
  */
-void CC1101Driver::SpiStrobe(uint8_t strobe)
+void CC1101Driver::SpiStrobe(uint8_t strobe, uint32_t guardTime_us)
 {
 	ChipSelect();
 
@@ -291,7 +289,7 @@ void CC1101Driver::SpiStrobe(uint8_t strobe)
 		;
 	SPI.transfer(strobe);
 
-	ChipDeselect();
+	ChipDeselect(guardTime_us);
 }
 
 /*
@@ -308,7 +306,7 @@ uint8_t CC1101Driver::SpiReadReg(uint8_t addr)
 	SPI.transfer(addr | READ_SINGLE);
 	uint8_t value = SPI.transfer(0);
 
-	ChipDeselect();
+	ChipDeselect(0);
 
 	return value;
 }
@@ -328,7 +326,7 @@ void CC1101Driver::SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t nbByte
 	SPI.transfer(addr | READ_BURST);
 	SPI.transfer(nullptr, buffer, nbBytes);
 
-	ChipDeselect();
+	ChipDeselect(0);
 }
 
 /*
@@ -342,7 +340,7 @@ uint8_t CC1101Driver::SpiReadChipStatusByte()
 		;
 	uint8_t value = SPI.transfer(CC1101_SNOP);
 
-	ChipDeselect();
+	ChipDeselect(0);
 
 	return value;
 }
@@ -361,7 +359,7 @@ uint8_t CC1101Driver::SpiReadStatus(uint8_t addr)
 	SPI.transfer(addr | READ_BURST);
 	uint8_t value = SPI.transfer(0);
 
-	ChipDeselect();
+	ChipDeselect(0);
 
 	return value;
 }
@@ -408,9 +406,9 @@ void CC1101Driver::SetFrequency(float freq_Mhz)
 		freq0 -= 256;
 	}
 
-	SpiWriteReg(CC1101_FREQ2, freq2);
-	SpiWriteReg(CC1101_FREQ1, freq1);
-	SpiWriteReg(CC1101_FREQ0, freq0);
+	SpiWriteReg(CC1101_FREQ2, freq2, 8);
+	SpiWriteReg(CC1101_FREQ1, freq1, 8);
+	SpiWriteReg(CC1101_FREQ0, freq0, 8);
 
 	// Launch PLL calibration
 	Calibrate();
@@ -426,10 +424,10 @@ void CC1101Driver::Calibrate(void)
 	// We consider here that frequencies can not be others than the ones
 	// used by Micronet : 869.840 or 915.915 Mhz. Don't use this driver
 	// for other frequencies
-	SpiWriteReg(CC1101_TEST0, 0x09);
-	SpiWriteReg(CC1101_FSCTRL0, currentFreqOff);
+	SpiWriteReg(CC1101_TEST0, 0x09, 8);
+	SpiWriteReg(CC1101_FSCTRL0, currentFreqOff, 8);
 	// Trigger calibration
-	SpiStrobe(CC1101_SCAL);
+	SpiStrobe(CC1101_SCAL, 8);
 	// Wait for calibration to end. Can last 700-800us
 	while ((SpiReadChipStatusByte() & 0x40) != 0)
 		;
@@ -451,8 +449,8 @@ bool CC1101Driver::IsConnected(void)
  */
 void CC1101Driver::SetSyncWord(uint8_t msb, uint8_t lsb)
 {
-	SpiWriteReg(CC1101_SYNC1, msb);
-	SpiWriteReg(CC1101_SYNC0, lsb);
+	SpiWriteReg(CC1101_SYNC1, msb, 8);
+	SpiWriteReg(CC1101_SYNC0, lsb, 8);
 }
 
 /*
@@ -461,7 +459,7 @@ void CC1101Driver::SetSyncWord(uint8_t msb, uint8_t lsb)
  */
 void CC1101Driver::SetPQT(uint8_t pqt)
 {
-	SpiWriteReg(CC1101_PKTCTRL1, pqt << 5);
+	SpiWriteReg(CC1101_PKTCTRL1, pqt << 5, 8);
 }
 
 /*
@@ -473,7 +471,7 @@ void CC1101Driver::SetPQT(uint8_t pqt)
 void CC1101Driver::SetLengthConfig(uint8_t config)
 {
 	uint8_t PKTCTRL0 = SpiReadReg(CC1101_PKTCTRL0) & 0xfc;
-	SpiWriteReg(CC1101_PKTCTRL0, PKTCTRL0 | config);
+	SpiWriteReg(CC1101_PKTCTRL0, PKTCTRL0 | config, 8);
 }
 
 /*
@@ -482,7 +480,7 @@ void CC1101Driver::SetLengthConfig(uint8_t config)
  */
 void CC1101Driver::SetPacketLength(uint8_t length)
 {
-	SpiWriteReg(CC1101_PKTLEN, length);
+	SpiWriteReg(CC1101_PKTLEN, length, 8);
 }
 
 /*
@@ -519,7 +517,7 @@ void CC1101Driver::ReadRxFifo(uint8_t *buffer, int nbBytes)
  */
 void CC1101Driver::WriteTxFifo(uint8_t data)
 {
-	SpiWriteReg(CC1101_TXFIFO, data);
+	SpiWriteReg(CC1101_TXFIFO, data, 8);
 }
 
 /*
@@ -529,7 +527,7 @@ void CC1101Driver::WriteTxFifo(uint8_t data)
  */
 void CC1101Driver::WriteArrayTxFifo(uint8_t const *buffer, int nbBytes)
 {
-	SpiWriteBurstReg(CC1101_TXFIFO, buffer, nbBytes);
+	SpiWriteBurstReg(CC1101_TXFIFO, buffer, nbBytes, 8);
 }
 
 /*
@@ -537,7 +535,7 @@ void CC1101Driver::WriteArrayTxFifo(uint8_t const *buffer, int nbBytes)
  */
 void CC1101Driver::IrqOnTxFifoUnderflow()
 {
-	SpiWriteReg(CC1101_IOCFG0, 0x05);
+	SpiWriteReg(CC1101_IOCFG0, 0x05, 8);
 }
 
 /*
@@ -545,7 +543,7 @@ void CC1101Driver::IrqOnTxFifoUnderflow()
  */
 void CC1101Driver::IrqOnTxFifoThreshold()
 {
-	SpiWriteReg(CC1101_IOCFG0, 0x42);
+	SpiWriteReg(CC1101_IOCFG0, 0x42, 8);
 }
 
 /*
@@ -554,7 +552,7 @@ void CC1101Driver::IrqOnTxFifoThreshold()
  */
 void CC1101Driver::IrqOnRxFifoThreshold()
 {
-	SpiWriteReg(CC1101_IOCFG0, 0x01);
+	SpiWriteReg(CC1101_IOCFG0, 0x01, 8);
 }
 
 /*
@@ -562,7 +560,7 @@ void CC1101Driver::IrqOnRxFifoThreshold()
  */
 void CC1101Driver::SetFifoThreshold(uint8_t fifoThreshold)
 {
-	SpiWriteReg(CC1101_FIFOTHR, fifoThreshold);
+	SpiWriteReg(CC1101_FIFOTHR, fifoThreshold, 8);
 }
 
 /*
@@ -570,7 +568,7 @@ void CC1101Driver::SetFifoThreshold(uint8_t fifoThreshold)
  */
 void CC1101Driver::FlushRxFifo()
 {
-	SpiStrobe(CC1101_SFRX);
+	SpiStrobe(CC1101_SFRX, 8);
 }
 
 /*
@@ -578,7 +576,7 @@ void CC1101Driver::FlushRxFifo()
  */
 void CC1101Driver::FlushTxFifo()
 {
-	SpiStrobe(CC1101_SFTX);
+	SpiStrobe(CC1101_SFTX, 8);
 }
 
 /*
@@ -619,7 +617,7 @@ void CC1101Driver::SetBw(float bw_kHz)
 	s2 *= 16;
 
 	uint8_t MDMCFG4 = SpiReadReg(CC1101_MDMCFG4) & 0x0f;
-	SpiWriteReg(CC1101_MDMCFG4, MDMCFG4 | s1 | s2);
+	SpiWriteReg(CC1101_MDMCFG4, MDMCFG4 | s1 | s2, 8);
 }
 
 /*
@@ -664,8 +662,8 @@ void CC1101Driver::SetBitrate(float bitrate)
 	}
 
 	uint8_t MDMCFG4 = SpiReadReg(CC1101_MDMCFG4) & 0xf0;
-	SpiWriteReg(CC1101_MDMCFG4, MDMCFG4 | m4DaRa);
-	SpiWriteReg(CC1101_MDMCFG3, MDMCFG3);
+	SpiWriteReg(CC1101_MDMCFG4, MDMCFG4 | m4DaRa, 8);
+	SpiWriteReg(CC1101_MDMCFG3, MDMCFG3, 8);
 }
 
 /*
@@ -703,7 +701,7 @@ void CC1101Driver::SetDeviation(float deviation_kHz)
 		}
 		c++;
 	}
-	SpiWriteReg(CC1101_DEVIATN, c);
+	SpiWriteReg(CC1101_DEVIATN, c, 8);
 }
 
 /*
@@ -713,7 +711,7 @@ void CC1101Driver::SetDeviation(float deviation_kHz)
 void CC1101Driver::SetSyncMode(uint8_t mode)
 {
 	// TODO : Add enum for mode
-	SpiWriteReg(CC1101_MDMCFG2, mode);
+	SpiWriteReg(CC1101_MDMCFG2, mode, 8);
 }
 
 /*
@@ -722,8 +720,8 @@ void CC1101Driver::SetSyncMode(uint8_t mode)
  */
 void CC1101Driver::SetTx(void)
 {
-	SpiStrobe(CC1101_SIDLE);
-	SpiStrobe(CC1101_STX);
+	SpiStrobe(CC1101_SIDLE, 1);
+	SpiStrobe(CC1101_STX, 1);
 }
 
 /*
@@ -732,17 +730,17 @@ void CC1101Driver::SetTx(void)
  */
 void CC1101Driver::SetRx(void)
 {
-	SpiStrobe(CC1101_SIDLE);
-	SpiStrobe(CC1101_SRX);
+	SpiStrobe(CC1101_SIDLE, 1);
+	SpiStrobe(CC1101_SRX, 1);
 }
 
 /*
  * Switch CC1101 to idle mode
- * CC1101 stops receivig or tyransmitting data after this call
+ * CC1101 stops receiving or transmitting data after this call
  */
 void CC1101Driver::SetSidle(void)
 {
-	SpiStrobe(CC1101_SIDLE);
+	SpiStrobe(CC1101_SIDLE, 1);
 }
 
 /*
@@ -751,14 +749,14 @@ void CC1101Driver::SetSidle(void)
  */
 void CC1101Driver::LowPower()
 {
-	SpiStrobe(CC1101_SIDLE);
-	SpiStrobe(CC1101_SXOFF);
+	SpiStrobe(CC1101_SIDLE, 1);
+	SpiStrobe(CC1101_SXOFF, 1);
 }
 
 /*
  * Switch CC1101 to active mode
  * this function must be called to exit low power mode and restore
- * XTAL input. be carefull that it can take up to 800-900us to
+ * XTAL input. be careful that it can take up to 800-900us to
  * complete
  */
 void CC1101Driver::ActivePower()
@@ -766,7 +764,7 @@ void CC1101Driver::ActivePower()
 	uint32_t timeRef, timeLimit;
 
 	// Force exit of power-down mode
-	SpiStrobe(CC1101_SIDLE);
+	SpiStrobe(CC1101_SIDLE, 1);
 
 	// Let time to CC1101 to restart its XTAL
 	timeRef = micros();
@@ -778,7 +776,7 @@ void CC1101Driver::ActivePower()
 	}
 
 	// Trigger PLL calibration
-	SpiStrobe(CC1101_SCAL);
+	SpiStrobe(CC1101_SCAL, 1);
 }
 
 /*
@@ -818,47 +816,47 @@ uint8_t CC1101Driver::GetLqi(void)
  */
 void CC1101Driver::SetBaseConfiguration(void)
 {
-	SpiWriteReg(CC1101_FSCTRL1, 0x08); // IF frequency
+	SpiWriteReg(CC1101_FSCTRL1, 0x08, 8); // IF frequency
 
 	// CC Mode
-	SpiWriteReg(CC1101_IOCFG2, 0x6F);   // GDO2 unused
-	SpiWriteReg(CC1101_IOCFG1, 0x6F);   // GDO1 unused
-	SpiWriteReg(CC1101_IOCFG0, 0x01);   // GDO0 on RX FIFO by default
-	SpiWriteReg(CC1101_PKTCTRL0, 0x02); // Infinite packet length by default
-	SpiWriteReg(CC1101_MDMCFG3, 0xF8);  // Default bitrate
+	SpiWriteReg(CC1101_IOCFG2, 0x6F, 8);   // GDO2 unused
+	SpiWriteReg(CC1101_IOCFG1, 0x6F, 8);   // GDO1 unused
+	SpiWriteReg(CC1101_IOCFG0, 0x01, 8);   // GDO0 on RX FIFO by default
+	SpiWriteReg(CC1101_PKTCTRL0, 0x02, 8); // Infinite packet length by default
+	SpiWriteReg(CC1101_MDMCFG3, 0xF8, 8);  // Default bitrate
 
 	// 2-FSK
 	SetSyncMode(2);                     // 16/16 Sync mode
-	SpiWriteReg(CC1101_FREND0, 0x10);   // Value given by SmartRF studio
+	SpiWriteReg(CC1101_FREND0, 0x10, 8);   // Value given by SmartRF studio
 
 	// RF Frequency
 	SetFrequency(rfFreq_mHz);			// Set down converter frequency
 
-	SpiWriteReg(CC1101_MDMCFG1, 0x02);  // Channel spacing (unused with Micronet)
-	SpiWriteReg(CC1101_MDMCFG0, 0xF8);  // Channel spacing (unused with Micronet)
-	SpiWriteReg(CC1101_CHANNR, 0x00);   // We don't use channels : set to 0
-	SpiWriteReg(CC1101_DEVIATN, 0x47);  // Default deviation. Will be overwritten later at init
-	SpiWriteReg(CC1101_FREND1, 0x56);   // Front-end : value given by Smart RF studio
-	SpiWriteReg(CC1101_MCSM0, 0x08);    // PO_TIMEOUT = 2 -> ~150us for XOSC to stabilize
-	SpiWriteReg(CC1101_FOCCFG, 0x16);   // Frequency offset algorithm coefs
-	SpiWriteReg(CC1101_BSCFG, 0x1C);    // No bitrate compensation
-	SpiWriteReg(CC1101_AGCCTRL2, 0xC7); // AGC : value from SmartRF studio
-	SpiWriteReg(CC1101_AGCCTRL1, 0x00); // AGC : value from SmartRF studio
-	SpiWriteReg(CC1101_AGCCTRL0, 0xB2); // AGC : value from SmartRF studio
-	SpiWriteReg(CC1101_FSCAL3, 0xE9);   // Value from SMartRF studio
-	SpiWriteReg(CC1101_FSCAL2, 0x2A);   // Value from SMartRF studio
-	SpiWriteReg(CC1101_FSCAL1, 0x00);   // Value from SMartRF studio
-	SpiWriteReg(CC1101_FSCAL0, 0x1F);   // Value from SMartRF studio
-	SpiWriteReg(CC1101_FSTEST, 0x59);   // ?
-	SpiWriteReg(CC1101_TEST2, 0x81);    // Value from SMartRF studio
-	SpiWriteReg(CC1101_TEST1, 0x35);    // Value from SMartRF studio
-	SpiWriteReg(CC1101_TEST0, 0x09);    // Value from SMartRF studio
-	SpiWriteReg(CC1101_PKTCTRL1, 0x80); // PQT = 4, packet handler disabled
-	SpiWriteReg(CC1101_ADDR, 0x00);     // No address handling
-	SpiWriteReg(CC1101_PKTLEN, 0x00);   // No packet length
+	SpiWriteReg(CC1101_MDMCFG1, 0x02, 8);  // Channel spacing (unused with Micronet)
+	SpiWriteReg(CC1101_MDMCFG0, 0xF8, 8);  // Channel spacing (unused with Micronet)
+	SpiWriteReg(CC1101_CHANNR, 0x00, 8);   // We don't use channels : set to 0
+	SpiWriteReg(CC1101_DEVIATN, 0x47, 8);  // Default deviation. Will be overwritten later at init
+	SpiWriteReg(CC1101_FREND1, 0x56, 8);   // Front-end : value given by Smart RF studio
+	SpiWriteReg(CC1101_MCSM0, 0x08, 8);    // PO_TIMEOUT = 2 -> ~150us for XOSC to stabilize
+	SpiWriteReg(CC1101_FOCCFG, 0x16, 8);   // Frequency offset algorithm coefficients
+	SpiWriteReg(CC1101_BSCFG, 0x1C, 8);    // No bitrate compensation
+	SpiWriteReg(CC1101_AGCCTRL2, 0xC7, 8); // AGC : value from SmartRF studio
+	SpiWriteReg(CC1101_AGCCTRL1, 0x00, 8); // AGC : value from SmartRF studio
+	SpiWriteReg(CC1101_AGCCTRL0, 0xB2, 8); // AGC : value from SmartRF studio
+	SpiWriteReg(CC1101_FSCAL3, 0xE9, 8);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSCAL2, 0x2A, 8);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSCAL1, 0x00, 8);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSCAL0, 0x1F, 8);   // Value from SMartRF studio
+	SpiWriteReg(CC1101_FSTEST, 0x59, 8);   // ?
+	SpiWriteReg(CC1101_TEST2, 0x81, 8);    // Value from SMartRF studio
+	SpiWriteReg(CC1101_TEST1, 0x35, 8);    // Value from SMartRF studio
+	SpiWriteReg(CC1101_TEST0, 0x09, 8);    // Value from SMartRF studio
+	SpiWriteReg(CC1101_PKTCTRL1, 0x80, 8); // PQT = 4, packet handler disabled
+	SpiWriteReg(CC1101_ADDR, 0x00, 8);     // No address handling
+	SpiWriteReg(CC1101_PKTLEN, 0x00, 8);   // No packet length
 
 	// Full power in TX mode (12dbm@869MHz 11dbm@915MHz)
-	SpiWriteBurstReg(CC1101_PATABLE, PA_TABLE, 8);
+	SpiWriteBurstReg(CC1101_PATABLE, PA_TABLE, 8, 8);
 }
 
 /*
@@ -866,16 +864,16 @@ void CC1101Driver::SetBaseConfiguration(void)
  */
 void CC1101Driver::ChipSelect()
 {
-	uint32_t nextCSLow = lastCSHigh + DELAY_BETWEEN_CS_US;
-
 	// Before asserting CS, we check that will let enough time to
 	// CC1101 to process the previous SPI command. If necessary, we
 	// wait the required amount of time.
-	while (micros() < nextCSLow)
+	while (micros() < nextCSHigh)
 	{
-		// Exit loop in case micros() counter loops on 2^32
-		if (micros() < lastCSHigh)
+		if (nextCSHigh - micros() > 10)
+		{
+			// If we have more 10us to wait, it means micros' counter looped on its maximum value
 			break;
+		}
 	}
 
 	digitalWrite(CS0_PIN, LOW);
@@ -884,13 +882,13 @@ void CC1101Driver::ChipSelect()
 /*
  * Release CC1101 CS line
  */
-void CC1101Driver::ChipDeselect()
+void CC1101Driver::ChipDeselect(uint32_t guardTime_us)
 {
 	digitalWrite(CS0_PIN, HIGH);
 	// We store the time at which we release CS to allow the next CS
 	// assertion to ensure enough time has been let to CC1101 to
 	// process the command.
-	lastCSHigh = micros();
+	nextCSHigh = micros() + guardTime_us;
 }
 
 /*
@@ -925,6 +923,6 @@ void CC1101Driver::UpdateFreqOffset()
 			newFreqOff = -128;
 		// Update offset
 		currentFreqOff = newFreqOff;
-		SpiWriteReg(CC1101_FSCTRL0, currentFreqOff);
+		SpiWriteReg(CC1101_FSCTRL0, currentFreqOff, 8);
 	}
 }
