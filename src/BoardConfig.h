@@ -42,7 +42,7 @@
 
 // Selects on which I2C bus is connected compass as per Wiring library definition
 #if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-#define NAVCOMPASS_I2C Wire1 // SDA0: 18 SCL0: 19
+#define NAVCOMPASS_I2C Wire1 // SDA1: 38 SCL1: 37
 #else // Teensy 4.0 Configuration
 #define NAVCOMPASS_I2C Wire // SDA0: 18 SCL0: 19
 #endif
