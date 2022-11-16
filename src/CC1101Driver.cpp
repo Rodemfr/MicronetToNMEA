@@ -720,8 +720,8 @@ void CC1101Driver::SetSyncMode(uint8_t mode)
  */
 void CC1101Driver::SetTx(void)
 {
-	SpiStrobe(CC1101_SIDLE, 1);
-	SpiStrobe(CC1101_STX, 1);
+	SpiStrobe(CC1101_SIDLE, 8);
+	SpiStrobe(CC1101_STX, 8);
 }
 
 /*
@@ -730,8 +730,8 @@ void CC1101Driver::SetTx(void)
  */
 void CC1101Driver::SetRx(void)
 {
-	SpiStrobe(CC1101_SIDLE, 1);
-	SpiStrobe(CC1101_SRX, 1);
+	SpiStrobe(CC1101_SIDLE, 8);
+	SpiStrobe(CC1101_SRX, 8);
 }
 
 /*
@@ -740,7 +740,7 @@ void CC1101Driver::SetRx(void)
  */
 void CC1101Driver::SetSidle(void)
 {
-	SpiStrobe(CC1101_SIDLE, 1);
+	SpiStrobe(CC1101_SIDLE, 8);
 }
 
 /*
@@ -749,8 +749,8 @@ void CC1101Driver::SetSidle(void)
  */
 void CC1101Driver::LowPower()
 {
-	SpiStrobe(CC1101_SIDLE, 1);
-	SpiStrobe(CC1101_SXOFF, 1);
+	SpiStrobe(CC1101_SIDLE, 8);
+	SpiStrobe(CC1101_SXOFF, 8);
 }
 
 /*
@@ -764,7 +764,7 @@ void CC1101Driver::ActivePower()
 	uint32_t timeRef, timeLimit;
 
 	// Force exit of power-down mode
-	SpiStrobe(CC1101_SIDLE, 1);
+	SpiStrobe(CC1101_SIDLE, 8);
 
 	// Let time to CC1101 to restart its XTAL
 	timeRef = micros();
@@ -776,7 +776,7 @@ void CC1101Driver::ActivePower()
 	}
 
 	// Trigger PLL calibration
-	SpiStrobe(CC1101_SCAL, 1);
+	SpiStrobe(CC1101_SCAL, 8);
 }
 
 /*
