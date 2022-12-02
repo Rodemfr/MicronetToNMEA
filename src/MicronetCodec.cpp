@@ -350,7 +350,13 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
 	case MICRONET_FIELD_ID_HDG:
 		newValue = ((float) value) + navData.headingOffset_deg + navData.magneticVariation_deg;
 		if (newValue < 0.0f)
+		{
 			newValue += 360.0f;
+		}
+		if (newValue >= 360.0f)
+		{
+			newValue -= 360.0f;
+		}
 		navData.hdg_deg.value = newValue;
 		navData.hdg_deg.valid = true;
 		navData.hdg_deg.timeStamp = millis();
@@ -526,6 +532,8 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 		int16_t headingValue = navData.hdg_deg.value - navData.headingOffset_deg - navData.magneticVariation_deg;
 		if (headingValue < 0.0f)
 			headingValue += 360.0f;
+		if (headingValue >= 360.0f)
+			headingValue -= 360.0f;
 		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_HDG, headingValue);
 	}
 	if ((dataFields & DATA_FIELD_AWS) && ((navData.aws_kt.valid)))

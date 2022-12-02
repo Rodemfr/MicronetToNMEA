@@ -102,7 +102,6 @@ bool LSM303DLHCDriver::Init()
 	// DLHC Acceleration register
 	I2CWrite(accAddr, 0x47, CTRL_REG1_A); // 0x47=0b01000111 Normal Mode, ODR 50Hz, all axes on
 	I2CWrite(accAddr, 0x08, CTRL_REG4_A); // 0x08=0b00001000 Range: +/-2 Gal, Sens.: 1mGal/LSB, highRes on
-	mGal_per_LSB = 1.0f;
 	// DLHC Magnetic register
 	I2CWrite(magAddr, 0x10, CRA_REG_M); // 0x90=0b10010000 ODR 15Hz, temperature sensor on
 	I2CWrite(magAddr, 0x20, CRB_REG_M); // 0x20=0b00100000 Range: +/-1.3 Gauss gain: 1100LSB/Gauss
