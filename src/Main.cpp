@@ -390,6 +390,10 @@ void MenuAbout()
 		CONSOLE.print(gConfiguration.yMagOffset);
 		CONSOLE.print(" ");
 		CONSOLE.println(gConfiguration.zMagOffset);
+		CONSOLE.print("Heading offset = ");
+		CONSOLE.println((int) (gConfiguration.headingOffset_deg));
+		CONSOLE.print("Magnetic variation = ");
+		CONSOLE.println((int) (gConfiguration.magneticVariation_deg));
 	}
 }
 
