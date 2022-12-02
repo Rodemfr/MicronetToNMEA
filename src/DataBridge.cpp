@@ -834,7 +834,7 @@ void DataBridge::EncodeHDG()
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INHDG,%.0f,,,,", micronetCodec->navData.hdg_deg.value + gConfiguration.headingOffset_deg);
+			sprintf(sentence, "$INHDG,%.0f,,,,", micronetCodec->navData.hdg_deg.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.hdg = millis();
 			NMEA_EXT.println(sentence);
