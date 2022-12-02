@@ -348,7 +348,7 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
 		navData.awa_deg.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_HDG:
-		newValue = ((float) value) + navData.headingOffset_deg + navData.magneticVariation_deg;
+		newValue = ((float) value) + navData.headingOffset_deg;
 		if (newValue < 0.0f)
 		{
 			newValue += 360.0f;
@@ -357,9 +357,9 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
 		{
 			newValue -= 360.0f;
 		}
-		navData.hdg_deg.value = newValue;
-		navData.hdg_deg.valid = true;
-		navData.hdg_deg.timeStamp = millis();
+		navData.magHdg_deg.value = newValue;
+		navData.magHdg_deg.valid = true;
+		navData.magHdg_deg.timeStamp = millis();
 		break;
 	case MICRONET_FIELD_ID_VCC:
 		navData.vcc_v.value = ((float) value) / 10.0f;
@@ -527,9 +527,9 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
 	{
 		offset += Add16bitField(message->data + offset, MICRONET_FIELD_ID_VMGWP, (short) (navData.vmgwp_kt.value * 100));
 	}
-	if ((dataFields & DATA_FIELD_HDG) && (navData.hdg_deg.valid))
+	if ((dataFields & DATA_FIELD_HDG) && (navData.magHdg_deg.valid))
 	{
-		int16_t headingValue = navData.hdg_deg.value - navData.headingOffset_deg - navData.magneticVariation_deg;
+		int16_t headingValue = navData.magHdg_deg.value - navData.headingOffset_deg;
 		if (headingValue < 0.0f)
 			headingValue += 360.0f;
 		if (headingValue >= 360.0f)

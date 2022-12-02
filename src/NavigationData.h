@@ -110,7 +110,7 @@ public:
 	WaypointName_t waypoint;
 	FloatValue_t vmgwp_kt;
 
-	FloatValue_t hdg_deg;
+	FloatValue_t magHdg_deg;
 
 	bool calibrationUpdated;
 	float waterSpeedFactor_per;

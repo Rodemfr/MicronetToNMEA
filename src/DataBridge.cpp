@@ -217,9 +217,13 @@ void DataBridge::UpdateCompassData(float heading_deg)
 {
 	if (COMPASS_SOURCE_LINK == LINK_COMPASS)
 	{
-		micronetCodec->navData.hdg_deg.value = heading_deg;
-		micronetCodec->navData.hdg_deg.valid = true;
-		micronetCodec->navData.hdg_deg.timeStamp = millis();
+		while (heading_deg < 0.0f)
+			heading_deg += 360.0f;
+		while (heading_deg >= 360.0f)
+			heading_deg -= 360.0f;
+		micronetCodec->navData.magHdg_deg.value = heading_deg;
+		micronetCodec->navData.magHdg_deg.valid = true;
+		micronetCodec->navData.magHdg_deg.timeStamp = millis();
 		EncodeHDG();
 	}
 }
@@ -627,9 +631,9 @@ void DataBridge::DecodeVHWSentence(char *sentence)
 	{
 		if (value < 0)
 			value += 360.0f;
-		micronetCodec->navData.hdg_deg.value = value;
-		micronetCodec->navData.hdg_deg.valid = true;
-		micronetCodec->navData.hdg_deg.timeStamp = millis();
+		micronetCodec->navData.magHdg_deg.value = value;
+		micronetCodec->navData.magHdg_deg.valid = true;
+		micronetCodec->navData.magHdg_deg.timeStamp = millis();
 	}
 	if ((sentence = strchr(sentence, ',')) == nullptr)
 		return;
@@ -659,9 +663,9 @@ void DataBridge::DecodeHDGSentence(char *sentence)
 		value += 360.0f;
 	while (value >= 360.0)
 		value -= 360.0f;
-	micronetCodec->navData.hdg_deg.value = value;
-	micronetCodec->navData.hdg_deg.valid = true;
-	micronetCodec->navData.hdg_deg.timeStamp = millis();
+	micronetCodec->navData.magHdg_deg.value = value;
+	micronetCodec->navData.magHdg_deg.valid = true;
+	micronetCodec->navData.magHdg_deg.timeStamp = millis();
 }
 
 int16_t DataBridge::NibbleValue(char c)
@@ -798,19 +802,19 @@ void DataBridge::EncodeVHW()
 		bool update;
 
 		update = (micronetCodec->navData.spd_kt.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
-		update = update || (micronetCodec->navData.hdg_deg.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
-		update = update && (micronetCodec->navData.spd_kt.valid || micronetCodec->navData.hdg_deg.valid);
+		update = update || (micronetCodec->navData.magHdg_deg.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
+		update = update && (micronetCodec->navData.spd_kt.valid || micronetCodec->navData.magHdg_deg.valid);
 
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			if ((micronetCodec->navData.hdg_deg.valid) && (micronetCodec->navData.spd_kt.valid))
+			if ((micronetCodec->navData.magHdg_deg.valid) && (micronetCodec->navData.spd_kt.valid))
 			{
-				sprintf(sentence, "$INVHW,,T,%.0f,M,%.2f,N,,K", micronetCodec->navData.hdg_deg.value, micronetCodec->navData.spd_kt.value);
+				sprintf(sentence, "$INVHW,,T,%.0f,M,%.2f,N,,K", micronetCodec->navData.magHdg_deg.value, micronetCodec->navData.spd_kt.value);
 			}
-			else if (micronetCodec->navData.hdg_deg.valid)
+			else if (micronetCodec->navData.magHdg_deg.valid)
 			{
-				sprintf(sentence, "$INVHW,,T,%.0f,M,,N,,K", micronetCodec->navData.hdg_deg.value);
+				sprintf(sentence, "$INVHW,,T,%.0f,M,,N,,K", micronetCodec->navData.magHdg_deg.value);
 			}
 			else
 			{
@@ -829,13 +833,14 @@ void DataBridge::EncodeHDG()
 	{
 		bool update;
 
-		update = (micronetCodec->navData.hdg_deg.timeStamp > nmeaTimeStamps.hdg + NMEA_SENTENCE_MIN_PERIOD_MS);
-		update = update && micronetCodec->navData.hdg_deg.valid;
+		update = (micronetCodec->navData.magHdg_deg.timeStamp > nmeaTimeStamps.hdg + NMEA_SENTENCE_MIN_PERIOD_MS);
+		update = update && micronetCodec->navData.magHdg_deg.valid;
 
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INHDG,%.0f,,,,", micronetCodec->navData.hdg_deg.value);
+			sprintf(sentence, "$INHDG,%.0f,%.0f,%c,,", micronetCodec->navData.magHdg_deg.value, fabsf(micronetCodec->navData.magneticVariation_deg),
+					(micronetCodec->navData.magneticVariation_deg < 0.0f) ? 'W' : 'E');
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.hdg = millis();
 			NMEA_EXT.println(sentence);

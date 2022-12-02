@@ -634,7 +634,7 @@ void MenuConvertToNmea()
 		while (NMEA_EXT.available() > 0)
 		{
 			c = NMEA_EXT.read();
-			if (((void *)(&CONSOLE) == (void *)(&NMEA_EXT)) && (c == 0x1b))
+			if (((void*) (&CONSOLE) == (void*) (&NMEA_EXT)) && (c == 0x1b))
 			{
 				CONSOLE.println("ESC key pressed, stopping conversion.");
 				exitNmeaLoop = true;
@@ -650,11 +650,11 @@ void MenuConvertToNmea()
 			if ((millis() - lastHeadingTime) > 100)
 			{
 				lastHeadingTime = millis();
-				dataBridge.UpdateCompassData(gNavCompass.GetHeading());
+				dataBridge.UpdateCompassData(gNavCompass.GetHeading() + micronetCodec.navData.headingOffset_deg + micronetCodec.navData.magneticVariation_deg);
 			}
 		}
 
-		if ((void *)(&CONSOLE) != (void *)(&NMEA_EXT))
+		if ((void*) (&CONSOLE) != (void*) (&NMEA_EXT))
 		{
 			while (CONSOLE.available() > 0)
 			{
@@ -917,9 +917,7 @@ void MenuCalibrateRfFrequency()
 					CONSOLE.print("Deviation to real frequency = ");
 					CONSOLE.print((centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) * 1000);
 					CONSOLE.print("kHz (");
-					CONSOLE.print(
-							(int) (1000000.0 * (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ)
-									/ MICRONET_RF_CENTER_FREQUENCY_MHZ));
+					CONSOLE.print((int) (1000000.0 * (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) / MICRONET_RF_CENTER_FREQUENCY_MHZ));
 					CONSOLE.println(" ppm)");
 
 					CONSOLE.println("Do you want to save the new RF calibration values (y/n) ?");
@@ -1134,8 +1132,8 @@ void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice)
 	micronetDevice.SetNetworkId(gConfiguration.networkId);
 	micronetDevice.SetDeviceId(gConfiguration.deviceId);
 	micronetDevice.SetDataFields(
-			DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_DATE | DATA_FIELD_POSITION
-					| DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_NODE_INFO);
+			DATA_FIELD_TIME | DATA_FIELD_SOGCOG | DATA_FIELD_DATE | DATA_FIELD_POSITION | DATA_FIELD_XTE | DATA_FIELD_DTW | DATA_FIELD_BTW | DATA_FIELD_VMGWP
+					| DATA_FIELD_NODE_INFO);
 
 	if (COMPASS_SOURCE_LINK != LINK_MICRONET)
 	{
