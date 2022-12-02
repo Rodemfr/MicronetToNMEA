@@ -104,7 +104,7 @@ bool LSM303DLHCDriver::Init()
 	I2CWrite(accAddr, 0x08, CTRL_REG4_A); // 0x08=0b00001000 Range: +/-2 Gal, Sens.: 1mGal/LSB, highRes on
 	mGal_per_LSB = 1.0f;
 	// DLHC Magnetic register
-	I2CWrite(magAddr, 0x90, CRA_REG_M); // 0x90=0b10010000 ODR 15Hz, temperature sensor on
+	I2CWrite(magAddr, 0x10, CRA_REG_M); // 0x90=0b10010000 ODR 15Hz, temperature sensor on
 	I2CWrite(magAddr, 0x20, CRB_REG_M); // 0x20=0b00100000 Range: +/-1.3 Gauss gain: 1100LSB/Gauss
 	LSB_per_Gauss_XY = 1100.0f;
 	LSB_per_Gauss_Z = 980.0f;
@@ -126,12 +126,12 @@ void LSM303DLHCDriver::GetMagneticField(float *magX, float *magY, float *magZ)
 	I2CBurstRead(magAddr, OUT_X_H_M, magBuffer, 6);
 
 	mx = ((int16_t) (magBuffer[0] << 8)) | magBuffer[1];
-	mz = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3]; // stupid change in order for DLHC
+	mz = ((int16_t) (magBuffer[2] << 8)) | magBuffer[3]; // stupid change in order for DLHC vs DLH
 	my = ((int16_t) (magBuffer[4] << 8)) | magBuffer[5];
 
-	*magX = (float) mx;
-	*magY = (float) my;
-	*magZ = (float) mz;
+	*magX = ((float) mx) / LSB_per_Gauss_XY;
+	*magY = ((float) my) / LSB_per_Gauss_XY;
+	*magZ = ((float) mz) / LSB_per_Gauss_Z;
 }
 
 void LSM303DLHCDriver::GetAcceleration(float *accX, float *accY, float *accZ)
