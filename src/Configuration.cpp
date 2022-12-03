@@ -78,7 +78,7 @@ typedef struct
 /*                              Functions                                  */
 /***************************************************************************/
 
-Configuration::Configuration()
+Configuration::Configuration() : magicNumberFound(false), checksumValid(false)
 {
 	// Set default configuration
 	navCompassAvailable = false;
@@ -104,13 +104,16 @@ Configuration::~Configuration()
 
 void Configuration::LoadFromEeprom()
 {
-	ConfigBlock_t configBlock = {0};
+	ConfigBlock_t configBlock =
+	{ 0 };
 
 	EEPROM.get(0, configBlock);
 	uint8_t *pConfig = (uint8_t*) (&configBlock);
 
 	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
 	{
+		magicNumberFound = true;
+
 		uint8_t checksum = 0;
 		for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 1); i++)
 		{
@@ -119,6 +122,8 @@ void Configuration::LoadFromEeprom()
 
 		if (checksum == configBlock.checksum)
 		{
+			checksumValid = true;
+
 			networkId = configBlock.attachedNetworkId;
 			deviceId = configBlock.deviceId;
 			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
@@ -139,8 +144,10 @@ void Configuration::LoadFromEeprom()
 
 void Configuration::SaveToEeprom()
 {
-	ConfigBlock_t eepromBlock = {0};
-	ConfigBlock_t configBlock = {0};
+	ConfigBlock_t eepromBlock =
+	{ 0 };
+	ConfigBlock_t configBlock =
+	{ 0 };
 
 	uint8_t *pEepromBlock = (uint8_t*) (&eepromBlock);
 	uint8_t *pConfig = (uint8_t*) (&configBlock);

@@ -170,6 +170,9 @@ void setup()
 	attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, HIGH);
 #endif
 
+	// Display general information
+	MenuAbout();
+
 	// Display serial menu
 	gMenuManager.PrintMenu();
 
@@ -348,6 +351,22 @@ void MenuAbout()
 	CONSOLE.print(MNET2NMEA_SW_MAJOR_VERSION, DEC);
 	CONSOLE.print(".");
 	CONSOLE.println(MNET2NMEA_SW_MINOR_VERSION, DEC);
+
+	if (!gConfiguration.magicNumberFound)
+	{
+		CONSOLE.println("Configuration not found in EEPROM");
+	}
+	else
+	{
+		if (gConfiguration.checksumValid)
+		{
+			CONSOLE.println("Valid configuration found in EEPROM");
+		}
+		else
+		{
+			CONSOLE.println("Invalid configuration found in EEPROM");
+		}
+	}
 
 	CONSOLE.print("Device ID : ");
 	CONSOLE.println(gConfiguration.deviceId, HEX);

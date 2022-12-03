@@ -56,6 +56,8 @@ public:
 
 	// The following parameters are NOT loaded/saved from/to EEPROM
 	bool navCompassAvailable;
+	bool magicNumberFound;
+	bool checksumValid;
 
 	// The following parameters are loaded/saved from/to EEPROM
 	uint32_t networkId;
