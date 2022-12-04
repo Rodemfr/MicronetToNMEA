@@ -110,7 +110,7 @@ public:
 	WaypointName_t waypoint;
 	FloatValue_t vmgwp_kt;
 
-	FloatValue_t magHdg_deg;
+	FloatValue_t magHdg_deg; // Magnetic heading (includes heading offset but not magnetic variation or deviation)
 
 	bool calibrationUpdated;
 	float waterSpeedFactor_per;
