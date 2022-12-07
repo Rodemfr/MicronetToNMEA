@@ -839,7 +839,7 @@ void DataBridge::EncodeHDG()
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INHDG,%.0f,%.0f,%c,,", micronetCodec->navData.magHdg_deg.value, fabsf(micronetCodec->navData.magneticVariation_deg),
+			sprintf(sentence, "$INHDG,%.0f,,,%.0f,%c", micronetCodec->navData.magHdg_deg.value, fabsf(micronetCodec->navData.magneticVariation_deg),
 					(micronetCodec->navData.magneticVariation_deg < 0.0f) ? 'W' : 'E');
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.hdg = millis();
