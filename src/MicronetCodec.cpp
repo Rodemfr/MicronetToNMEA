@@ -171,10 +171,6 @@ void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message)
 	{
 		crc += message->data[i];
 	}
-	Serial.print("CRC=");
-	Serial.print(crc, HEX);
-	Serial.print("/");
-	Serial.println(message->data[message->len - 1], HEX);
 
 	if (crc == message->data[message->len - 1])
 	{
