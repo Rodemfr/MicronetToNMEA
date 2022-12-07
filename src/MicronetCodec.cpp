@@ -166,6 +166,29 @@ void MicronetCodec::DecodeSendDataMessage(MicronetMessage_t *message)
 
 void MicronetCodec::DecodeSetParameterMessage(MicronetMessage_t *message)
 {
+	uint8_t crc = 0;
+	for (int i = MICRONET_PAYLOAD_OFFSET; i < message->len - 1; i++)
+	{
+		crc += message->data[i];
+	}
+	Serial.print("CRC=");
+	Serial.print(crc, HEX);
+	Serial.print("/");
+	Serial.println(message->data[message->len - 1], HEX);
+
+	if (crc == message->data[message->len - 1])
+	{
+		switch (message->data[MICRONET_PAYLOAD_OFFSET])
+		{
+		case 0xff:
+			DecodePageFF(message);
+			break;
+		}
+	}
+}
+
+void MicronetCodec::DecodePageFF(MicronetMessage_t *message)
+{
 	switch (message->data[MICRONET_PAYLOAD_OFFSET + 1])
 	{
 	case MICRONET_CALIBRATION_WATER_SPEED_FACTOR_ID:
