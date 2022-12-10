@@ -598,11 +598,11 @@ Your objective for a successful calibration is to maximize/minimize
 readings on each axis. To do this, you must first choose one axis and
 then rotate your MicronetToNMEA device until this axis is aligned with
 earth’s magnetic field vector. You should see the corresponding reading
-on the first line maximum (or minimum), while the two others are zero or
-close to zero. You must repeat this operation a second time for the same
-axis but for opposite values (i.e. you must minimize the reading). Each
-time you reach the maximized/minimized value, you don’t need to do
-anything, MicronetToNMEA will memorize the min/max values for each axis.
+on the first line maximum (or minimum). You must repeat this operation a
+second time for the same axis but for opposite values (i.e. you must
+minimize the reading). Each time you reach the maximized/minimized
+value, you don’t need to do anything, MicronetToNMEA will memorize the
+min/max values for each axis.
 
 Note that the magnetic field vector is pointing more or less to the
 north, but not horizontally, it is pointing somewhat down to earth in
