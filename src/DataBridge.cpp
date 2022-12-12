@@ -746,7 +746,7 @@ void DataBridge::EncodeDPT()
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INDPT,%.1f,0.0", micronetCodec->navData.dpt_m.value);
+			sprintf(sentence, "$INDPT,%.1f,%.1f,", micronetCodec->navData.dpt_m.value, micronetCodec->navData.depthOffset_m);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.dpt = millis();
 			NMEA_EXT.println(sentence);
