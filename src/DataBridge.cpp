@@ -802,7 +802,7 @@ void DataBridge::EncodeVHW()
 		bool update;
 
 		update = (micronetCodec->navData.spd_kt.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
-		update = update || (micronetCodec->navData.magHdg_deg.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
+		update = update && (micronetCodec->navData.magHdg_deg.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS);
 		update = update && (micronetCodec->navData.spd_kt.valid || micronetCodec->navData.magHdg_deg.valid);
 
 		if (update)
@@ -810,11 +810,11 @@ void DataBridge::EncodeVHW()
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			if ((micronetCodec->navData.magHdg_deg.valid) && (micronetCodec->navData.spd_kt.valid))
 			{
-				sprintf(sentence, "$INVHW,,T,%.1f,M,%.1f,N,,K", micronetCodec->navData.magHdg_deg.value, micronetCodec->navData.spd_kt.value);
+				sprintf(sentence, "$INVHW,%.1f,T,%.1f,M,%.1f,N,,K", micronetCodec->navData.magHdg_deg.value + micronetCodec->navData.magneticVariation_deg, micronetCodec->navData.magHdg_deg.value, micronetCodec->navData.spd_kt.value);
 			}
 			else if (micronetCodec->navData.magHdg_deg.valid)
 			{
-				sprintf(sentence, "$INVHW,,T,%.1f,M,,N,,K", micronetCodec->navData.magHdg_deg.value);
+				sprintf(sentence, "$INVHW,%.1f,T,%.1f,M,,N,,K", micronetCodec->navData.magHdg_deg.value + micronetCodec->navData.magneticVariation_deg, micronetCodec->navData.magHdg_deg.value);
 			}
 			else
 			{
