@@ -810,15 +810,15 @@ void DataBridge::EncodeVHW()
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
 			if ((micronetCodec->navData.magHdg_deg.valid) && (micronetCodec->navData.spd_kt.valid))
 			{
-				sprintf(sentence, "$INVHW,,T,%.0f,M,%.2f,N,,K", micronetCodec->navData.magHdg_deg.value, micronetCodec->navData.spd_kt.value);
+				sprintf(sentence, "$INVHW,,T,%.1f,M,%.1f,N,,K", micronetCodec->navData.magHdg_deg.value, micronetCodec->navData.spd_kt.value);
 			}
 			else if (micronetCodec->navData.magHdg_deg.valid)
 			{
-				sprintf(sentence, "$INVHW,,T,%.0f,M,,N,,K", micronetCodec->navData.magHdg_deg.value);
+				sprintf(sentence, "$INVHW,,T,%.1f,M,,N,,K", micronetCodec->navData.magHdg_deg.value);
 			}
 			else
 			{
-				sprintf(sentence, "$INVHW,,T,,M,%.2f,N,,K", micronetCodec->navData.spd_kt.value);
+				sprintf(sentence, "$INVHW,,T,,M,%.1f,N,,K", micronetCodec->navData.spd_kt.value);
 			}
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.vhw = millis();
@@ -839,7 +839,7 @@ void DataBridge::EncodeHDG()
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INHDG,%.0f,,,%.0f,%c", micronetCodec->navData.magHdg_deg.value, fabsf(micronetCodec->navData.magneticVariation_deg),
+			sprintf(sentence, "$INHDG,%.1f,,,%.1f,%c", micronetCodec->navData.magHdg_deg.value, fabsf(micronetCodec->navData.magneticVariation_deg),
 					(micronetCodec->navData.magneticVariation_deg < 0.0f) ? 'W' : 'E');
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.hdg = millis();
