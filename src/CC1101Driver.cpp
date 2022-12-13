@@ -212,7 +212,7 @@ CC1101Driver::~CC1101Driver()
  */
 void CC1101Driver::Reset(void)
 {
-	// Apply datasheet's procedure (�19.1.2)
+	// Apply datasheet's procedure (19.1.2)
 	ChipSelect();
 	delay(1);
 	ChipDeselect(1);
