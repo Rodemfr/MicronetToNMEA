@@ -413,6 +413,10 @@ void MenuAbout()
 		CONSOLE.println((int) (gConfiguration.headingOffset_deg));
 		CONSOLE.print("Magnetic variation = ");
 		CONSOLE.println((int) (gConfiguration.magneticVariation_deg));
+		CONSOLE.print("Depth offset = ");
+		CONSOLE.println(gConfiguration.depthOffset_m);
+		CONSOLE.print("Wind shift = ");
+		CONSOLE.println((int)gConfiguration.windShift);
 	}
 }
 
