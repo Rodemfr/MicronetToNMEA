@@ -133,7 +133,7 @@
 #define CC1101_PACKET_LENGTH_MODE_INFINITE 2
 
 // Minimum time in microseconds for CC1101 to restart its XTAL when exiting power-down mode
-#define XTAL_RESTART_TIME_US 150
+#define XTAL_RESTART_TIME_US 400
 
 /***************************************************************************/
 /*                             Local types                                 */
