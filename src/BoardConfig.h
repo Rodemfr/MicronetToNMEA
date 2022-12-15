@@ -123,6 +123,10 @@
 // to 0 else.
 #define MICRONET_WIND_REPEATER 1
 
+// Define which compass axis will be compared to magnetic north
+// Set one of the (X, Y, Z) to 1.0 or -1.0
+#define HEADING_AXIS {1.0f, 0.0f, 0.0f}
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/

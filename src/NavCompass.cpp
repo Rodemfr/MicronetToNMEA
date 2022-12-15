@@ -107,10 +107,10 @@ float NavCompass::GetHeading()
 {
 	vec accel;
 	vec mag;
-	vec from =
-	{ 1.0f, 0.0f, 0.0f }; // x axis is reference direction
 	vec E;
 	vec N;
+
+	vec from = HEADING_AXIS;
 
 	// Get Acceleration and Magnetic data from LSM303
 	// Note that we don't care about units of both acceleration and magnetic field since we
