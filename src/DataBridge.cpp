@@ -787,7 +787,7 @@ void DataBridge::EncodeVLW()
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INVLW,%.1f,N,%.1f,N", micronetCodec->navData.log_nm.value, micronetCodec->navData.trip_nm.value);
+			sprintf(sentence, "$INVLW,%.1f,N,%.1f,N,,N,,N", micronetCodec->navData.log_nm.value, micronetCodec->navData.trip_nm.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.vlw = millis();
 			NMEA_EXT.println(sentence);
@@ -840,7 +840,7 @@ void DataBridge::EncodeHDG()
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INHDG,%.1f,,,%.1f,%c", micronetCodec->navData.magHdg_deg.value, fabsf(micronetCodec->navData.magneticVariation_deg),
+			sprintf(sentence, "$INHDG,%.1f,0,E,%.1f,%c", micronetCodec->navData.magHdg_deg.value, fabsf(micronetCodec->navData.magneticVariation_deg),
 					(micronetCodec->navData.magneticVariation_deg < 0.0f) ? 'W' : 'E');
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.hdg = millis();
@@ -861,7 +861,7 @@ void DataBridge::EncodeXDR()
 		if (update)
 		{
 			char sentence[NMEA_SENTENCE_MAX_LENGTH];
-			sprintf(sentence, "$INXDR,U,%.1f,V,BATTERY#0", micronetCodec->navData.vcc_v.value);
+			sprintf(sentence, "$INXDR,U,%.1f,V,TACKTICK#0", micronetCodec->navData.vcc_v.value);
 			AddNmeaChecksum(sentence);
 			nmeaTimeStamps.vcc = millis();
 			NMEA_EXT.println(sentence);
