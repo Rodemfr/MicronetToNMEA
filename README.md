@@ -100,7 +100,7 @@ That's it !
 
 Some tips :
 
-- Once you have attached MicronetToNMEA to a Micronet network, it will automatically enter in NMEA conversion mode at each power-up. You don't need a connect a console to it anymore unless you want to attach to another network.
+- Once you have attached MicronetToNMEA to a Micronet network, it will automatically enter in NMEA conversion mode at each power-up. You don't need a connect a console anymore unless you want to attach to another network.
 - When in conversion mode, if you want to come back to the configuration menu in the console, just press "ESC" key
 - MicronetToNMEA listens to calibration values transiting on the network and will apply them to the converted values (wind speed factor, temperature offset, etc.). So if you change your sensor calibration from your Micronet display, MicronetToNMEA will memorize the new value if it is in range. **/!\ Be careful that these calibration values are only intercepted in NMEA conversion mode**
 - Calibration values, as well as attached network ID are all saved in EEPROM so that you don't need to enter them again in the system at each power-up.
