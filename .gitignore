@@ -1,8 +1,1 @@
-.settings
-Release
-/sloeber.ino.cpp
-.project
-.cproject
-spec.d
-.sproject
-sloeber/
+.pio
