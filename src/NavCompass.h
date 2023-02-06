@@ -56,25 +56,25 @@ using string = std::string;
 
 class NavCompass
 {
-public:
-	NavCompass();
-	virtual ~NavCompass();
+  public:
+    NavCompass();
+    virtual ~NavCompass();
 
-	bool Init();
-	string GetDeviceName();
-	float GetHeading();
-	void GetMagneticField(float *magX, float* magY, float *magZ);
-	void GetAcceleration(float *accX, float* accY, float *accZ);
+    bool   Init();
+    string GetDeviceName();
+    float  GetHeading();
+    void   GetMagneticField(float *magX, float *magY, float *magZ);
+    void   GetAcceleration(float *accX, float *accY, float *accZ);
 
-private:
-	float headingHistory[HEADING_HISTORY_LENGTH];
-	uint32_t headingIndex;
-	bool navCompassDetected;
-	NavCompassDriver *navCompassDriver;
+  private:
+    float             headingHistory[HEADING_HISTORY_LENGTH];
+    uint32_t          headingIndex;
+    bool              navCompassDetected;
+    NavCompassDriver *navCompassDriver;
 
-	void Normalize(vec *a);
-	void CrossProduct(vec *a, vec *b, vec *out);
-	float vector_dot(vec *a, vec *b);
+    void  Normalize(vec *a);
+    void  CrossProduct(vec *a, vec *b, vec *out);
+    float vector_dot(vec *a, vec *b);
 };
 
 #endif /* NAVCOMPASS_H_ */

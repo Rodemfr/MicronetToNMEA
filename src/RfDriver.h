@@ -31,29 +31,30 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "CC1101Driver.h"
 #include "Micronet.h"
 #include "MicronetMessageFifo.h"
-#include "CC1101Driver.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define TRANSMIT_LIST_SIZE 16
-#define LOW_BANDWIDTH_VALUE 80
+#define TRANSMIT_LIST_SIZE     16
+#define LOW_BANDWIDTH_VALUE    80
 #define MEDIUM_BANDWIDTH_VALUE 125
-#define HIGH_BANDWIDTH_VALUE 250
+#define HIGH_BANDWIDTH_VALUE   250
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef enum {
-	RF_STATE_RX_WAIT_SYNC = 0,
-	RF_STATE_RX_HEADER,
-	RF_STATE_RX_PAYLOAD,
-	RF_STATE_TX_TRANSMIT,
-	RF_STATE_TX_LAST_TRANSMIT
+typedef enum
+{
+    RF_STATE_RX_WAIT_SYNC = 0,
+    RF_STATE_RX_HEADER,
+    RF_STATE_RX_PAYLOAD,
+    RF_STATE_TX_TRANSMIT,
+    RF_STATE_TX_LAST_TRANSMIT
 } RfDriverState_t;
 
 /***************************************************************************/
@@ -62,48 +63,49 @@ typedef enum {
 
 class RfDriver
 {
-public:
-	typedef enum {
-		RF_BANDWIDTH_LOW = 0,
-		RF_BANDWIDTH_MEDIUM,
-		RF_BANDWIDTH_HIGH
-	} RfBandwidth_t;
+  public:
+    typedef enum
+    {
+        RF_BANDWIDTH_LOW = 0,
+        RF_BANDWIDTH_MEDIUM,
+        RF_BANDWIDTH_HIGH
+    } RfBandwidth_t;
 
-	RfDriver();
-	virtual ~RfDriver();
+    RfDriver();
+    virtual ~RfDriver();
 
-	bool Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
-	void SetFrequencyOffset(float offset_MHz);
-	void SetFrequency(float frequency_MHz);
-	void SetBandwidth(RfBandwidth_t bandwidth);
-	void RfIsr();
-	void RestartReception();
-	void Transmit(MicronetMessageFifo *txMessageFifo);
-	void Transmit(MicronetMessage_t *message);
-	void EnableFrequencyTracking(uint32_t networkId);
-	void DisableFrequencyTracking();
+    bool Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz);
+    void SetFrequencyOffset(float offset_MHz);
+    void SetFrequency(float frequency_MHz);
+    void SetBandwidth(RfBandwidth_t bandwidth);
+    void RfIsr();
+    void RestartReception();
+    void Transmit(MicronetMessageFifo *txMessageFifo);
+    void Transmit(MicronetMessage_t *message);
+    void EnableFrequencyTracking(uint32_t networkId);
+    void DisableFrequencyTracking();
 
-private:
-	CC1101Driver cc1101Driver;
-	MicronetMessageFifo *messageFifo;
-	volatile RfDriverState_t rfState;
-	MicronetMessage_t transmitList[TRANSMIT_LIST_SIZE];
-	volatile int nextTransmitIndex;
-	volatile int messageBytesSent;
-	float frequencyOffset_MHz;
-	uint32_t freqTrackingNID;
+  private:
+    CC1101Driver             cc1101Driver;
+    MicronetMessageFifo     *messageFifo;
+    volatile RfDriverState_t rfState;
+    MicronetMessage_t        transmitList[TRANSMIT_LIST_SIZE];
+    volatile int             nextTransmitIndex;
+    volatile int             messageBytesSent;
+    float                    frequencyOffset_MHz;
+    uint32_t                 freqTrackingNID;
 
-	static const uint8_t preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH];
+    static const uint8_t preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH];
 
-	void ScheduleTransmit();
-	int GetNextTransmitIndex();
-	int GetFreeTransmitSlot();
-	void TransmitCallback();
-	void RfIsr_Rx();
-	void RfIsr_Tx();
+    void ScheduleTransmit();
+    int  GetNextTransmitIndex();
+    int  GetFreeTransmitSlot();
+    void TransmitCallback();
+    void RfIsr_Rx();
+    void RfIsr_Tx();
 
-	static void TimerHandler();
-	static RfDriver *rfDriver;
+    static void      TimerHandler();
+    static RfDriver *rfDriver;
 };
 
 #endif /* RFDRIVER_H_ */

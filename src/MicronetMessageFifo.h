@@ -47,24 +47,24 @@
 
 class MicronetMessageFifo
 {
-public:
-	MicronetMessageFifo();
-	virtual ~MicronetMessageFifo();
+  public:
+    MicronetMessageFifo();
+    virtual ~MicronetMessageFifo();
 
-	bool Push(MicronetMessage_t const &message);
-	bool PushIsr(MicronetMessage_t const &message);
-	bool Pop(MicronetMessage_t *message);
-	MicronetMessage_t *Peek(int index);
-	MicronetMessage_t *Peek();
-	void DeleteMessage();
-	void ResetFifo();
-	int GetNbMessages();
+    bool               Push(MicronetMessage_t const &message);
+    bool               PushIsr(MicronetMessage_t const &message);
+    bool               Pop(MicronetMessage_t *message);
+    MicronetMessage_t *Peek(int index);
+    MicronetMessage_t *Peek();
+    void               DeleteMessage();
+    void               ResetFifo();
+    int                GetNbMessages();
 
-private:
-	volatile int writeIndex;
-	volatile int readIndex;
-	volatile int nbMessages;
-	MicronetMessage_t store[MESSAGE_STORE_SIZE];
+  private:
+    volatile int      writeIndex;
+    volatile int      readIndex;
+    volatile int      nbMessages;
+    MicronetMessage_t store[MESSAGE_STORE_SIZE];
 };
 
 /***************************************************************************/

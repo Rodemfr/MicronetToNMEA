@@ -47,33 +47,33 @@
 
 class Configuration
 {
-public:
-	Configuration();
-	virtual ~Configuration();
+  public:
+    Configuration();
+    virtual ~Configuration();
 
-	void LoadFromEeprom();
-	void SaveToEeprom();
+    void LoadFromEeprom();
+    void SaveToEeprom();
 
-	// The following parameters are NOT loaded/saved from/to EEPROM
-	bool navCompassAvailable;
-	bool magicNumberFound;
-	bool checksumValid;
+    // The following parameters are NOT loaded/saved from/to EEPROM
+    bool navCompassAvailable;
+    bool magicNumberFound;
+    bool checksumValid;
 
-	// The following parameters are loaded/saved from/to EEPROM
-	uint32_t networkId;
-	uint32_t deviceId;
-	float waterSpeedFactor_per;
-	float waterTemperatureOffset_C;
-	float depthOffset_m;
-	float windSpeedFactor_per;
-	float windDirectionOffset_deg;
-	float headingOffset_deg;
-	float magneticVariation_deg;
-	float windShift;
-	float xMagOffset;
-	float yMagOffset;
-	float zMagOffset;
-	float rfFrequencyOffset_MHz;
+    // The following parameters are loaded/saved from/to EEPROM
+    uint32_t networkId;
+    uint32_t deviceId;
+    float    waterSpeedFactor_per;
+    float    waterTemperatureOffset_C;
+    float    depthOffset_m;
+    float    windSpeedFactor_per;
+    float    windDirectionOffset_deg;
+    float    headingOffset_deg;
+    float    magneticVariation_deg;
+    float    windShift;
+    float    xMagOffset;
+    float    yMagOffset;
+    float    zMagOffset;
+    float    rfFrequencyOffset_MHz;
 };
 
 /***************************************************************************/

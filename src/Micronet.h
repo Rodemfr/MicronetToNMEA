@@ -45,14 +45,14 @@
 #endif
 // Note that the actual deviation on Micronet devices is around 38kHz and not 34
 // However, CC1101 produces 38 kHz deviation when requested 34 : problem of HW, Driver or measurement tools ?
-#define MICRONET_RF_DEVIATION_KHZ    34
-#define MICRONET_RF_BAUDRATE_BAUD    76800
+#define MICRONET_RF_DEVIATION_KHZ 34
+#define MICRONET_RF_BAUDRATE_BAUD 76800
 
 #define MICRONET_MAX_DEVICES_PER_NETWORK 32
 
-#define MICRONET_RF_PREAMBLE_LENGTH  15
-#define MICRONET_RF_PREAMBLE_BYTE    0x55
-#define MICRONET_RF_SYNC_BYTE        0x99
+#define MICRONET_RF_PREAMBLE_LENGTH 15
+#define MICRONET_RF_PREAMBLE_BYTE   0x55
+#define MICRONET_RF_SYNC_BYTE       0x99
 
 #define MICRONET_MAX_MESSAGE_LENGTH 96
 #define MICRONET_MIN_MESSAGE_LENGTH 13
@@ -93,25 +93,25 @@
 #define MICRONET_FIELD_TYPE_5 0x05
 #define MICRONET_FIELD_TYPE_A 0x0a
 
-#define MICRONET_FIELD_ID_SPD      0x01
-#define MICRONET_FIELD_ID_LOG      0x02
-#define MICRONET_FIELD_ID_STP      0x03
-#define MICRONET_FIELD_ID_DPT      0x04
-#define MICRONET_FIELD_ID_AWS      0x05
-#define MICRONET_FIELD_ID_AWA      0x06
-#define MICRONET_FIELD_ID_HDG      0x07
-#define MICRONET_FIELD_ID_SOGCOG   0x08
-#define MICRONET_FIELD_ID_LATLON   0x09
-#define MICRONET_FIELD_ID_BTW      0x0a
-#define MICRONET_FIELD_ID_XTE      0x0b
-#define MICRONET_FIELD_ID_TIME     0x0c
-#define MICRONET_FIELD_ID_DATE     0x0d
+#define MICRONET_FIELD_ID_SPD       0x01
+#define MICRONET_FIELD_ID_LOG       0x02
+#define MICRONET_FIELD_ID_STP       0x03
+#define MICRONET_FIELD_ID_DPT       0x04
+#define MICRONET_FIELD_ID_AWS       0x05
+#define MICRONET_FIELD_ID_AWA       0x06
+#define MICRONET_FIELD_ID_HDG       0x07
+#define MICRONET_FIELD_ID_SOGCOG    0x08
+#define MICRONET_FIELD_ID_LATLON    0x09
+#define MICRONET_FIELD_ID_BTW       0x0a
+#define MICRONET_FIELD_ID_XTE       0x0b
+#define MICRONET_FIELD_ID_TIME      0x0c
+#define MICRONET_FIELD_ID_DATE      0x0d
 #define MICRONET_FIELD_ID_NODE_INFO 0x10
-#define MICRONET_FIELD_ID_VMGWP    0x12
-#define MICRONET_FIELD_ID_VCC      0x1b
-#define MICRONET_FIELD_ID_DTW      0x1f
-#define MICRONET_FIELD_ID_RAWS     0x21
-#define MICRONET_FIELD_ID_RAWA     0x22
+#define MICRONET_FIELD_ID_VMGWP     0x12
+#define MICRONET_FIELD_ID_VCC       0x1b
+#define MICRONET_FIELD_ID_DTW       0x1f
+#define MICRONET_FIELD_ID_RAWS      0x21
+#define MICRONET_FIELD_ID_RAWA      0x22
 
 #define MICRONET_CALIBRATION_WATER_SPEED_FACTOR_ID 0x00
 #define MICRONET_CALIBRATION_WATER_TEMP_OFFSET_ID  0x02
@@ -129,9 +129,9 @@
 #define HEADER_LENGTH_IN_US     1456
 #define GUARD_TIME_IN_US        1893
 #define ASYNC_WINDOW_OFFSET     7200
-#define ASYNC_WINDOW_LENGTH		7200
-#define ASYNC_WINDOW_PAYLOAD	20
-#define ACK_WINDOW_LENGTH		5328
+#define ASYNC_WINDOW_LENGTH     7200
+#define ASYNC_WINDOW_PAYLOAD    20
+#define ACK_WINDOW_LENGTH       5328
 #define ACK_WINDOW_PAYLOAD      2
 
 /***************************************************************************/
@@ -144,12 +144,12 @@
 
 typedef struct
 {
-	uint8_t action;
-	uint8_t len;
-	int16_t rssi;
-	uint32_t startTime_us;
-	uint32_t endTime_us;
-	uint8_t data[MICRONET_MAX_MESSAGE_LENGTH];
+    uint8_t  action;
+    uint8_t  len;
+    int16_t  rssi;
+    uint32_t startTime_us;
+    uint32_t endTime_us;
+    uint8_t  data[MICRONET_MAX_MESSAGE_LENGTH];
 } MicronetMessage_t;
 
 /***************************************************************************/

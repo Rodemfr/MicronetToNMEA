@@ -90,62 +90,62 @@
 
 class CC1101Driver
 {
-public:
-	CC1101Driver();
-	~CC1101Driver();
+  public:
+    CC1101Driver();
+    ~CC1101Driver();
 
-	void Init(void);
-	void SetFrequency(float freq_mhz);
-	void SetSyncMode(uint8_t mode);
-	void SetBw(float bw);
-	void SetBitrate(float br);
-	void SetDeviation(float d);
-	void SetTx(void);
-	void SetRx(void);
-	int GetRssi(void);
-	uint8_t GetLqi(void);
-	void SetSidle(void);
-	void LowPower();
-	void ActivePower();
-	bool IsConnected(void);
-	void SetSyncWord(uint8_t sh, uint8_t sl);
-	void SetPQT(uint8_t pqt);
-	void SetLengthConfig(uint8_t v);
-	void SetPacketLength(uint8_t v);
-	int GetRxFifoLevel();
-	int GetTxFifoLevel();
-	void ReadRxFifo(uint8_t *buffer, int nbBytes);
-	void WriteTxFifo(uint8_t data);
-	void WriteArrayTxFifo(uint8_t const *buffer, int nbBytes);
-	void IrqOnTxFifoUnderflow();
-	void IrqOnTxFifoThreshold();
-	void IrqOnRxFifoThreshold();
-	void SetFifoThreshold(uint8_t fifoThreshold);
-	void FlushRxFifo();
-	void FlushTxFifo();
-	void UpdateFreqOffset();
+    void    Init(void);
+    void    SetFrequency(float freq_mhz);
+    void    SetSyncMode(uint8_t mode);
+    void    SetBw(float bw);
+    void    SetBitrate(float br);
+    void    SetDeviation(float d);
+    void    SetTx(void);
+    void    SetRx(void);
+    int     GetRssi(void);
+    uint8_t GetLqi(void);
+    void    SetSidle(void);
+    void    LowPower();
+    void    ActivePower();
+    bool    IsConnected(void);
+    void    SetSyncWord(uint8_t sh, uint8_t sl);
+    void    SetPQT(uint8_t pqt);
+    void    SetLengthConfig(uint8_t v);
+    void    SetPacketLength(uint8_t v);
+    int     GetRxFifoLevel();
+    int     GetTxFifoLevel();
+    void    ReadRxFifo(uint8_t *buffer, int nbBytes);
+    void    WriteTxFifo(uint8_t data);
+    void    WriteArrayTxFifo(uint8_t const *buffer, int nbBytes);
+    void    IrqOnTxFifoUnderflow();
+    void    IrqOnTxFifoThreshold();
+    void    IrqOnRxFifoThreshold();
+    void    SetFifoThreshold(uint8_t fifoThreshold);
+    void    FlushRxFifo();
+    void    FlushTxFifo();
+    void    UpdateFreqOffset();
 
-private:
-	float rfFreq_mHz;
-	SPISettings spiSettings;
-	uint32_t nextCSHigh;
-	int freqEstArrayIndex;
-	int8_t freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
-	int8_t currentFreqOff;
-	static const uint8_t PA_TABLE[8];
+  private:
+    float                rfFreq_mHz;
+    SPISettings          spiSettings;
+    uint32_t             nextCSHigh;
+    int                  freqEstArrayIndex;
+    int8_t               freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];
+    int8_t               currentFreqOff;
+    static const uint8_t PA_TABLE[8];
 
-	void Reset(void);
-	void SetBaseConfiguration(void);
-	void Calibrate(void);
-	uint8_t SpiReadChipStatusByte();
-	uint8_t SpiReadStatus(uint8_t addr);
-	void SpiStrobe(uint8_t strobe, uint32_t guardTime_us);
-	void SpiWriteReg(uint8_t addr, uint8_t value, uint32_t guardTime_us);
-	void SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t num, uint32_t guardTime_us);
-	uint8_t SpiReadReg(uint8_t addr);
-	void SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t num);
-	void ChipSelect();
-	void ChipDeselect(uint32_t guardTime_us);
+    void    Reset(void);
+    void    SetBaseConfiguration(void);
+    void    Calibrate(void);
+    uint8_t SpiReadChipStatusByte();
+    uint8_t SpiReadStatus(uint8_t addr);
+    void    SpiStrobe(uint8_t strobe, uint32_t guardTime_us);
+    void    SpiWriteReg(uint8_t addr, uint8_t value, uint32_t guardTime_us);
+    void    SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t num, uint32_t guardTime_us);
+    uint8_t SpiReadReg(uint8_t addr);
+    void    SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t num);
+    void    ChipSelect();
+    void    ChipDeselect(uint32_t guardTime_us);
 };
 
 #endif

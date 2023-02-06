@@ -31,16 +31,16 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "MenuManager.h"
-#include "MicronetMessageFifo.h"
-#include "MicronetCodec.h"
 #include "Configuration.h"
 #include "DataBridge.h"
-#include "NavigationData.h"
-#include "NavCompass.h"
-#include "RfDriver.h"
 #include "M8NDriver.h"
+#include "MenuManager.h"
+#include "MicronetCodec.h"
+#include "MicronetMessageFifo.h"
 #include "MicronetSlaveDevice.h"
+#include "NavCompass.h"
+#include "NavigationData.h"
+#include "RfDriver.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -54,12 +54,12 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-extern RfDriver gRfReceiver;
-extern MenuManager gMenuManager;
+extern RfDriver            gRfReceiver;
+extern MenuManager         gMenuManager;
 extern MicronetMessageFifo gRxMessageFifo;
-extern Configuration gConfiguration;
-extern NavCompass gNavCompass;
-extern M8NDriver gM8nDriver;
+extern Configuration       gConfiguration;
+extern NavCompass          gNavCompass;
+extern M8NDriver           gM8nDriver;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

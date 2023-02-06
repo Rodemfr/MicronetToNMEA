@@ -43,8 +43,8 @@
 
 typedef struct MenuEntry_t
 {
-	const char *description;
-	void (*entryCallback)(void);
+    const char *description;
+    void (*entryCallback)(void);
 } MenuEntry_t;
 
 #define MAX_MENU_DEPTH 4
@@ -53,20 +53,21 @@ typedef struct MenuEntry_t
 /*                               Classes                                   */
 /***************************************************************************/
 
-class MenuManager {
-public:
-	MenuManager();
-	virtual ~MenuManager();
+class MenuManager
+{
+  public:
+    MenuManager();
+    virtual ~MenuManager();
 
-	void SetMenu(MenuEntry_t *menu);
-	void PushChar(char c);
-	void PrintMenu();
+    void SetMenu(MenuEntry_t *menu);
+    void PushChar(char c);
+    void PrintMenu();
 
-private:
-	MenuEntry_t *menu;
-	int menuLength;
+  private:
+    MenuEntry_t *menu;
+    int          menuLength;
 
-	void PrintPrompt();
+    void PrintPrompt();
 };
 
 #endif /* MENUMANAGER_H_ */

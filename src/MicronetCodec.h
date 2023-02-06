@@ -68,10 +68,10 @@
 
 typedef struct
 {
-	uint32_t deviceId;
-	uint32_t start_us;
-	uint32_t length_us;
-	uint8_t payloadBytes;
+    uint32_t deviceId;
+    uint32_t start_us;
+    uint32_t length_us;
+    uint8_t  payloadBytes;
 } TxSlotDesc_t;
 
 /***************************************************************************/
@@ -80,76 +80,73 @@ typedef struct
 
 class MicronetCodec
 {
-public:
-	class NetworkMap
-	{
-	public:
-		uint32_t networkId;
-		uint32_t nbDevices;
-		uint32_t masterDevice;
-		uint32_t networkStart;
-		uint32_t networkEnd;
-		uint32_t firstSlot;
-		uint32_t nbSyncSlots;
-		TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
-		TxSlotDesc_t asyncSlot;
-		uint32_t nbAckSlots;
-		TxSlotDesc_t ackSlot[MAX_DEVICES_PER_NETWORK];
-	};
+  public:
+    class NetworkMap
+    {
+      public:
+        uint32_t     networkId;
+        uint32_t     nbDevices;
+        uint32_t     masterDevice;
+        uint32_t     networkStart;
+        uint32_t     networkEnd;
+        uint32_t     firstSlot;
+        uint32_t     nbSyncSlots;
+        TxSlotDesc_t syncSlot[MAX_DEVICES_PER_NETWORK];
+        TxSlotDesc_t asyncSlot;
+        uint32_t     nbAckSlots;
+        TxSlotDesc_t ackSlot[MAX_DEVICES_PER_NETWORK];
+    };
 
-	NavigationData navData;
+    NavigationData navData;
 
-	MicronetCodec();
-	virtual ~MicronetCodec();
+    MicronetCodec();
+    virtual ~MicronetCodec();
 
-	uint32_t GetNetworkId(MicronetMessage_t *message);
-	uint8_t GetDeviceType(MicronetMessage_t *message);
-	uint32_t GetDeviceId(MicronetMessage_t *message);
-	uint8_t GetMessageId(MicronetMessage_t *message);
-	uint8_t GetSource(MicronetMessage_t *message);
-	uint8_t GetSignalStrength(MicronetMessage_t *message);
-	uint8_t GetHeaderCrc(MicronetMessage_t *message);
-	bool VerifyHeaderCrc(MicronetMessage_t *message);
+    uint32_t GetNetworkId(MicronetMessage_t *message);
+    uint8_t  GetDeviceType(MicronetMessage_t *message);
+    uint32_t GetDeviceId(MicronetMessage_t *message);
+    uint8_t  GetMessageId(MicronetMessage_t *message);
+    uint8_t  GetSource(MicronetMessage_t *message);
+    uint8_t  GetSignalStrength(MicronetMessage_t *message);
+    uint8_t  GetHeaderCrc(MicronetMessage_t *message);
+    bool     VerifyHeaderCrc(MicronetMessage_t *message);
 
-	bool DecodeMessage(MicronetMessage_t *message);
-	bool GetNetworkMap(MicronetMessage_t *message, NetworkMap *networkMap);
-	TxSlotDesc_t GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
-	TxSlotDesc_t GetAsyncTransmissionSlot(NetworkMap *networkMap);
-	TxSlotDesc_t GetAckTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
-	uint32_t GetStartOfNetwork(NetworkMap *networkMap);
-	uint32_t GetNextStartOfNetwork(NetworkMap *networkMap);
-	uint32_t GetEndOfNetwork(NetworkMap *networkMap);
-	uint8_t CalculateSignalStrength(MicronetMessage_t *message);
-	float CalculateSignalFloatStrength(MicronetMessage_t *message);
-	uint8_t GetDataMessageLength(uint32_t dataFields);
-	uint8_t EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
-			uint32_t dataFields);
-	uint8_t EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
-			uint8_t payloadLength);
-	uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
-			uint8_t payloadLength);
-	uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
-	uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
-	uint8_t EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
-	void CalculateTrueWind();
+    bool         DecodeMessage(MicronetMessage_t *message);
+    bool         GetNetworkMap(MicronetMessage_t *message, NetworkMap *networkMap);
+    TxSlotDesc_t GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
+    TxSlotDesc_t GetAsyncTransmissionSlot(NetworkMap *networkMap);
+    TxSlotDesc_t GetAckTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId);
+    uint32_t     GetStartOfNetwork(NetworkMap *networkMap);
+    uint32_t     GetNextStartOfNetwork(NetworkMap *networkMap);
+    uint32_t     GetEndOfNetwork(NetworkMap *networkMap);
+    uint8_t      CalculateSignalStrength(MicronetMessage_t *message);
+    float        CalculateSignalFloatStrength(MicronetMessage_t *message);
+    uint8_t      GetDataMessageLength(uint32_t dataFields);
+    uint8_t      EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, uint32_t dataFields);
+    uint8_t      EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
+                                          uint8_t payloadLength);
+    uint8_t EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId, uint8_t payloadLength);
+    uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
+    uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
+    uint8_t EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
+    void    CalculateTrueWind();
 
-private:
-	void DecodeSendDataMessage(MicronetMessage_t *message);
-	void DecodeSetParameterMessage(MicronetMessage_t *message);
-	void DecodePageFF(MicronetMessage_t *message);
-	int DecodeDataField(MicronetMessage_t *message, int offset);
-	void UpdateMicronetData(uint8_t fieldId, int8_t value);
-	void UpdateMicronetData(uint8_t fieldId, int16_t value);
-	void UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
-	void WriteHeaderLengthAndCrc(MicronetMessage_t *message);
-	uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
-	uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
-	uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
-	uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
-	uint8_t Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t const *wpName,
-			uint8_t wpNameLength);
-	uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
-	uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
+  private:
+    void    DecodeSendDataMessage(MicronetMessage_t *message);
+    void    DecodeSetParameterMessage(MicronetMessage_t *message);
+    void    DecodePageFF(MicronetMessage_t *message);
+    int     DecodeDataField(MicronetMessage_t *message, int offset);
+    void    UpdateMicronetData(uint8_t fieldId, int8_t value);
+    void    UpdateMicronetData(uint8_t fieldId, int16_t value);
+    void    UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t value2);
+    void    WriteHeaderLengthAndCrc(MicronetMessage_t *message);
+    uint8_t AddPositionField(uint8_t *buffer, float latitude, float longitude);
+    uint8_t Add16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value);
+    uint8_t AddDual16bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, int16_t value2);
+    uint8_t AddQuad8bitField(uint8_t *buffer, uint8_t fieldCode, uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4);
+    uint8_t Add16bitAndSix8bitField(uint8_t *buffer, uint8_t fieldCode, int16_t value1, uint8_t const *wpName, uint8_t wpNameLength);
+    uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
+    uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 };
 
 /***************************************************************************/

@@ -47,22 +47,22 @@
 #pragma pack(1)
 typedef struct
 {
-	uint32_t magicWord;
-	uint32_t attachedNetworkId;
-	uint32_t deviceId;
-	float waterSpeedFactor_per;
-	float waterTemperatureOffset_C;
-	float depthOffset_m;
-	float windSpeedFactor_per;
-	float windDirectionOffset_deg;
-	float headingOffset_deg;
-	float magneticVariation_deg;
-	float windShift;
-	float xMagOffset;
-	float yMagOffset;
-	float zMagOffset;
-	float rfFrequencyOffset_MHz;
-	uint8_t checksum;
+    uint32_t magicWord;
+    uint32_t attachedNetworkId;
+    uint32_t deviceId;
+    float    waterSpeedFactor_per;
+    float    waterTemperatureOffset_C;
+    float    depthOffset_m;
+    float    windSpeedFactor_per;
+    float    windDirectionOffset_deg;
+    float    headingOffset_deg;
+    float    magneticVariation_deg;
+    float    windShift;
+    float    xMagOffset;
+    float    yMagOffset;
+    float    zMagOffset;
+    float    rfFrequencyOffset_MHz;
+    uint8_t  checksum;
 } ConfigBlock_t;
 #pragma pack()
 
@@ -80,22 +80,22 @@ typedef struct
 
 Configuration::Configuration() : magicNumberFound(false), checksumValid(false)
 {
-	// Set default configuration
-	navCompassAvailable = false;
-	networkId = 0;
-	waterSpeedFactor_per = 1.0f;
-	waterTemperatureOffset_C = 0;
-	depthOffset_m = 0;
-	windSpeedFactor_per = 1.0f;
-	windDirectionOffset_deg = 0;
-	headingOffset_deg = 0;
-	magneticVariation_deg = 0;
-	windShift = 10;
-	deviceId = 0x03123456;
-	xMagOffset = 0;
-	yMagOffset = 0;
-	zMagOffset = 0;
-	rfFrequencyOffset_MHz = 0;
+    // Set default configuration
+    navCompassAvailable      = false;
+    networkId                = 0;
+    waterSpeedFactor_per     = 1.0f;
+    waterTemperatureOffset_C = 0;
+    depthOffset_m            = 0;
+    windSpeedFactor_per      = 1.0f;
+    windDirectionOffset_deg  = 0;
+    headingOffset_deg        = 0;
+    magneticVariation_deg    = 0;
+    windShift                = 10;
+    deviceId                 = 0x03123456;
+    xMagOffset               = 0;
+    yMagOffset               = 0;
+    zMagOffset               = 0;
+    rfFrequencyOffset_MHz    = 0;
 }
 
 Configuration::~Configuration()
@@ -104,85 +104,82 @@ Configuration::~Configuration()
 
 void Configuration::LoadFromEeprom()
 {
-	ConfigBlock_t configBlock =
-	{ 0 };
+    ConfigBlock_t configBlock = {0};
 
-	EEPROM.get(0, configBlock);
-	uint8_t *pConfig = (uint8_t*) (&configBlock);
+    EEPROM.get(0, configBlock);
+    uint8_t *pConfig = (uint8_t *)(&configBlock);
 
-	if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
-	{
-		magicNumberFound = true;
+    if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
+    {
+        magicNumberFound = true;
 
-		uint8_t checksum = 0;
-		for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 1); i++)
-		{
-			checksum += pConfig[i];
-		}
+        uint8_t checksum = 0;
+        for (uint32_t i = 0; i < (sizeof(ConfigBlock_t) - 1); i++)
+        {
+            checksum += pConfig[i];
+        }
 
-		if (checksum == configBlock.checksum)
-		{
-			checksumValid = true;
+        if (checksum == configBlock.checksum)
+        {
+            checksumValid = true;
 
-			networkId = configBlock.attachedNetworkId;
-			deviceId = configBlock.deviceId;
-			waterSpeedFactor_per = configBlock.waterSpeedFactor_per;
-			waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
-			depthOffset_m = configBlock.depthOffset_m;
-			windSpeedFactor_per = configBlock.windSpeedFactor_per;
-			windDirectionOffset_deg = configBlock.windDirectionOffset_deg;
-			headingOffset_deg = configBlock.headingOffset_deg;
-			magneticVariation_deg = configBlock.magneticVariation_deg;
-			windShift = configBlock.windShift;
-			xMagOffset = configBlock.xMagOffset;
-			yMagOffset = configBlock.yMagOffset;
-			zMagOffset = configBlock.zMagOffset;
-			rfFrequencyOffset_MHz = configBlock.rfFrequencyOffset_MHz;
-		}
-	}
+            networkId                = configBlock.attachedNetworkId;
+            deviceId                 = configBlock.deviceId;
+            waterSpeedFactor_per     = configBlock.waterSpeedFactor_per;
+            waterTemperatureOffset_C = configBlock.waterTemperatureOffset_C;
+            depthOffset_m            = configBlock.depthOffset_m;
+            windSpeedFactor_per      = configBlock.windSpeedFactor_per;
+            windDirectionOffset_deg  = configBlock.windDirectionOffset_deg;
+            headingOffset_deg        = configBlock.headingOffset_deg;
+            magneticVariation_deg    = configBlock.magneticVariation_deg;
+            windShift                = configBlock.windShift;
+            xMagOffset               = configBlock.xMagOffset;
+            yMagOffset               = configBlock.yMagOffset;
+            zMagOffset               = configBlock.zMagOffset;
+            rfFrequencyOffset_MHz    = configBlock.rfFrequencyOffset_MHz;
+        }
+    }
 }
 
 void Configuration::SaveToEeprom()
 {
-	ConfigBlock_t eepromBlock =
-	{ 0 };
-	ConfigBlock_t configBlock =
-	{ 0 };
+    ConfigBlock_t eepromBlock = {0};
+    ConfigBlock_t configBlock = {0};
 
-	uint8_t *pEepromBlock = (uint8_t*) (&eepromBlock);
-	uint8_t *pConfig = (uint8_t*) (&configBlock);
-	uint8_t checksum = 0;
+    uint8_t *pEepromBlock = (uint8_t *)(&eepromBlock);
+    uint8_t *pConfig      = (uint8_t *)(&configBlock);
+    uint8_t  checksum     = 0;
 
-	EEPROM.get(0, eepromBlock);
+    EEPROM.get(0, eepromBlock);
 
-	configBlock.magicWord = CONFIG_MAGIC_NUMBER;
-	configBlock.attachedNetworkId = networkId;
-	configBlock.deviceId = deviceId;
-	configBlock.waterSpeedFactor_per = waterSpeedFactor_per;
-	configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
-	configBlock.depthOffset_m = depthOffset_m;
-	configBlock.windSpeedFactor_per = windSpeedFactor_per;
-	configBlock.windDirectionOffset_deg = windDirectionOffset_deg;
-	configBlock.headingOffset_deg = headingOffset_deg;
-	configBlock.magneticVariation_deg = magneticVariation_deg;
-	configBlock.windShift = windShift;
-	configBlock.xMagOffset = xMagOffset;
-	configBlock.yMagOffset = yMagOffset;
-	configBlock.zMagOffset = zMagOffset;
-	configBlock.rfFrequencyOffset_MHz = rfFrequencyOffset_MHz;
+    configBlock.magicWord                = CONFIG_MAGIC_NUMBER;
+    configBlock.attachedNetworkId        = networkId;
+    configBlock.deviceId                 = deviceId;
+    configBlock.waterSpeedFactor_per     = waterSpeedFactor_per;
+    configBlock.waterTemperatureOffset_C = waterTemperatureOffset_C;
+    configBlock.depthOffset_m            = depthOffset_m;
+    configBlock.windSpeedFactor_per      = windSpeedFactor_per;
+    configBlock.windDirectionOffset_deg  = windDirectionOffset_deg;
+    configBlock.headingOffset_deg        = headingOffset_deg;
+    configBlock.magneticVariation_deg    = magneticVariation_deg;
+    configBlock.windShift                = windShift;
+    configBlock.xMagOffset               = xMagOffset;
+    configBlock.yMagOffset               = yMagOffset;
+    configBlock.zMagOffset               = zMagOffset;
+    configBlock.rfFrequencyOffset_MHz    = rfFrequencyOffset_MHz;
 
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
-	{
-		checksum += pConfig[i];
-	}
-	configBlock.checksum = checksum;
+    for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
+    {
+        checksum += pConfig[i];
+    }
+    configBlock.checksum = checksum;
 
-	for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
-	{
-		if (pEepromBlock[i] != pConfig[i])
-		{
-			EEPROM.put(0, configBlock);
-			break;
-		}
-	}
+    for (uint32_t i = 0; i < sizeof(ConfigBlock_t); i++)
+    {
+        if (pEepromBlock[i] != pConfig[i])
+        {
+            EEPROM.put(0, configBlock);
+            break;
+        }
+    }
 }

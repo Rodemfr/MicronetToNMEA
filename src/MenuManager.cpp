@@ -28,8 +28,8 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "BoardConfig.h"
 #include "MenuManager.h"
+#include "BoardConfig.h"
 
 #include <Arduino.h>
 
@@ -55,70 +55,71 @@
 
 MenuManager::MenuManager()
 {
-	menuLength = 0;
-	menu = nullptr;
+    menuLength = 0;
+    menu       = nullptr;
 }
 
 MenuManager::~MenuManager()
 {
-
 }
 
 void MenuManager::SetMenu(MenuEntry_t *menu)
 {
-	this->menu = menu;
-	menuLength = 0;
-	while (menu[menuLength].description != nullptr)
-	{
-		menuLength++;
-	}
+    this->menu = menu;
+    menuLength = 0;
+    while (menu[menuLength].description != nullptr)
+    {
+        menuLength++;
+    }
 }
 
 void MenuManager::PushChar(char c)
 {
-	if ((c > 0x30) && (c <= 0x39))
-	{
-		int entry = c - 0x30;
-		if (entry < menuLength)
-		{
-			if (menu[entry].entryCallback != nullptr)
-			{
-				CONSOLE.println(entry);
-				CONSOLE.println("");
-				menu[entry].entryCallback();
-				PrintPrompt();
-			}
-		}
-	} else if (c == 0x30) {
-		CONSOLE.println("0");
-		PrintMenu();
-	}
+    if ((c > 0x30) && (c <= 0x39))
+    {
+        int entry = c - 0x30;
+        if (entry < menuLength)
+        {
+            if (menu[entry].entryCallback != nullptr)
+            {
+                CONSOLE.println(entry);
+                CONSOLE.println("");
+                menu[entry].entryCallback();
+                PrintPrompt();
+            }
+        }
+    }
+    else if (c == 0x30)
+    {
+        CONSOLE.println("0");
+        PrintMenu();
+    }
 }
 
 void MenuManager::PrintMenu()
 {
-	if ((menu == nullptr) || (menuLength < 2))
-	{
-		return;
-	}
+    if ((menu == nullptr) || (menuLength < 2))
+    {
+        return;
+    }
 
-	CONSOLE.println("");
-	CONSOLE.print("*** ");
-	CONSOLE.print(menu[0].description);
-	CONSOLE.println(" ***");
-	CONSOLE.println("");
-	CONSOLE.println("0 - Print this menu");
-	for (int i = 1; i < menuLength; i++)
-	{
-		CONSOLE.print(i);
-		CONSOLE.print(" - ");
-		CONSOLE.println(menu[i].description);
-	}
-	PrintPrompt();
+    CONSOLE.println("");
+    CONSOLE.print("*** ");
+    CONSOLE.print(menu[0].description);
+    CONSOLE.println(" ***");
+    CONSOLE.println("");
+    CONSOLE.println("0 - Print this menu");
+    for (int i = 1; i < menuLength; i++)
+    {
+        CONSOLE.print(i);
+        CONSOLE.print(" - ");
+        CONSOLE.println(menu[i].description);
+    }
+    PrintPrompt();
 }
 
 void MenuManager::PrintPrompt()
 {
-	CONSOLE.println("");
-	CONSOLE.print("Choice : ");
+    CONSOLE.println("");
+    CONSOLE.print("Choice : ");
 }
