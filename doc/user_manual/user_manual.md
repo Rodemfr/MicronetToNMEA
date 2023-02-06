@@ -55,10 +55,10 @@ or 4.1 board and a CC1101 based breakout board.
 ### Teensy micro-controller
 
 Teensy board has been chosen as the core micro-controller of the
-MicronetToNMEA system. This choice has been led by one main reason : I
-had one available when I started investigating Micronet protocol. That’s
-indeed a good reason but with time this board has also proven to be
-pretty well adapted :
+MicronetToNMEA system. This choice has been led by one main reason : the
+author had one available when he started investigating Micronet
+protocol. That’s indeed a good reason but with time, this board has also
+proven to be pretty well adapted :
 
   - It is small
 
@@ -69,7 +69,7 @@ pretty well adapted :
   - Teensy 3.5 GPIOs are 5V tolerant (important to connect 5V modules
     \!)
 
-  - Teensy 3.5, 3.6 and 4.1 have a MicroSD slot for future recording
+  - Teensy 3.5, 3.6 and 4.1 have a MicroSD slot for potential recording
     features
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino
@@ -77,7 +77,11 @@ compatible board. Practically, this might be a different story. Several
 people got into troubles trying to use ESP32 boards. While this is
 technically feasible, Arduino’s library implementation between Teensy &
 Esp32 board can be slightly different in some sensitive areas like
-interrupt handling. This makes porting complex.
+interrupt handling. This makes porting complex on a software which needs
+100us precise interrupt triggers.
+
+Practically, Teensy 4.0 is advised since the author currently use this
+board. It will help bug investigation if we all have the same hardware.
 
 Teensy boards can be ordered here : <https://www.pjrc.com/teensy/>
 
@@ -125,7 +129,7 @@ You can connect HC-06 bluetooth transceiver to MicronetToNMEA serial
 NMEA port to easily get a wireless connection to a PC/Tablet. Connecting
 an ESP8266 based Serial to WiFi board (Wemos, nodeCPU etc.) allow you to
 establish an WiFi access point and a client connection to navigation
-software like OpenCPN etc.
+software like OpenCPN.
 
 Note that MicronetToNMEA does not configure both boards, it is up to you
 to configure before connecting it.
@@ -145,13 +149,16 @@ Arduino IDE to enable compilation for Teensy 3.5.
 
 ## Optional software
 
-### Sloeber (optional)
+### Visual Studio Code and PlatformIO (optional)
 
 If you plan to do more than just compile MicronetToNMEA’s code, you
-probably need a more serious IDE. Sloeber is an Arduino compatible
-version of Eclipse. It provides many useful features which will highly
-improve your productivity. It requires Arduino IDE and Teensyduino to be
-already installed.
+probably need a more serious IDE. [Visual Studio
+Code](https://code.visualstudio.com/) is a open source IDE made by
+Microsoft with plenty of features which will highly improve your
+productivity. Coupled to [PlatformIO](https://platformio.org/) plugin it
+can handle project for Teensy boards. MicronetToNMEA includes
+configuration files for PlatformIO which will help you to quickly setup
+your environment.
 
 # Compilation
 
@@ -177,51 +184,30 @@ Here are the steps to compile MicronetToNMEA with Arduino IDE:
     “Upload” button to upload MicronetToNMEA binary into Teensy
     flash memory
 
-## With Sloeber
+## With Visual Studio Code and PlatformIO
 
-Here are the steps to compile MicronetToNMEA with Sloeber IDE:
+Here are the steps to compile MicronetToNMEA with Visual Studio Code :
 
-  - Before trying to compile with Sloeber, you must have successfully
-    compiled with Arduino IDE
+  - Install Visual Studio Code from Microsoft website :
+    <https://code.visualstudio.com>
 
-  - Start Sloeber and create your Workspace as requested Select menu
-    “File-\>New-\>Arduino Sketch"
+  - Start Visual Studio Code and install PlatformIO extension. Note that
+    you might have to install *python3-distutils* package under Linux
+    for the installation to be successful.
 
-  - In Sloeber, select menu Arduino-\>Preferences
+  - Open MicronetToNMEA base folder with menu *"File-\>Open Folder"*.
+    The base folder is the one with *platformio.ini* file.
 
-  - Add Arduino’s library and hardware path in the path lists
+  - At the first opening, PlatformIO plugin will download and install
+    Teensy toolchain. This can take a while since there is more than 1Gb
+    of data to download from network.
 
-  - Exit the panel by clicking "Apply and Close"
+  - Once PlatformIO is ready, you can compile MicronetToNMEA by pressing
+    *SHIFT-CTRL-B*.
 
-  - Select menu File-\>New-Arduino Sketch
-
-  - Name your project "MicronetToNMEA"
-
-  - Don’t use default project location and set the location to your git
-    cloned repository of MicronetToNMEA
-
-  - Click "Next"
-
-  - Select Teensy’s platform folder in the corresponding drop down menu
-
-  - Select "Teensy 4.0" board
-
-  - Select "Faster" optimization
-
-  - Select "Serial" USB Type
-
-  - Select 600MHz CPU Speed
-
-  - Click "Next"
-
-  - Select "No file" as code
+  - To upload the compiled binary to the Teensy, press *SHIFT-CTRL-U*.
 
 Your project should compile now.
-
-Note that Sloeber can be somewhat picky with tool-chain or library
-paths. So don’t be surprised if you have to handle additional issues to
-compile with it. The effort is worth, code productivity with Eclipse is
-way beyond Arduino IDE.
 
 ## Compile time configuration
 
