@@ -95,8 +95,8 @@
 #endif
 
 // The console to use for menu and NMEA output
-#define CONSOLE  WIRED_NMEA
-#define NMEA_EXT WIRED_NMEA
+#define CONSOLE  USB_NMEA
+#define NMEA_EXT USB_NMEA
 
 // Defines with data comes from which link
 // LINK_NMEA_EXT -> data comes from external NMEA link (WIRED_NMEA)
@@ -110,7 +110,7 @@
 #define SPEED_SOURCE_LINK   LINK_MICRONET  // Speed data (VHW, VLW)
 #define VOLTAGE_SOURCE_LINK LINK_MICRONET  // Battery voltage data (XDR)
 #define SEATEMP_SOURCE_LINK LINK_MICRONET  // Temperature data (MTW)
-#define COMPASS_SOURCE_LINK LINK_MICRONET  // Heading data (HDG)
+#define COMPASS_SOURCE_LINK LINK_COMPASS  // Heading data (HDG)
 
 // Navigation softwares can send a wrong RMB sentence and invert "FROM" and "TO" fields
 // If you see your Micronet display showing the "FROM" waypoint name instead of the "TO"
