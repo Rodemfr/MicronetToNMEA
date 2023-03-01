@@ -46,6 +46,9 @@ const uint8_t DataBridge::asciiTable[128] = {
     'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',  'W', 'X', 'Y', 'Z', ' ',  ' ', ' ', ' ', ' ', ' ', 'A', '(', 'C', ')', 'E', 'F', 'G',
     'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',  'Q', 'R', 'S', 'T', 'U',  'V', 'W', 'X', 'Y', 'Z', ' ', ' ', ' ', ' ', ' '};
 
+// This constant defines how much time SPD must not be received from Micronet or VHW before SPD gets emulated with SOG
+#define SPD_EMULATION_TIMEOUT_MS 5000
+
 /***************************************************************************/
 /*                                Macros                                   */
 /***************************************************************************/
@@ -524,6 +527,16 @@ void DataBridge::DecodeVTGSentence(char *sentence)
         micronetCodec->navData.sog_kt.value     = value;
         micronetCodec->navData.sog_kt.valid     = true;
         micronetCodec->navData.sog_kt.timeStamp = millis();
+
+#if (EMULATE_SPD_WITH_SOG == 1)
+        // We emulate SPD with SOG only if SPD was not received from Micronet or VHW for more than SPD_EMULATION_TIMEOUT_MS
+        if (millis() - micronetCodec->lastSpdReception > SPD_EMULATION_TIMEOUT_MS)
+        {
+            micronetCodec->navData.spd_kt.value     = value;
+            micronetCodec->navData.spd_kt.valid     = true;
+            micronetCodec->navData.spd_kt.timeStamp = millis();
+        }
+#endif
     }
 }
 
@@ -648,6 +661,10 @@ void DataBridge::DecodeVHWSentence(char *sentence)
         micronetCodec->navData.spd_kt.value     = value;
         micronetCodec->navData.spd_kt.valid     = true;
         micronetCodec->navData.spd_kt.timeStamp = millis();
+#if (EMULATE_SPD_WITH_SOG == 1)
+        // Memorize the last time SPD was received from VHW sentence
+        micronetCodec->lastSpdReception = millis();
+#endif
     }
 }
 

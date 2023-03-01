@@ -98,6 +98,7 @@ class MicronetCodec
     };
 
     NavigationData navData;
+    uint32_t lastSpdReception;
 
     MicronetCodec();
     virtual ~MicronetCodec();

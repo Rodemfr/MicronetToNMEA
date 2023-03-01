@@ -43,8 +43,8 @@
 // Selects on which I2C bus is connected compass as per Wiring library definition
 #if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
 #define NAVCOMPASS_I2C Wire1 // SDA1: 38 SCL1: 37
-#else // Teensy 4.0 Configuration
-#define NAVCOMPASS_I2C Wire // SDA0: 18 SCL0: 19
+#else                        // Teensy 4.0 Configuration
+#define NAVCOMPASS_I2C Wire  // SDA0: 18 SCL0: 19
 #endif
 
 // CC1101/SPI pins
@@ -64,17 +64,17 @@
 
 // NMEA GNSS UART pins
 #if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-#define GNSS_UBLOXM8N  1       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
-#define GNSS_SERIAL    Serial1
-#define GNSS_BAUDRATE  9600
-#define GNSS_RX_PIN    0
-#define GNSS_TX_PIN    1
-#else // Teensy 4.0 Configuration
-#define GNSS_UBLOXM8N  1       // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
-#define GNSS_SERIAL    Serial2
-#define GNSS_BAUDRATE  9600
-#define GNSS_RX_PIN    7
-#define GNSS_TX_PIN    8
+#define GNSS_UBLOXM8N 1 // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
+#define GNSS_SERIAL   Serial1
+#define GNSS_BAUDRATE 9600
+#define GNSS_RX_PIN   0
+#define GNSS_TX_PIN   1
+#else                   // Teensy 4.0 Configuration
+#define GNSS_UBLOXM8N 1 // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
+#define GNSS_SERIAL   Serial2
+#define GNSS_BAUDRATE 9600
+#define GNSS_RX_PIN   7
+#define GNSS_TX_PIN   8
 #endif
 
 // USB UART params
@@ -110,11 +110,11 @@
 #define SPEED_SOURCE_LINK   LINK_MICRONET  // Speed data (VHW, VLW)
 #define VOLTAGE_SOURCE_LINK LINK_MICRONET  // Battery voltage data (XDR)
 #define SEATEMP_SOURCE_LINK LINK_MICRONET  // Temperature data (MTW)
-#define COMPASS_SOURCE_LINK LINK_COMPASS  // Heading data (HDG)
+#define COMPASS_SOURCE_LINK LINK_COMPASS   // Heading data (HDG)
 
 // Navigation softwares can send a wrong RMB sentence and invert "FROM" and "TO" fields
 // If you see your Micronet display showing the "FROM" waypoint name instead of the "TO"
-// on the DTW & BTW pages, then change the following configuration key to 1
+// on the DTW & BTW pages, then change the following configuration switch to 1
 #define INVERTED_RMB_WORKAROUND 0
 
 // In case your displays would have difficulties to receive data from the Tacktick wind
@@ -123,9 +123,19 @@
 // to 0 else.
 #define MICRONET_WIND_REPEATER 1
 
+// In cas your Micronet system would not have SPD data (speed on water), you can set this
+// compile switch to 1 to ask MicronetToNMEA to emulate SPD with SOG value from GNSS.
+// This allows your display to calculate True Wind data, including VMG. This gives good results
+// as long as there no current. Note that if SPD value is received from a T121, the
+// emulation code will be automatically disabled and the real SPD value will be used.
+#define EMULATE_SPD_WITH_SOG 1
+
 // Define which compass axis will be compared to magnetic north
 // Set one of the (X, Y, Z) to 1.0 or -1.0
-#define HEADING_AXIS {1.0f, 0.0f, 0.0f}
+#define HEADING_AXIS                                                                                                                                 \
+    {                                                                                                                                                \
+        1.0f, 0.0f, 0.0f                                                                                                                             \
+    }
 
 /***************************************************************************/
 /*                                Types                                    */
