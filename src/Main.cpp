@@ -1167,10 +1167,14 @@ void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice)
         micronetDevice.AddDataFields(DATA_FIELD_DPT);
     }
 
+#if (EMULATE_SPD_WITH_SOG == 1)
+    micronetDevice.AddDataFields(DATA_FIELD_SPD);
+#else
     if (SPEED_SOURCE_LINK != LINK_MICRONET)
     {
         micronetDevice.AddDataFields(DATA_FIELD_SPD);
     }
+#endif
 
     if ((MICRONET_WIND_REPEATER == 1) || (WIND_SOURCE_LINK != LINK_MICRONET))
     {

@@ -58,7 +58,7 @@
 /*                              Functions                                  */
 /***************************************************************************/
 
-MicronetCodec::MicronetCodec() : lastSpdReception(0)
+MicronetCodec::MicronetCodec()
 {
 }
 
@@ -340,10 +340,6 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
         navData.spd_kt.valid     = true;
         navData.spd_kt.timeStamp = millis();
 
-#if (EMULATE_SPD_WITH_SOG == 1)
-        // Memorize the last time SPD was received from Micronet network
-        lastSpdReception = millis();
-#endif
         break;
     case MICRONET_FIELD_ID_DPT:
         if (value < MAXIMUM_VALID_DEPTH_FT * 10)
