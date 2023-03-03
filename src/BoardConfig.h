@@ -123,11 +123,10 @@
 // to 0 else.
 #define MICRONET_WIND_REPEATER 1
 
-// In cas your Micronet system would not have SPD data (speed on water), you can set this
+// In case your Micronet system would not have SPD data (speed on water), you can set this
 // compile switch to 1 to ask MicronetToNMEA to emulate SPD with SOG value from GNSS.
 // This allows your display to calculate True Wind data, including VMG. This gives good results
-// as long as there no current. Note that if SPD value is received from a T121, the
-// emulation code will be automatically disabled and the real SPD value will be used.
+// as long as there no current.
 #define EMULATE_SPD_WITH_SOG 1
 
 // Define which compass axis will be compared to magnetic north
