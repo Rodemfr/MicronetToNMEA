@@ -5,6 +5,8 @@
 \usepackage{hyperref}
 \usepackage{geometry}
 \usepackage{graphicx}
+\usepackage[T1]{fontenc}
+\usepackage{ltablex}
 \geometry{hmargin=2.5cm,vmargin=1.5cm}
 
 \begin{document}
@@ -134,8 +136,7 @@ Your project should compile now.
 
 By default, MicronetToNMEA is configured for a specific HW layout. This means that it is configured to be connected through specific SPI, I2C or GPIO pins to various boards. This configuration can be changed to some extent to adapt your own needs. The file bearing this configuration is “BoardConfig.h”. Note that no coherency check is made in the software, it is your responsibility to provide a reachable configuration (i.e. not to connect SPI wires to non SPI capable pins). Table {\ref{table:configswitches}} lists all available switches and their meaning.
 
-\begin{table}[h]
-	\begin{tabular}{|l|p{10cm}|}
+	\begin{tabularx}{\linewidth}{@{}lX@{}}
 		\hline
 		\textbf{Compile Switch} & \textbf{Description}\\
 		\hline
@@ -201,7 +202,10 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		MICRONET\_WIND\_REPEATER & If set to 1, MicronetToNMEA will repeat the wind values on the micronet network to help in case of poor RF connection with wind tranduscer.\\
 		\hline
-\end{tabular}
+		EMULATE\_SPD\_WITH\_SOG & If set to 1, MicronetToNMEA will copy SOG value received from GNSS to SPD on the Micronet network. Not to be used if you have water speed measurements coming from T121 or NMEA. \\
+		\hline
+\end{tabularx}
+\begin{table}[h]
 	\caption{Configuration switches in BoardConfig.h}
 \label{table:configswitches}
 \end{table}
