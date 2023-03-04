@@ -123,13 +123,13 @@
 // transducer because of a poor signal/noise ratio, you can ask MicronetToNMEA to repeat
 // the values of AWA & AWS on the network by setting MICRONET_WIND_REPEATER to 1. Set it
 // to 0 else.
-#define MICRONET_WIND_REPEATER 1
+#define MICRONET_WIND_REPEATER 0
 
 // In case your Micronet system would not have SPD data (speed on water), you can set this
 // compile switch to 1 to ask MicronetToNMEA to emulate SPD with SOG value from GNSS.
 // This allows your display to calculate True Wind data, including VMG. This gives good results
 // as long as there no current.
-#define EMULATE_SPD_WITH_SOG 1
+#define EMULATE_SPD_WITH_SOG 0
 
 // Define which compass axis will be compared to magnetic north
 // Set one of the (X, Y, Z) to 1.0 or -1.0
