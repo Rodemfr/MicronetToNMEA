@@ -95,10 +95,12 @@
 #endif
 
 // The console to use for menu and NMEA output
+// USB_NMEA -> USB-Serial link
+// WIRED_NMEA -> Teensy's physical UART
 #define CONSOLE  USB_NMEA
 #define NMEA_EXT USB_NMEA
 
-// Defines with data comes from which link
+// Defines which data comes from which link
 // LINK_NMEA_EXT -> data comes from external NMEA link (WIRED_NMEA)
 // LINK_NMEA_GNSS -> data comes from GNSS NMEA link (GNSS_SERIAL)
 // LINK_MICRONET -> data comes from Micronet network

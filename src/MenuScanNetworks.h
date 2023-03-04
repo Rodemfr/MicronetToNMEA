@@ -24,14 +24,12 @@
  ***************************************************************************
  */
 
-#ifndef MENUMANAGER_H_
-#define MENUMANAGER_H_
+#ifndef MENUSCANNETWORKS_H_
+#define MENUSCANNETWORKS_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
-
-#include <Arduino.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -41,33 +39,10 @@
 /*                                Types                                    */
 /***************************************************************************/
 
-typedef struct MenuEntry_t
-{
-    const char *description;
-    void (*entryCallback)(void);
-} MenuEntry_t;
-
-#define MAX_MENU_DEPTH 4
-
 /***************************************************************************/
-/*                               Classes                                   */
+/*                              Functions                                  */
 /***************************************************************************/
 
-class MenuManager
-{
-  public:
-    MenuManager();
-    virtual ~MenuManager();
+void MenuScanNetworks();
 
-    void PushChar(char c);
-    void PrintMenu();
-    void ActivateMenu(uint32_t entry);
-
-  private:
-    static MenuEntry_t menu[];
-    int                menuLength;
-
-    void PrintPrompt();
-};
-
-#endif /* MENUMANAGER_H_ */
+#endif

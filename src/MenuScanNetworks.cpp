@@ -33,19 +33,15 @@
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
-#include "MenuManager.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
 #include "MicronetMessageFifo.h"
-#include "NavCompass.h"
-#include "Version.h"
-
-#include <SPI.h>
-#include <Wire.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
+
+#define MAX_SCANNED_NETWORKS 5
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -55,115 +51,110 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
-void RfIsr();
-
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
-
-bool firstLoop;
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-void setup()
+void MenuScanNetworks()
 {
-    // Load configuration from EEPROM
-    gConfiguration.LoadFromEeprom();
+    MicronetMessage_t *message;
+    uint32_t           nidArray[MAX_SCANNED_NETWORKS];
+    int16_t            rssiArray[MAX_SCANNED_NETWORKS];
+    MicronetCodec      micronetCodec;
 
-    // Init USB serial link
-    USB_NMEA.begin(USB_BAUDRATE);
+    memset(nidArray, 0, sizeof(nidArray));
+    memset(rssiArray, 0, sizeof(rssiArray));
 
-    // Init GNSS NMEA serial link
-    GNSS_SERIAL.setRX(GNSS_RX_PIN);
-    GNSS_SERIAL.setTX(GNSS_TX_PIN);
-    GNSS_SERIAL.begin(GNSS_BAUDRATE);
+    CONSOLE.print("Scanning Micronet networks for 5 seconds ... ");
 
-    // Init wired serial link
-    WIRED_NMEA.setRX(WIRED_RX_PIN);
-    WIRED_NMEA.setTX(WIRED_TX_PIN);
-    WIRED_NMEA.begin(WIRED_BAUDRATE);
-
-    // Let time for serial drivers to set-up
-    delay(250);
-
-#if (GNSS_UBLOXM8N == 1)
-    CONSOLE.println("Configuring UBlox M8N GNSS");
-    gM8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
-#endif
-
-    CONSOLE.print("Initializing CC1101 ... ");
-    // Check connection to CC1101
-    if (!gRfReceiver.Init(&gRxMessageFifo, gConfiguration.rfFrequencyOffset_MHz))
+    gRxMessageFifo.ResetFifo();
+    unsigned long startTime = millis();
+    do
     {
-        CONSOLE.println("Failed");
-        CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
-        CONSOLE.println("Halted");
-
-        while (1)
+        if ((message = gRxMessageFifo.Peek()) != nullptr)
         {
-            digitalWrite(LED_BUILTIN, HIGH);
-            delay(500);
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(500);
+            // Only consider messages with a valid CRC
+            if (micronetCodec.VerifyHeaderCrc(message))
+            {
+                uint32_t nid  = micronetCodec.GetNetworkId(message);
+                int16_t  rssi = message->rssi;
+                // Store the network in the array by order of reception power
+                for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
+                {
+                    if (nidArray[i] == 0)
+                    {
+                        // New network
+                        nidArray[i]  = nid;
+                        rssiArray[i] = rssi;
+                        break;
+                    }
+                    else if (nidArray[i] == nid)
+                    {
+                        // Already scanned network : update RSSI if stronger
+                        if (rssi > rssiArray[i])
+                        {
+                            rssiArray[i] = rssi;
+                        }
+                        break;
+                    }
+                    else
+                    {
+                        // New network to be inserted in the list : shift the list down
+                        if (rssi > rssiArray[i])
+                        {
+                            for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j++)
+                            {
+                                nidArray[j]  = nidArray[j - 1];
+                                rssiArray[j] = rssiArray[j - 1];
+                            }
+                            nidArray[i]  = nid;
+                            rssiArray[i] = rssi;
+                            break;
+                        }
+                    }
+                }
+            }
+            gRxMessageFifo.DeleteMessage();
         }
-    }
-    CONSOLE.println("OK");
+    } while ((millis() - startTime) < 5000);
 
-    CONSOLE.print("Initializing navigation compass ... ");
-    if (!gNavCompass.Init())
+    CONSOLE.println("done");
+    CONSOLE.println("");
+
+    // Print result
+    if (nidArray[0] != 0)
     {
-        CONSOLE.println("NOT DETECTED");
-        gConfiguration.navCompassAvailable = false;
+        CONSOLE.println("List of scanned networks :");
+        CONSOLE.println("");
+        for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
+        {
+            if (nidArray[i] != 0)
+            {
+                CONSOLE.print("Network ");
+                CONSOLE.print(i);
+                CONSOLE.print(" - ");
+                CONSOLE.print(nidArray[i], HEX);
+                CONSOLE.print(" (");
+                if (rssiArray[i] < 70)
+                    CONSOLE.print("very strong");
+                else if (rssiArray[i] < 80)
+                    CONSOLE.print("strong");
+                else if (rssiArray[i] < 90)
+                    CONSOLE.print("normal");
+                else
+                    CONSOLE.print("low");
+                CONSOLE.println(")");
+            }
+        }
     }
     else
     {
-        CONSOLE.print(gNavCompass.GetDeviceName().c_str());
-        CONSOLE.println(" Found");
-        gConfiguration.navCompassAvailable = true;
+        CONSOLE.println("/!\\ No Micronet network found /!\\");
+        CONSOLE.println("Check that your Micronet network is powered on.");
     }
-
-    // Start listening
-    gRfReceiver.RestartReception();
-
-    // Attach callback to GDO0 pin
-    // According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-    attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, RISING);
-#else
-    attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, HIGH);
-#endif
-
-    // Display serial menu
-    gMenuManager.PrintMenu();
-
-    // For the main loop to know when it is executing for the first time
-    firstLoop = true;
-}
-
-void loop()
-{
-    // If this is the first loop, we verify if we are already attached to a Micronet network. if yes,
-    // We directly jump to NMEA conversion mode.
-    if ((firstLoop) && (gConfiguration.networkId != 0))
-    {
-        // Menu 4 is NMEA Conversion
-        gMenuManager.ActivateMenu(4);
-        gMenuManager.PrintMenu();
-    }
-
-    // Process console input
-    while (CONSOLE.available() > 0)
-    {
-        gMenuManager.PushChar(CONSOLE.read());
-    }
-
-    firstLoop = false;
-}
-
-void RfIsr()
-{
-    gRfReceiver.RfIsr();
 }
 

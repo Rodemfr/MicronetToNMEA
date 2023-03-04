@@ -368,8 +368,8 @@ The menu should look like this :
 3 - Attach converter to a network
 4 - Start NMEA conversion
 5 - Scan surrounding Micronet traffic
-6 - Calibrate RF frequency
-7 - Calibrate magnetometer
+6 - Calibrate RF XTAL
+7 - Calibrate compass
 8 - Test RF quality
 \end{verbatim}
 
@@ -387,11 +387,11 @@ Yours is very likely at the top of the list with mention "very strong". This is 
 Now enter menu \emph{"3 - Attach converter to a network"} by pressing 3, and type your network ID when requested. This will attach MicronetToNMEA to your Micronet devices.
 Once done, MicronetToNMEA will save this value to EEPROM and will remember it. You don't need to do this operation at each start-up. Now that MicronetToNMEA is attached, it will automatically go to NMEA conversion mode at the next power-up.
 
-\subsection{Calibrating CC1101 RF frequency}
+\subsection{Calibrating CC1101 RF XTAL}
 
-CC1101 board uses a crystal to generate its frequencies. Crystal frequency is more or less precise and needs to be calibrated for CC1101 to generate exactly the expected frequency. Each crystal needs to be calibrated independently. This calibration is very important because it directly influence the range performance of the RF system (i.e. the maximum distance at which MicronetToNMEA can detect other devices). When you buy a TackTick device, this calibration has already been done at factory. But when you build a MicronetToNMEA system, you need to do it yourself.
+CC1101 board uses a crystal to generate its frequencies. Crystal frequency is more or less precise and needs to be calibrated for CC1101 to generate exactly the expected frequency. Each crystal needs to be calibrated independently. This calibration is very important because it directly influences the range performance of the RF system (i.e. the maximum distance at which MicronetToNMEA can detect other devices). When you buy a TackTick device, this calibration has already been done at factory. But when you build a MicronetToNMEA system, you need to do it yourself.
 
-Menu \emph{"6 - Calibrate RF frequency"} does this calibration. Enter it by pressing key 6. A text will explain the procedure : power-up your Micronet network and place the master device (the one you used to power-up the network) very close to MicronetToNMEA (less than one meter). Now press any key and let the calibration proceed. During 2 minutes, you will see dots and stars appear on the console looking like this :
+Menu \emph{"6 - Calibrate RF XTAL"} does this calibration. Enter it by pressing key 6. A text will explain the procedure : power-up your Micronet network and place the master device (the one you used to power-up the network) very close to MicronetToNMEA (less than one meter). Now press any key and let the calibration proceed. During 2 minutes, you will see dots and stars appear on the console looking like this :
 
 \begin{verbatim}
 ...................*.**********************.**.....................................
@@ -406,7 +406,7 @@ Navigation compass needs to be calibrated on its 3 axis to produce correct headi
 
 The base principle of calibration consists in determining the minimum and maximum values of earth's magnetic field onto each of the three axis of the sensor. This way, heading calculation will be able to remove any bias on the 3 axis. This bias is produced by the LSM303 itself, but also by surrounding electronics (Teensy, GNSS, etc.).
 
-Before starting calibration, you must first prepare your environment as explained in \ref{compass-recommendations}. Once ready, you can enter menu \emph{"7 - Calibrate magnetometer"}.
+Before starting calibration, you must first prepare your environment as explained in \ref{compass-recommendations}. Once ready, you can enter menu \emph{"7 - Calibrate compass"}.
 
 This menu will produce a permanent output of calibration values looking like this :
 
@@ -433,14 +433,18 @@ Once achieved, just press \emph{<ESC>} and tell MicronetToNMEA to save the value
 Menu \emph{"8 - Test RF quality"} will help you to evaluate the quality of the connection with each Micronet devices individually. This will be critical to fix your MicronetToNMEA assembly at the right place in your boat. When entering this menu, you will see the list of devices of your network with a indicator of the connection quality :
 
 \begin{verbatim}
-81071E60 Strength=10.60 (Excellent) Dual Display, MASTER
-01071E77 Strength=11.40 (Excellent) Hull Transmitter
-81037082 Strength=3.40 (Medium) Dual Display
-83037737 Strength=3.80 (Medium) Analog Wind Display
-830AB252 Strength=7.80 (Very Good) Analog Wind Display
+81071e60 LNK=7.6 NET=9 Dual Display [M]
+01071e77 LNK=7.2 NET=9 Hull
+81037082 LNK=6.2 NET=7 Dual Display
+83037737 LNK=6.2 NET=6 Wind Display
+830ab252 LNK=6.2 NET=9 Wind Display
 \end{verbatim}
 
-The list is refreshed every second and you can ensure that every device has a correct connection with MicronetToNMEA. The problematic device is generally the wind transducer which is shadowed by the mast. Placing MicronetToNMEA outside this shadow will ensure a good wind reception. If some of your other Micronet devices have difficulties to receive wind data, you can also configure MicronetToNMEA to repeat wind data to the complete network by enabling MICRONET\_WIND\_REPEATER option in BoardConfig.h (See chapter \ref{compile-time-configuration}).
+\emph{LNK} indicates the strength of the signal of the device as received by MicronetToNMEA.
+
+\emph{NET} indicates the strength of the signal of the Master as received by the device.
+
+A value of 9 is considered excellent while a value below 3 is low. \emph{LNK} can be used to find the best place for MicronetToNMEA, while \emph{NET} is useful to check if every device is properly receiving master's messages. The list is refreshed every second. The problematic device is generally the wind transducer which is shadowed by the mast. Placing MicronetToNMEA and you master display outside this shadow will ensure a good wind reception. If some of your other Micronet devices have difficulties to receive wind data, you can also configure MicronetToNMEA to repeat it on the network by enabling MICRONET\_WIND\_REPEATER option in BoardConfig.h (See chapter \ref{compile-time-configuration}).
 
 \subsection{Starting NMEA conversion}
 

@@ -78,12 +78,13 @@ class RfDriver
     void SetFrequencyOffset(float offset_MHz);
     void SetFrequency(float frequency_MHz);
     void SetBandwidth(RfBandwidth_t bandwidth);
-    void RfIsr();
     void RestartReception();
     void Transmit(MicronetMessageFifo *txMessageFifo);
     void Transmit(MicronetMessage_t *message);
     void EnableFrequencyTracking(uint32_t networkId);
     void DisableFrequencyTracking();
+
+    void RfIsr();
 
   private:
     CC1101Driver             cc1101Driver;

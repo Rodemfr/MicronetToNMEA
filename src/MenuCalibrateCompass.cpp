@@ -28,18 +28,14 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "MenuManager.h"
-#include "BoardConfig.h"
-#include "MenuAbout.h"
-#include "MenuAttachNetwork.h"
-#include "MenuCalibrateCompass.h"
-#include "MenuCalibrateXtal.h"
-#include "MenuConvertToNmea.h"
-#include "MenuScanMicronetTraffic.h"
-#include "MenuScanNetworks.h"
-#include "MenuTestRfQuality.h"
-
 #include <Arduino.h>
+
+#include "BoardConfig.h"
+#include "Configuration.h"
+#include "Globals.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
+#include "MicronetMessageFifo.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -57,95 +53,106 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-MenuEntry_t MenuManager::menu[] = {{"MicronetToNMEA", nullptr},
-                                   {"General info on MicronetToNMEA", MenuAbout},
-                                   {"Scan Micronet networks", MenuScanNetworks},
-                                   {"Attach converter to a network", MenuAttachNetwork},
-                                   {"Start NMEA conversion", MenuConvertToNmea},
-                                   {"Scan surrounding Micronet traffic", MenuScanMicronetTraffic},
-                                   {"Calibrate RF XTAL", MenuCalibrateXtal},
-                                   {"Calibrate compass", MenuCalibrateCompass},
-                                   {"Test RF quality", MenuTestRfQuality},
-                                   {nullptr, nullptr}};
-
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-MenuManager::MenuManager()
+void MenuCalibrateCompass()
 {
-    while (menu[menuLength].description != nullptr)
-    {
-        menuLength++;
-    }
-}
+    bool     exitLoop     = false;
+    uint32_t pDisplayTime = 0;
+    uint32_t pSampleTime  = 0;
+    float    mx, my, mz;
+    float    xMin = 1000;
+    float    xMax = -1000;
+    float    yMin = 1000;
+    float    yMax = -1000;
+    float    zMin = 1000;
+    float    zMax = -1000;
+    char     c;
 
-MenuManager::~MenuManager()
-{
-}
-
-void MenuManager::PushChar(char c)
-{
-    if ((c > 0x30) && (c <= 0x39))
+    if (gConfiguration.navCompassAvailable == false)
     {
-        int entry = c - 0x30;
-        if (entry < menuLength)
-        {
-            if (menu[entry].entryCallback != nullptr)
-            {
-                CONSOLE.println(entry);
-                CONSOLE.println("");
-                menu[entry].entryCallback();
-                PrintPrompt();
-            }
-        }
-    }
-    else if (c == 0x30)
-    {
-        CONSOLE.println("0");
-        PrintMenu();
-    }
-}
-
-void MenuManager::PrintMenu()
-{
-    if ((menu == nullptr) || (menuLength < 2))
-    {
+        CONSOLE.println("No navigation compass detected. Exiting menu ...");
         return;
     }
 
-    CONSOLE.println("");
-    CONSOLE.print("*** ");
-    CONSOLE.print(menu[0].description);
-    CONSOLE.println(" ***");
-    CONSOLE.println("");
-    CONSOLE.println("0 - Print this menu");
-    for (int i = 1; i < menuLength; i++)
-    {
-        CONSOLE.print(i);
-        CONSOLE.print(" - ");
-        CONSOLE.println(menu[i].description);
-    }
-    PrintPrompt();
-}
+    CONSOLE.println("Calibrating magnetometer ... ");
 
-void MenuManager::ActivateMenu(uint32_t entry)
-{
-    if (entry < menuLength)
+    do
     {
-        if (menu[entry].entryCallback != nullptr)
+        uint32_t currentTime = millis();
+        if ((currentTime - pSampleTime) > 100)
         {
-            menu[entry].entryCallback();
-        }
-        else
-        {
-            PrintPrompt();
-        }
-    }
-}
+            gNavCompass.GetMagneticField(&mx, &my, &mz);
+            if ((currentTime - pDisplayTime) > 250)
+            {
+                pDisplayTime = currentTime;
+                if (mx < xMin)
+                    xMin = mx;
+                if (mx > xMax)
+                    xMax = mx;
 
-void MenuManager::PrintPrompt()
-{
-    CONSOLE.println("");
-    CONSOLE.print("Choice : ");
+                if (my < yMin)
+                    yMin = my;
+                if (my > yMax)
+                    yMax = my;
+
+                if (mz < zMin)
+                    zMin = mz;
+                if (mz > zMax)
+                    zMax = mz;
+
+                CONSOLE.print("(");
+                CONSOLE.print(mx);
+                CONSOLE.print(" ");
+                CONSOLE.print(my);
+                CONSOLE.print(" ");
+                CONSOLE.print(mz);
+                CONSOLE.println(")");
+
+                CONSOLE.print("[");
+                CONSOLE.print((xMin + xMax) / 2);
+                CONSOLE.print(" ");
+                CONSOLE.print(xMax - xMin);
+                CONSOLE.print("] ");
+                CONSOLE.print("[");
+                CONSOLE.print((yMin + yMax) / 2);
+                CONSOLE.print(" ");
+                CONSOLE.print(yMax - yMin);
+                CONSOLE.print("] ");
+                CONSOLE.print("[");
+                CONSOLE.print((zMin + zMax) / 2);
+                CONSOLE.print(" ");
+                CONSOLE.print(zMax - zMin);
+                CONSOLE.println("]");
+            }
+        }
+
+        while (CONSOLE.available() > 0)
+        {
+            if (CONSOLE.read() == 0x1b)
+            {
+                CONSOLE.println("ESC key pressed, stopping scan.");
+                exitLoop = true;
+            }
+        }
+        yield();
+    } while (!exitLoop);
+    CONSOLE.println("Do you want to save the new calibration values (y/n) ?");
+    while (CONSOLE.available() == 0)
+        ;
+    c = CONSOLE.read();
+    if ((c == 'y') || (c == 'Y'))
+    {
+        gConfiguration.xMagOffset = (xMin + xMax) / 2;
+        gConfiguration.yMagOffset = (yMin + yMax) / 2;
+        gConfiguration.zMagOffset = (zMin + zMax) / 2;
+        gConfiguration.SaveToEeprom();
+        CONSOLE.println("Configuration saved");
+    }
+    else
+    {
+        CONSOLE.println("Configuration discarded");
+    }
 }
