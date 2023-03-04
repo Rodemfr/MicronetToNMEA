@@ -218,10 +218,8 @@ extent to adapt your own needs. The file bearing this configuration is
 “BoardConfig.h”. Note that no coherency check is made in the software,
 it is your responsibility to provide a reachable configuration (i.e. not
 to connect SPI wires to non SPI capable pins). Table
-<span>[3.1](#table:configswitches)</span> lists all available switches
-and their meaning.
-
-<div id="table:configswitches">
+<span>[\[table:configswitches\]](#table:configswitches)</span> lists all
+available switches and their meaning.
 
 | **Compile Switch**        | **Description**                                                                                                                                                                    |
 | :------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -256,10 +254,7 @@ and their meaning.
 | COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.           |
 | INVERTED\_RMB\_WORKAROUND | Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software wrongly inverts them.                                                          |
 | MICRONET\_WIND\_REPEATER  | If set to 1, MicronetToNMEA will repeat the wind values on the micronet network to help in case of poor RF connection with wind tranduscer.                                        |
-
-Configuration switches in BoardConfig.h
-
-</div>
+| EMULATE\_SPD\_WITH\_SOG   | If set to 1, MicronetToNMEA will copy SOG value received from GNSS to SPD on the Micronet network. Not to be used if you have water speed measurements coming from T121 or NMEA.   |
 
 # Installation
 

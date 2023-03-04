@@ -28,18 +28,15 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "MenuManager.h"
-#include "BoardConfig.h"
-#include "MenuAbout.h"
-#include "MenuAttachNetwork.h"
-#include "MenuCalibrateCompass.h"
-#include "MenuCalibrateXtal.h"
-#include "MenuConvertToNmea.h"
-#include "MenuScanMicronetTraffic.h"
-#include "MenuScanNetworks.h"
-#include "MenuTestRfQuality.h"
-
 #include <Arduino.h>
+
+#include "BoardConfig.h"
+#include "Configuration.h"
+#include "Globals.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
+#include "MicronetMessageFifo.h"
+#include "Version.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -57,95 +54,81 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-MenuEntry_t MenuManager::menu[] = {{"MicronetToNMEA", nullptr},
-                                   {"General info on MicronetToNMEA", MenuAbout},
-                                   {"Scan Micronet networks", MenuScanNetworks},
-                                   {"Attach converter to a network", MenuAttachNetwork},
-                                   {"Start NMEA conversion", MenuConvertToNmea},
-                                   {"Scan surrounding Micronet traffic", MenuScanMicronetTraffic},
-                                   {"Calibrate RF XTAL", MenuCalibrateXtal},
-                                   {"Calibrate compass", MenuCalibrateCompass},
-                                   {"Test RF quality", MenuTestRfQuality},
-                                   {nullptr, nullptr}};
-
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-MenuManager::MenuManager()
+void MenuAbout()
 {
-    while (menu[menuLength].description != nullptr)
+    CONSOLE.print("MicronetToNMEA, Version ");
+    CONSOLE.print(MNET2NMEA_SW_MAJOR_VERSION, DEC);
+    CONSOLE.print(".");
+    CONSOLE.println(MNET2NMEA_SW_MINOR_VERSION, DEC);
+
+    if (!gConfiguration.magicNumberFound)
     {
-        menuLength++;
+        CONSOLE.println("Configuration not found in EEPROM");
     }
-}
-
-MenuManager::~MenuManager()
-{
-}
-
-void MenuManager::PushChar(char c)
-{
-    if ((c > 0x30) && (c <= 0x39))
+    else
     {
-        int entry = c - 0x30;
-        if (entry < menuLength)
+        if (gConfiguration.checksumValid)
         {
-            if (menu[entry].entryCallback != nullptr)
-            {
-                CONSOLE.println(entry);
-                CONSOLE.println("");
-                menu[entry].entryCallback();
-                PrintPrompt();
-            }
-        }
-    }
-    else if (c == 0x30)
-    {
-        CONSOLE.println("0");
-        PrintMenu();
-    }
-}
-
-void MenuManager::PrintMenu()
-{
-    if ((menu == nullptr) || (menuLength < 2))
-    {
-        return;
-    }
-
-    CONSOLE.println("");
-    CONSOLE.print("*** ");
-    CONSOLE.print(menu[0].description);
-    CONSOLE.println(" ***");
-    CONSOLE.println("");
-    CONSOLE.println("0 - Print this menu");
-    for (int i = 1; i < menuLength; i++)
-    {
-        CONSOLE.print(i);
-        CONSOLE.print(" - ");
-        CONSOLE.println(menu[i].description);
-    }
-    PrintPrompt();
-}
-
-void MenuManager::ActivateMenu(uint32_t entry)
-{
-    if (entry < menuLength)
-    {
-        if (menu[entry].entryCallback != nullptr)
-        {
-            menu[entry].entryCallback();
+            CONSOLE.println("Valid configuration found in EEPROM");
         }
         else
         {
-            PrintPrompt();
+            CONSOLE.println("Invalid configuration found in EEPROM");
         }
     }
-}
 
-void MenuManager::PrintPrompt()
-{
-    CONSOLE.println("");
-    CONSOLE.print("Choice : ");
+    CONSOLE.print("Device ID : ");
+    CONSOLE.println(gConfiguration.deviceId, HEX);
+
+    if (gConfiguration.networkId != 0)
+    {
+        CONSOLE.print("Attached to Micronet Network ");
+        CONSOLE.println(gConfiguration.networkId, HEX);
+    }
+    else
+    {
+        CONSOLE.println("No Micronet Network attached");
+    }
+
+    CONSOLE.print("RF Frequency offset = ");
+    CONSOLE.print(gConfiguration.rfFrequencyOffset_MHz * 1000);
+    CONSOLE.print(" kHz (");
+    CONSOLE.print((int)(1000000.0 * gConfiguration.rfFrequencyOffset_MHz / MICRONET_RF_CENTER_FREQUENCY_MHZ));
+    CONSOLE.println(" ppm)");
+    CONSOLE.print("Wind speed factor = ");
+    CONSOLE.println(gConfiguration.windSpeedFactor_per);
+    CONSOLE.print("Wind direction offset = ");
+    CONSOLE.println((int)(gConfiguration.windDirectionOffset_deg));
+    CONSOLE.print("Water speed factor = ");
+    CONSOLE.println(gConfiguration.waterSpeedFactor_per);
+    CONSOLE.print("Water temperature offset = ");
+    CONSOLE.println((int)(gConfiguration.waterTemperatureOffset_C));
+    if (gConfiguration.navCompassAvailable == false)
+    {
+        CONSOLE.println("No navigation compass detected, disabling magnetic heading.");
+    }
+    else
+    {
+        CONSOLE.print("Using ");
+        CONSOLE.print(gNavCompass.GetDeviceName().c_str());
+        CONSOLE.println(" for magnetic heading");
+        CONSOLE.print("Magnetometer calibration : ");
+        CONSOLE.print(gConfiguration.xMagOffset);
+        CONSOLE.print(" ");
+        CONSOLE.print(gConfiguration.yMagOffset);
+        CONSOLE.print(" ");
+        CONSOLE.println(gConfiguration.zMagOffset);
+        CONSOLE.print("Heading offset = ");
+        CONSOLE.println((int)(gConfiguration.headingOffset_deg));
+        CONSOLE.print("Magnetic variation = ");
+        CONSOLE.println((int)(gConfiguration.magneticVariation_deg));
+        CONSOLE.print("Depth offset = ");
+        CONSOLE.println(gConfiguration.depthOffset_m);
+        CONSOLE.print("Wind shift = ");
+        CONSOLE.println((int)gConfiguration.windShift);
+    }
 }

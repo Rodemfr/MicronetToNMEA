@@ -339,6 +339,7 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
         navData.spd_kt.value     = (((float)value) / 100.0f) * navData.waterSpeedFactor_per;
         navData.spd_kt.valid     = true;
         navData.spd_kt.timeStamp = millis();
+
         break;
     case MICRONET_FIELD_ID_DPT:
         if (value < MAXIMUM_VALID_DEPTH_FT * 10)
