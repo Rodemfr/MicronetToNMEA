@@ -54,8 +54,8 @@ DID = Device ID (4 bytes) - Unique number identifying the device sending the mes
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to know how to decode payload.
      0x01 Master Request
      0x02 Send Data
-     0x06 Set Parameter
-     0x07 Ack Parameter
+     0x06 Send Command
+     0x07 Ack Command
      0x0a Ping
      0x0b Ack Ping
      0x0c Enter Remote Mode
@@ -138,12 +138,12 @@ The structure of the asynchronous window is :
 
 Note that asynchronous commands can not exceed a payload of 20 bytes. Asynchronous window starts 7200us after the end of
 the last synchronous window. Since asynchronous commands are subject to collisions (any device can potentially talk in
-this window), they generally require an acknowledge from the other devices. As an example, a display device could send a
- parameter update message (0x06) which requires all other devices to acknowledge it with message 0x07. In that case
- other devices will use other transmission windows located after the asynchronous slot. These windows are called "Ack
- windows". If other devices do not acknowledge, then it means that a collision likely occurred on asynchronous window
- and that message must be sent again during a later network cycle. If a device do not acknowledge a asynchronous message
- several times, it may be detached from network by master.
+this window), they always require an acknowledge from the other devices. As an example, a display device could send a
+command message (0x06) which requires all other devices to acknowledge it with message 0x07. In that case  other
+devices will use other transmission windows located after the asynchronous slot. These windows are called "Ack
+windows". If other devices do not acknowledge, then it means that a collision likely occurred on asynchronous window
+and that message must be sent again at a later network cycle. If a device does not acknowledge a asynchronous message
+several times, it may be detached from network by master.
 
 These Ack windows have the following structure :
 
@@ -376,38 +376,59 @@ NL - New payload length
 
 CS - Checksum of the entire payload
 
-************************************
-*** Message 0x06 (Set Parameter) ***
-************************************
+***********************************
+*** Message 0x06 (Send Command) ***
+***********************************
 Transmission window : Asynchronous
 
-This message is sent by a display when a parameter changed. This is typically used when user changes a configuration
-parameter.
+This message is sent by any device to notify other devices of a specific asynchronous event/request.
+This is used, as an example, when user changes a configuration parameter and that all devices must be notifyed
+by the display of the parameter change. It is also used to notify of alert events
 
 Example : Wind direction calibration +10 deg
 |             MESSAGE HEADER              |     CORRECTION     |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL| VA  |VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|PI|PL| VA  |VE|CS|
 |83 03 77 37|83 03 77 37|06|09|09|80|13|13|FF|07|02|0A 00|04 16|
 
 Example : Wind Speed Calibration +7%
 |             MESSAGE HEADER              |    CORRECTION   |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|PI|PL|VA|VE|CS|
 |83 03 77 37|83 03 77 37|06|09|00|77|12|12|FF 06 01 07 0B 18|
 
 Example : Speed filtering level MED
 |             MESSAGE HEADER              |    CORRECTION   |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|PI|PL|VA|VE|CS|
 |83 03 77 37|81 03 70 82|06|09|09|C2|12|12|FF|04|01|20|0E|32|
 
 Example : Set time zone
 |             MESSAGE HEADER              |    CORRECTION   |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|PI|PL|VA|VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|PI|PL|VA|VE|CS|
 |83 09 2C 36|81 03 70 82|06|09|00|73|12|12|FF|10|01|01|02|13|
 
-Example : Set Display backlight to off
+Example : Acknowledge NO VOLT alarm
 |             MESSAGE HEADER              |  DISPLAY  |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|VA|VE|CS|
-|88 0B 29 06|88 0B C9 44|06|01|09|72|10|10|E5|00|01|E6|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
+|83 09 2C 36|81 07 1E 60|06|09|00|03|10|10|F9|0C|02|07|
+
+Example : Raise NO VOLT alarm
+|             MESSAGE HEADER              |  DISPLAY  |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
+|01 0B 29 06|01 0B C9 44|06|01|09|72|10|10|E2|0C|01|EF|
+
+CO Command - This byte defines the command you want to send.
+               0xFF - Change config parameter
+               0xF9 - Acknowledge alarm
+               0xE5 - Backlight level
+               0xE2 - Raise alarm
+
+The rest of the payload depends on the command.
+
+--- Command 0xFF : Change config parameter ---------
+
+Example : Wind direction calibration +10 deg
+|             MESSAGE HEADER              |     CORRECTION     |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|PI|PL| VA  |VE|CS|
+|83 03 77 37|83 03 77 37|06|09|09|80|13|13|FF|07|02|0A 00|04 16|
 
 PL Parameter Length - Number of bytes on wich VA is coded.
 
@@ -416,13 +437,9 @@ VE Version - Incremented by one at each new value sent to other devices. Reset t
 			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
 			 EEPROM life time.
 
-PA Page - This bytes seems to select a page of parameters you want to access. Pretty unsure definition.
-            0xFF - Nav & Sensors page
-            0xE5 - Backlight level
-
 PI Parameter ID - Id of the parameter to be changed in the page
 
-    PA   PI
+    CO   PI
    0xFF 0x00 Water speed factor
       VA = 8bit unsigned integer. Value is 0x32 + speed correction in % (e.g. 0x30<=>-2%, 0x37<=>+5%)
    0xFF 0x02 Water temperature offset
@@ -463,13 +480,61 @@ PI Parameter ID - Id of the parameter to be changed in the page
       VA = 0x02 : Level 2
       VA = 0x03 : Level 3
 
-************************************
-*** Message 0x07 (Ack Parameter) ***
-************************************
+--- Command 0xF9 : Acknowledge alarm ---------
+
+Example : Acknowledge NO VOLT alarm
+|             MESSAGE HEADER              |  DISPLAY  |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
+|83 09 2C 36|81 07 1E 60|06|09|00|03|10|10|F9|0C|02|07|
+
+AL Alarm ID - ID of the alarm to be acknowledged
+
+VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
+             This number is used to avoid writing several times the same value into EEPROM. This can happen when a
+			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
+			 EEPROM life time.
+
+PI Parameter ID - Id of the parameter to be changed in the page
+
+--- Command 0xE5 : Backlight level ---------
+
+Example : Set Display backlight to off
+|             MESSAGE HEADER              |  DISPLAY  |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|VA|VE|CS|
+|88 0B 29 06|88 0B C9 44|06|01|09|72|10|10|E5|00|01|E6|
+
+AL Alarm ID - ID of the alarm to be acknowledged
+
+VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
+             This number is used to avoid writing several times the same value into EEPROM. This can happen when a
+			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
+			 EEPROM life time.
+
+PI Parameter ID - Id of the parameter to be changed in the page
+
+--- Command 0xE2 : Raise alarm ------
+
+Example : Raise NO VOLT alarm
+|             MESSAGE HEADER              |  DISPLAY  |
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
+|01 0B 29 06|01 0B C9 44|06|01|09|72|10|10|E2|0C|01|EF|
+
+AL Alarm ID - ID of the alarm to be acknowledged
+
+VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
+             This number is used to avoid writing several times the same value into EEPROM. This can happen when a
+			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
+			 EEPROM life time.
+
+PI Parameter ID - Id of the parameter to be changed in the page
+
+**********************************
+*** Message 0x07 (Ack Command) ***
+**********************************
 Transmission window : Acknowledge
 
-This message is sent by a slave device to acknowledge a "Set Parameter" command sent on the asynchronous window. It is
-used by master device to detect collision on asynchronous window and to repeat "Set Parameter" command if required.
+This message is sent by a slave device to acknowledge a "Send Command" sent on the asynchronous window. It is
+used by master device to detect collision on asynchronous window and to repeat "Send Command" if required.
 
 Example :
 |83 03 77 37|83 03 77 37|07|09|09|80|13|13|
