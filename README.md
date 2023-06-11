@@ -35,6 +35,8 @@ MicronetToNMEA is licensed under GPLv3. See LICENSE.txt file for more details.
 
 The source code compiles with [Arduino IDE](https://www.arduino.cc/en/software) extended by [Teensyduino](https://www.pjrc.com/teensy/td_download.html) software package. You just have to configure the right Teensy board and to import the required libraries (TeensyTimerTool). If you plan to develop/extend MicronetToNMEA, you probably should use [Visual Studio Code](https://code.visualstudio.com/) associated to [PlatformIO](https://platformio.org/) plugin. It is way beyond Arduino IDE in term of productivity but is harder to set up.
 
+***WARNING*** : Latest versions of Teensyduino (1.58.0 & 1.58.1) are not working with *MicronetToNMEA* and lead to a reset loop after uploading the SW to the board. The latest version known to work is 1.57.2. The same is true for Platform IO : version 4.18 fails while version 4.17 works fine.
+
 ## Acknowledgments
 
 * Thanks to the guys of YBW.com forum who started the work of investigating Micronet's protocol. The technical discussions around the protocol are in this thread : https://forums.ybw.com/index.php?threads/raymarines-micronet.539500/
