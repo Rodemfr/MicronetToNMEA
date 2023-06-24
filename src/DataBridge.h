@@ -61,6 +61,7 @@ typedef enum
     NMEA_ID_RMB,
     NMEA_ID_RMC,
     NMEA_ID_GGA,
+    NMEA_ID_GLL,
     NMEA_ID_VTG,
     NMEA_ID_MWV,
     NMEA_ID_DPT,
@@ -114,6 +115,7 @@ class DataBridge
     void     DecodeRMBSentence(char *sentence);
     void     DecodeRMCSentence(char *sentence);
     void     DecodeGGASentence(char *sentence);
+    void     DecodeGLLSentence(char *sentence);
     void     DecodeVTGSentence(char *sentence);
     void     DecodeMWVSentence(char *sentence);
     void     DecodeDPTSentence(char *sentence);
