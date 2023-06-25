@@ -131,7 +131,7 @@ void MenuManager::PrintMenu()
 
 void MenuManager::ActivateMenu(uint32_t entry)
 {
-    if (entry < menuLength)
+    if (entry < (uint32_t) menuLength)
     {
         if (menu[entry].entryCallback != nullptr)
         {
