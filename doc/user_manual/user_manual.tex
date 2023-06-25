@@ -200,8 +200,6 @@ By default, MicronetToNMEA is configured for a specific HW layout. This means th
 		\hline
 		INVERTED\_RMB\_WORKAROUND & Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software wrongly inverts them.\\
 		\hline
-		MICRONET\_WIND\_REPEATER & If set to 1, MicronetToNMEA will repeat the wind values on the micronet network to help in case of poor RF connection with wind tranduscer.\\
-		\hline
 		EMULATE\_SPD\_WITH\_SOG & If set to 1, MicronetToNMEA will copy SOG value received from GNSS to SPD on the Micronet network. Not to be used if you have water speed measurements coming from T121 or NMEA. \\
 		\hline
 \end{tabularx}
@@ -444,7 +442,7 @@ Menu \emph{"8 - Test RF quality"} will help you to evaluate the quality of the c
 
 \emph{NET} indicates the strength of the signal of the Master as received by the device.
 
-A value of 9 is considered excellent while a value below 3 is low. \emph{LNK} can be used to find the best place for MicronetToNMEA, while \emph{NET} is useful to check if every device is properly receiving master's messages. The list is refreshed every second. The problematic device is generally the wind transducer which is shadowed by the mast. Placing MicronetToNMEA and you master display outside this shadow will ensure a good wind reception. If some of your other Micronet devices have difficulties to receive wind data, you can also configure MicronetToNMEA to repeat it on the network by enabling MICRONET\_WIND\_REPEATER option in BoardConfig.h (See chapter \ref{compile-time-configuration}).
+A value of 9 is considered excellent while a value below 3 is low. \emph{LNK} can be used to find the best place for MicronetToNMEA, while \emph{NET} is useful to check if every device is properly receiving master's messages. The list is refreshed every second. The problematic device is generally the wind transducer which is shadowed by the mast. Placing MicronetToNMEA and your master display outside this shadow will ensure a good wind reception.
 
 \subsection{Starting NMEA conversion}
 
@@ -491,6 +489,8 @@ The following table summarizes all supported NMEA sentences, the corresponding M
 		RMC & Decoded/Forwarded & TIME DATE & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
 		\hline
 		GGA & Decoded/Forwarded & LAT LON & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
+		\hline
+		GLL & Decoded/Forwarded & LAT LON & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
 		\hline
 		VTG & Decoded/Forwarded & COG SOG & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
 		\hline
