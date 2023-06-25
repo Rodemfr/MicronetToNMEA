@@ -253,7 +253,6 @@ available switches and their meaning.
 | SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.            |
 | COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.           |
 | INVERTED\_RMB\_WORKAROUND | Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software wrongly inverts them.                                                          |
-| MICRONET\_WIND\_REPEATER  | If set to 1, MicronetToNMEA will repeat the wind values on the micronet network to help in case of poor RF connection with wind tranduscer.                                        |
 | EMULATE\_SPD\_WITH\_SOG   | If set to 1, MicronetToNMEA will copy SOG value received from GNSS to SPD on the Micronet network. Not to be used if you have water speed measurements coming from T121 or NMEA.   |
 
 # Installation
@@ -485,8 +484,8 @@ The menu should look like this :
     3 - Attach converter to a network
     4 - Start NMEA conversion
     5 - Scan surrounding Micronet traffic
-    6 - Calibrate RF frequency
-    7 - Calibrate magnetometer
+    6 - Calibrate RF XTAL
+    7 - Calibrate compass
     8 - Test RF quality
 
 ### Attaching your Micronet network to MicronetToNMEA
@@ -517,19 +516,19 @@ don’t need to do this operation at each start-up. Now that
 MicronetToNMEA is attached, it will automatically go to NMEA conversion
 mode at the next power-up.
 
-### Calibrating CC1101 RF frequency
+### Calibrating CC1101 RF XTAL
 
 CC1101 board uses a crystal to generate its frequencies. Crystal
 frequency is more or less precise and needs to be calibrated for CC1101
 to generate exactly the expected frequency. Each crystal needs to be
 calibrated independently. This calibration is very important because it
-directly influence the range performance of the RF system (i.e. the
+directly influences the range performance of the RF system (i.e. the
 maximum distance at which MicronetToNMEA can detect other devices). When
 you buy a TackTick device, this calibration has already been done at
 factory. But when you build a MicronetToNMEA system, you need to do it
 yourself.
 
-Menu *"6 - Calibrate RF frequency"* does this calibration. Enter it by
+Menu *"6 - Calibrate RF XTAL"* does this calibration. Enter it by
 pressing key 6. A text will explain the procedure : power-up your
 Micronet network and place the master device (the one you used to
 power-up the network) very close to MicronetToNMEA (less than one
@@ -562,7 +561,7 @@ by surrounding electronics (Teensy, GNSS, etc.).
 
 Before starting calibration, you must first prepare your environment as
 explained in [4.6.2](#compass-recommendations). Once ready, you can
-enter menu *"7 - Calibrate magnetometer"*.
+enter menu *"7 - Calibrate compass"*.
 
 This menu will produce a permanent output of calibration values looking
 like this :
@@ -605,20 +604,25 @@ critical to fix your MicronetToNMEA assembly at the right place in your
 boat. When entering this menu, you will see the list of devices of your
 network with a indicator of the connection quality :
 
-    81071E60 Strength=10.60 (Excellent) Dual Display, MASTER
-    01071E77 Strength=11.40 (Excellent) Hull Transmitter
-    81037082 Strength=3.40 (Medium) Dual Display
-    83037737 Strength=3.80 (Medium) Analog Wind Display
-    830AB252 Strength=7.80 (Very Good) Analog Wind Display
+    81071e60 LNK=7.6 NET=9 Dual Display [M]
+    01071e77 LNK=7.2 NET=9 Hull
+    81037082 LNK=6.2 NET=7 Dual Display
+    83037737 LNK=6.2 NET=6 Wind Display
+    830ab252 LNK=6.2 NET=9 Wind Display
 
-The list is refreshed every second and you can ensure that every device
-has a correct connection with MicronetToNMEA. The problematic device is
-generally the wind transducer which is shadowed by the mast. Placing
-MicronetToNMEA outside this shadow will ensure a good wind reception. If
-some of your other Micronet devices have difficulties to receive wind
-data, you can also configure MicronetToNMEA to repeat wind data to the
-complete network by enabling MICRONET\_WIND\_REPEATER option in
-BoardConfig.h (See chapter [3.3](#compile-time-configuration)).
+*LNK* indicates the strength of the signal of the device as received by
+MicronetToNMEA.
+
+*NET* indicates the strength of the signal of the Master as received by
+the device.
+
+A value of 9 is considered excellent while a value below 3 is low. *LNK*
+can be used to find the best place for MicronetToNMEA, while *NET* is
+useful to check if every device is properly receiving master’s messages.
+The list is refreshed every second. The problematic device is generally
+the wind transducer which is shadowed by the mast. Placing
+MicronetToNMEA and your master display outside this shadow will ensure a
+good wind reception.
 
 ### Starting NMEA conversion
 
@@ -702,6 +706,7 @@ corresponding Micronet data and the possible source links:
 | RMB          |      Decoded      |        XTE DTW BTW VMGWP        | LINK\_NMEA\_EXT                              |
 | RMC          | Decoded/Forwarded |            TIME DATE            | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
 | GGA          | Decoded/Forwarded |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
+| GLL          | Decoded/Forwarded |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
 | VTG          | Decoded/Forwarded |             COG SOG             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
 | MWV          |  Decoded/Encoded  |         AWA AWS TWA TWS         | LINK\_MICRONET LINK\_NMEA\_EXT               |
 | DPT          |  Decoded/Encoded  |               DPT               | LINK\_MICRONET LINK\_NMEA\_EXT               |

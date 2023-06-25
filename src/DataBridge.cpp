@@ -119,7 +119,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
         return;
     }
 
-    if (c == 13)
+    if ((c == 13) || (c == 10))
     {
         nmeaBuffer[*nmeaWriteIndex] = 0;
 
@@ -152,6 +152,16 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeGGASentence(nmeaBuffer);
+                        if (sourceLink != LINK_NMEA_EXT)
+                        {
+                            NMEA_EXT.println(nmeaBuffer);
+                        }
+                    }
+                    break;
+                case NMEA_ID_GLL:
+                    if (sourceLink == gnssSourceLink)
+                    {
+                        DecodeGLLSentence(nmeaBuffer);
                         if (sourceLink != LINK_NMEA_EXT)
                         {
                             NMEA_EXT.println(nmeaBuffer);
@@ -288,6 +298,10 @@ NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
     case 0x474741:
         // GGA sentence
         nmeaSentence = NMEA_ID_GGA;
+        break;
+    case 0x474C4C:
+        // GLL sentence
+        nmeaSentence = NMEA_ID_GLL;
         break;
     case 0x565447:
         // VTG sentence
@@ -448,6 +462,43 @@ void DataBridge::DecodeGGASentence(char *sentence)
     if ((sentence = strchr(sentence, ',')) == nullptr)
         return;
     sentence++;
+
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
+        sscanf(sentence + 2, "%f,", &mins);
+        micronetCodec->navData.latitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'S')
+            micronetCodec->navData.latitude_deg.value = -micronetCodec->navData.latitude_deg.value;
+        micronetCodec->navData.latitude_deg.valid     = true;
+        micronetCodec->navData.latitude_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
+        sscanf(sentence + 3, "%f,", &mins);
+        micronetCodec->navData.longitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'W')
+            micronetCodec->navData.longitude_deg.value = -micronetCodec->navData.longitude_deg.value;
+        micronetCodec->navData.longitude_deg.valid     = true;
+        micronetCodec->navData.longitude_deg.timeStamp = millis();
+    }
+}
+
+void DataBridge::DecodeGLLSentence(char *sentence)
+{
+    float degs, mins;
+
+    sentence += 7;
 
     if (sentence[0] != ',')
     {

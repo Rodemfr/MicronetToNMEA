@@ -1,5 +1,9 @@
 # MicronetToNMEA Release Note
 
+## V2.2
+- Made NMEA decoder more robust to sentences with invalid `<CR><LF>` sequences
+- Added support for GLL NMEA sentence
+
 ## V2.1
 - Reorganized the code for better readability
 - Added device network link quality information in RF quality menu
