@@ -119,7 +119,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
         return;
     }
 
-    if ((c == 13) || (c == 10))
+    if ((*nmeaWriteIndex >= 10) && nmeaBuffer[*nmeaWriteIndex - 3] == '*')
     {
         nmeaBuffer[*nmeaWriteIndex] = 0;
 
@@ -207,12 +207,10 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                 }
             }
         }
-        else
-        {
-            nmeaBuffer[0]   = 0;
-            *nmeaWriteIndex = 0;
-            return;
-        }
+
+        nmeaBuffer[0]   = 0;
+        *nmeaWriteIndex = 0;
+        return;
     }
 
     nmeaBuffer[*nmeaWriteIndex] = c;
@@ -428,6 +426,9 @@ void DataBridge::DecodeRMBSentence(char *sentence)
 
 void DataBridge::DecodeRMCSentence(char *sentence)
 {
+    float degs, mins;
+    float value;
+
     sentence += 7;
 
     if (sentence[0] != ',')
@@ -437,12 +438,77 @@ void DataBridge::DecodeRMCSentence(char *sentence)
         micronetCodec->navData.time.valid     = true;
         micronetCodec->navData.time.timeStamp = millis();
     }
-    for (int i = 0; i < 8; i++)
+
+    for (int i = 0; i < 2; i++)
     {
         if ((sentence = strchr(sentence, ',')) == nullptr)
             return;
         sentence++;
     }
+
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 10 + (sentence[1] - '0');
+        sscanf(sentence + 2, "%f,", &mins);
+        micronetCodec->navData.latitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'S')
+            micronetCodec->navData.latitude_deg.value = -micronetCodec->navData.latitude_deg.value;
+        micronetCodec->navData.latitude_deg.valid     = true;
+        micronetCodec->navData.latitude_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
+    if (sentence[0] != ',')
+    {
+        degs = (sentence[0] - '0') * 100 + (sentence[1] - '0') * 10 + (sentence[2] - '0');
+        sscanf(sentence + 3, "%f,", &mins);
+        micronetCodec->navData.longitude_deg.value = degs + mins / 60.0f;
+        if ((sentence = strchr(sentence, ',')) == nullptr)
+            return;
+        sentence++;
+        if (sentence[0] == 'W')
+            micronetCodec->navData.longitude_deg.value = -micronetCodec->navData.longitude_deg.value;
+        micronetCodec->navData.longitude_deg.valid     = true;
+        micronetCodec->navData.longitude_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
+    if (sscanf(sentence, "%f", &value) == 1)
+    {
+        micronetCodec->navData.sog_kt.value     = value;
+        micronetCodec->navData.sog_kt.valid     = true;
+        micronetCodec->navData.sog_kt.timeStamp = millis();
+
+#if (EMULATE_SPD_WITH_SOG == 1)
+        micronetCodec->navData.spd_kt.value     = value;
+        micronetCodec->navData.spd_kt.valid     = true;
+        micronetCodec->navData.spd_kt.timeStamp = millis();
+#endif
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
+    if (sscanf(sentence, "%f", &value) == 1)
+    {
+        if (value < 0)
+            value += 360.0f;
+
+        micronetCodec->navData.cog_deg.value     = value;
+        micronetCodec->navData.cog_deg.valid     = true;
+        micronetCodec->navData.cog_deg.timeStamp = millis();
+    }
+    if ((sentence = strchr(sentence, ',')) == nullptr)
+        return;
+    sentence++;
+
     if (sentence[0] != ',')
     {
         micronetCodec->navData.date.day       = (sentence[0] - '0') * 10 + (sentence[1] - '0');
