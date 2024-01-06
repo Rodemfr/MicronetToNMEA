@@ -1,5 +1,8 @@
 # MicronetToNMEA Release Note
 
+## V2.3
+- Decode SOG & COG from RMC sentence in addition of GGA
+
 ## V2.2
 - Made NMEA decoder more robust to sentences with invalid `<CR><LF>` sequences
 - Added support for GLL NMEA sentence
