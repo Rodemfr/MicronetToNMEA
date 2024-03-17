@@ -114,21 +114,18 @@
 #define SEATEMP_SOURCE_LINK LINK_MICRONET  // Temperature data (MTW)
 #define COMPASS_SOURCE_LINK LINK_COMPASS   // Heading data (HDG)
 
-// Navigation softwares can send a wrong RMB sentence and invert "FROM" and "TO" fields
-// If you see your Micronet display showing the "FROM" waypoint name instead of the "TO"
-// on the DTW & BTW pages, then change the following configuration switch to 1
-#define INVERTED_RMB_WORKAROUND 0
+// Enable COG/SOG filtering.
+// This functionnality reduces COG/SOG noise from GNSS at the cost of responsiveness.
+// 0 -> disabled
+// 1 -> enabled
+#define SOG_COG_FILTERING_ENABLE 1
+// Depth of COG/SOG filter [1..20]
+#define SOG_COG_FILTERING_DEPTH 7
 
-// In case your displays would have difficulties to receive data from the Tacktick wind
-// transducer because of a poor signal/noise ratio, you can ask MicronetToNMEA to repeat
-// the values of AWA & AWS on the network by setting MICRONET_WIND_REPEATER to 1. Set it
-// to 0 else.
-#define MICRONET_WIND_REPEATER 0
-
-// In case your Micronet system would not have SPD data (speed on water), you can set this
-// compile switch to 1 to ask MicronetToNMEA to emulate SPD with SOG value from GNSS.
-// This allows your display to calculate True Wind data, including VMG. This gives good results
-// as long as there no current.
+// Emulate water speed (SPD) with SOG from GNSS
+// To be used when you don't have a speedo in your network
+// 0 -> disabled
+// 1 -> enabled
 #define EMULATE_SPD_WITH_SOG 0
 
 // Define which compass axis will be compared to magnetic north
