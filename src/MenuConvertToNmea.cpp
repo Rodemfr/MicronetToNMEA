@@ -227,7 +227,7 @@ void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice)
     }
 
     // Only send wind data to Micronet if configured so or if wind repeating is enabled
-    if ((MICRONET_WIND_REPEATER == 1) || (WIND_SOURCE_LINK != LINK_MICRONET))
+    if (WIND_SOURCE_LINK != LINK_MICRONET)
     {
         micronetDevice.AddDataFields(DATA_FIELD_AWS | DATA_FIELD_AWA);
     }

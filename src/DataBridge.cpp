@@ -261,7 +261,7 @@ void DataBridge::UpdateMicronetData()
 
 float DataBridge::FilteredSOG(float newSog_kt)
 {
-#if (SOG_COG_FILTERING_ENABLE == 1)
+#if (SOG_COG_FILTERING == 1)
     sogFilterBuffer[sogFilterIndex++] = newSog_kt;
     if (sogFilterIndex >= SOG_COG_FILTERING_DEPTH)
     {
@@ -282,7 +282,7 @@ float DataBridge::FilteredSOG(float newSog_kt)
 
 float DataBridge::FilteredCOG(float newCog_deg)
 {
-#if (SOG_COG_FILTERING_ENABLE == 1)
+#if (SOG_COG_FILTERING == 1)
     cogFilterBuffer[cogFilterIndex++] = newCog_deg;
     if (cogFilterIndex >= SOG_COG_FILTERING_DEPTH)
     {

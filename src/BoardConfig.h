@@ -118,7 +118,7 @@
 // This functionnality reduces COG/SOG noise from GNSS at the cost of responsiveness.
 // 0 -> disabled
 // 1 -> enabled
-#define SOG_COG_FILTERING_ENABLE 1
+#define SOG_COG_FILTERING 1
 // Depth of COG/SOG filter [1..20]
 #define SOG_COG_FILTERING_DEPTH 7
 

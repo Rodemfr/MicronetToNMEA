@@ -9,7 +9,7 @@ The project requires the following hardware :
 - A Teensy 3.5, 3.6, 4.0 or 4.1 board.
 - A CC1101 based board. Any board should be fine as long as you can connect its SPI bus to the MCU. Take care to order a board with an antenna for 868 or 915MHz operations, not 433MHz.
 
-Teensy 4.0 is the preferred board because it is the one used by the author to test and fix issues when they are found. Other board are reported to also work fine anyway.
+Teensy 4.0 is the preferred board because it is the one used by the author to test and fix issues when they are found. Other boards are reported to also work fine anyway.
 
 Optionally, you can add :
 - A NMEA GPS/GNSS, connected through UART to add your position, time, date, SOG and COG to Micronet displays. The most frequently used one is UBlox M8N which can be directly configured by MicronetToNMEA.
@@ -35,7 +35,8 @@ MicronetToNMEA is licensed under GPLv3. See LICENSE.txt file for more details.
 
 The source code compiles with [Arduino IDE](https://www.arduino.cc/en/software) extended by [Teensyduino](https://www.pjrc.com/teensy/td_download.html) software package. You just have to configure the right Teensy board and to import the required libraries (TeensyTimerTool). If you plan to develop/extend MicronetToNMEA, you probably should use [Visual Studio Code](https://code.visualstudio.com/) associated to [PlatformIO](https://platformio.org/) plugin. It is way beyond Arduino IDE in term of productivity but is harder to set up.
 
-***WARNING*** : Latest versions of Teensyduino (1.58.0 & 1.58.1) are not working with *MicronetToNMEA* and lead to a reset loop after uploading the SW to the board. The latest version known to work is 1.57.2. The same is true for Platform IO : version 4.18 fails while version 4.17 works fine.
+Check the [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.md) for more details.
+
 
 ## Acknowledgments
 
@@ -81,7 +82,7 @@ GND         <-> GND
 
 Both LSM303DLH and LSM303DLHC can be used. MicronetToNMEA will automatically recognize it and select the appropriate driver.
 
-If you want to use a different MCU board and/or pinout, you have to edit the related definitions at the beginning of BoardConfig.h file.
+If you want to use a different MCU board and/or pinout, you have to edit the related definitions at the beginning of BoardConfig.h file. [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.md) explains every configuration item.
 
 ## Quick Start & general guidance
 
