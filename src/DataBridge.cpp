@@ -46,9 +46,6 @@ const uint8_t DataBridge::asciiTable[128] = {
     'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V',  'W', 'X', 'Y', 'Z', ' ',  ' ', ' ', ' ', ' ', ' ', 'A', '(', 'C', ')', 'E', 'F', 'G',
     'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',  'Q', 'R', 'S', 'T', 'U',  'V', 'W', 'X', 'Y', 'Z', ' ', ' ', ' ', ' ', ' '};
 
-// This constant defines how much time SPD must not be received from Micronet or VHW before SPD gets emulated with SOG
-#define SPD_EMULATION_TIMEOUT_MS 5000
-
 /***************************************************************************/
 /*                                Macros                                   */
 /***************************************************************************/
@@ -87,6 +84,11 @@ DataBridge::DataBridge(MicronetCodec *micronetCodec)
     voltageSourceLink = VOLTAGE_SOURCE_LINK;
     seaTempSourceLink = SEATEMP_SOURCE_LINK;
     compassSourceLink = COMPASS_SOURCE_LINK;
+
+    sogFilterIndex = 0;
+    memset(sogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH);
+    cogFilterIndex = 0;
+    memset(cogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH);
 }
 
 DataBridge::~DataBridge()
@@ -112,7 +114,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
         return;
     }
 
-    if ((nmeaBuffer[0] != '$') || (c == '$'))
+    if (((nmeaBuffer[0] != '$') && (nmeaBuffer[0] != '!')) || (c == '$') || (c == '!'))
     {
         nmeaBuffer[0]   = c;
         *nmeaWriteIndex = 1;
@@ -203,6 +205,12 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 default:
+                    // An unknown sentence is forwarded to NMEA_EXT if it is coming from the GNSS link. It is useful to forward AIVDM/AIVDO
+                    // sentences coming from an AIS receiver.
+                    if ((sourceLink == gnssSourceLink) && (sourceLink != LINK_NMEA_EXT))
+                    {
+                        NMEA_EXT.println(nmeaBuffer);
+                    }
                     break;
                 }
             }
@@ -251,9 +259,74 @@ void DataBridge::UpdateMicronetData()
     EncodeXDR();
 }
 
+float DataBridge::FilteredSOG(float newSog_kt)
+{
+#if (SOG_COG_FILTERING == 1)
+    sogFilterBuffer[sogFilterIndex++] = newSog_kt;
+    if (sogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+    {
+        sogFilterIndex = 0;
+    }
+
+    float filteredSog_kt = sogFilterBuffer[0];
+    for (int i = 1; i < SOG_COG_FILTERING_DEPTH; i++)
+    {
+        filteredSog_kt += sogFilterBuffer[i];
+    }
+
+    return filteredSog_kt / SOG_COG_FILTERING_DEPTH;
+#else
+    return newSog_kt;
+#endif
+}
+
+float DataBridge::FilteredCOG(float newCog_deg)
+{
+#if (SOG_COG_FILTERING == 1)
+    cogFilterBuffer[cogFilterIndex++] = newCog_deg;
+    if (cogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+    {
+        cogFilterIndex = 0;
+    }
+
+    float filteredCog_deg = cogFilterBuffer[0];
+    float previousCog_deg = filteredCog_deg;
+    float bufferedCog_deg;
+    for (int i = 1; i < SOG_COG_FILTERING_DEPTH; i++)
+    {
+        bufferedCog_deg = cogFilterBuffer[i];
+        if (bufferedCog_deg - previousCog_deg > 180)
+        {
+            bufferedCog_deg -= 360;
+        }
+        else if (bufferedCog_deg - previousCog_deg < -180)
+        {
+            bufferedCog_deg += 360;
+        }
+        previousCog_deg = bufferedCog_deg;
+        filteredCog_deg += bufferedCog_deg;
+    }
+
+    filteredCog_deg = filteredCog_deg / SOG_COG_FILTERING_DEPTH;
+
+    if (filteredCog_deg < 0)
+    {
+        filteredCog_deg += 360;
+    }
+    else if (filteredCog_deg >= 360)
+    {
+        filteredCog_deg -= 360;
+    }
+
+    return filteredCog_deg;
+#else
+    return newCog_deg;
+#endif
+}
+
 bool DataBridge::IsSentenceValid(char *nmeaBuffer)
 {
-    if (nmeaBuffer[0] != '$')
+    if ((nmeaBuffer[0] != '$') && (nmeaBuffer[0] != '!'))
         return false;
 
     char *pCs = strrchr(static_cast<char *>(nmeaBuffer), '*') + 1;
@@ -353,11 +426,9 @@ void DataBridge::DecodeRMBSentence(char *sentence)
     if ((sentence = strchr(sentence, ',')) == nullptr)
         return;
     sentence++;
-#if (INVERTED_RMB_WORKAROUND != 1)
     if ((sentence = strchr(sentence, ',')) == nullptr)
         return;
     sentence++;
-#endif
     memset(micronetCodec->navData.waypoint.name, ' ', sizeof(micronetCodec->navData.waypoint.name));
     if (sentence[0] != ',')
     {
@@ -388,11 +459,7 @@ void DataBridge::DecodeRMBSentence(char *sentence)
         }
         micronetCodec->navData.waypoint.nameLength = i;
     }
-#if (INVERTED_RMB_WORKAROUND != 1)
     for (int i = 0; i < 5; i++)
-#else
-    for (int i = 0; i < 6; i++)
-#endif
     {
         if ((sentence = strchr(sentence, ',')) == nullptr)
             return;
@@ -482,12 +549,12 @@ void DataBridge::DecodeRMCSentence(char *sentence)
 
     if (sscanf(sentence, "%f", &value) == 1)
     {
-        micronetCodec->navData.sog_kt.value     = value;
+        micronetCodec->navData.sog_kt.value     = FilteredSOG(value);
         micronetCodec->navData.sog_kt.valid     = true;
         micronetCodec->navData.sog_kt.timeStamp = millis();
 
 #if (EMULATE_SPD_WITH_SOG == 1)
-        micronetCodec->navData.spd_kt.value     = value;
+        micronetCodec->navData.spd_kt.value     = FilteredSOG(value);
         micronetCodec->navData.spd_kt.valid     = true;
         micronetCodec->navData.spd_kt.timeStamp = millis();
 #endif
@@ -501,7 +568,7 @@ void DataBridge::DecodeRMCSentence(char *sentence)
         if (value < 0)
             value += 360.0f;
 
-        micronetCodec->navData.cog_deg.value     = value;
+        micronetCodec->navData.cog_deg.value     = FilteredCOG(value);
         micronetCodec->navData.cog_deg.valid     = true;
         micronetCodec->navData.cog_deg.timeStamp = millis();
     }
@@ -629,7 +696,7 @@ void DataBridge::DecodeVTGSentence(char *sentence)
         if (value < 0)
             value += 360.0f;
 
-        micronetCodec->navData.cog_deg.value     = value;
+        micronetCodec->navData.cog_deg.value     = FilteredCOG(value);
         micronetCodec->navData.cog_deg.valid     = true;
         micronetCodec->navData.cog_deg.timeStamp = millis();
     }
@@ -641,12 +708,12 @@ void DataBridge::DecodeVTGSentence(char *sentence)
     }
     if (sscanf(sentence, "%f", &value) == 1)
     {
-        micronetCodec->navData.sog_kt.value     = value;
+        micronetCodec->navData.sog_kt.value     = FilteredSOG(value);
         micronetCodec->navData.sog_kt.valid     = true;
         micronetCodec->navData.sog_kt.timeStamp = millis();
 
 #if (EMULATE_SPD_WITH_SOG == 1)
-        micronetCodec->navData.spd_kt.value     = value;
+        micronetCodec->navData.spd_kt.value     = FilteredSOG(value);
         micronetCodec->navData.spd_kt.valid     = true;
         micronetCodec->navData.spd_kt.timeStamp = millis();
 #endif

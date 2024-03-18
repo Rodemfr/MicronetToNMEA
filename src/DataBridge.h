@@ -109,6 +109,13 @@ class DataBridge
     LinkId_t             seaTempSourceLink;
     LinkId_t             compassSourceLink;
     MicronetCodec       *micronetCodec;
+    int                  sogFilterIndex;
+    float                sogFilterBuffer[SOG_COG_FILTERING_DEPTH];
+    int                  cogFilterIndex;
+    float                cogFilterBuffer[SOG_COG_FILTERING_DEPTH];
+
+    float FilteredSOG(float newSog_kt);
+    float FilteredCOG(float newCog_deg);
 
     bool     IsSentenceValid(char *nmeaBuffer);
     NmeaId_t SentenceId(char *nmeaBuffer);

@@ -1,3 +1,7 @@
+---
+title: MicronetToNMEA
+---
+
 # Introduction
 
 ## What is MicronetToNMEA
@@ -8,18 +12,18 @@ understand Micronet wireless protocol and to be able to record wind and
 speed data on a PC. The understanding of the protocol went so well that
 MicronetToNMEA is now doing a lot more. It can:
 
-  - Send or receive a NMEA stream to or from your PC/Tablet with data on
-    depth, water speed, wind, magnetic heading, GNSS positioning, speed,
-    time, etc.
+- Send or receive a NMEA stream to or from your PC/Tablet with data on
+  depth, water speed, wind, magnetic heading, GNSS positioning, speed,
+  time, etc.
 
-  - Send Heading data from the LSM303 navigation compass to your
-    Micronet’s displays (HDG).
+- Send Heading data from the LSM303 navigation compass to your
+  Micronet’s displays (HDG).
 
-  - Send GNSS data to your Micronet displays (LAT, LON, TIME, DATE, COG,
-    SOG) and to your PC/Tablet.
+- Send GNSS data to your Micronet displays (LAT, LON, TIME, DATE, COG,
+  SOG) and to your PC/Tablet.
 
-  - Send navigation data from your PC/Tablet (OpenCPN, qtVlm, avnav,
-    etc.) to your Micronet displays (BTW, DTW, XTE, ETA).
+- Send navigation data from your PC/Tablet (OpenCPN, qtVlm, avnav, etc.)
+  to your Micronet displays (BTW, DTW, XTE, ETA).
 
 ## What is NOT MicronetToNMEA
 
@@ -36,14 +40,14 @@ Raymarine/TackTick reseller.
 
 ## Contributors
 
-  - Ronan Demoment : Main author
+- Ronan Demoment : Main author
 
-  - Dietmar Warning : LSM303 drivers & Bugfixes
+- Dietmar Warning : LSM303 drivers & Bugfixes
 
-  - [j-lang](https://github.com/j-lang) : UBLOX M8N initialization code
+- [j-lang](https://github.com/j-lang) : UBLOX M8N initialization code
 
-  - Contributors of YBW forum’s Micronet thread : [Micronet
-    Thread](https://forums.ybw.com/index.php?threads/raymarines-Micronet.539500/)
+- Contributors of YBW forum’s Micronet thread : [Micronet
+  Thread](https://forums.ybw.com/index.php?threads/raymarines-Micronet.539500/)
 
 # Needed hardware and software
 
@@ -60,17 +64,16 @@ author had one available when he started investigating Micronet
 protocol. That’s indeed a good reason but with time, this board has also
 proven to be pretty well adapted :
 
-  - It is small
+- It is small
 
-  - Teensy software stack is rich and stable
+- Teensy software stack is rich and stable
 
-  - It has a lot of highly configurable peripherals
+- It has a lot of highly configurable peripherals
 
-  - Teensy 3.5 GPIOs are 5V tolerant (important to connect 5V modules
-    \!)
+- Teensy 3.5 GPIOs are 5V tolerant
 
-  - Teensy 3.5, 3.6 and 4.1 have a MicroSD slot for potential recording
-    features
+- Teensy 3.5, 3.6 and 4.1 have a MicroSD slot for potential recording
+  features
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino
 compatible board. Practically, this might be a different story. Several
@@ -117,6 +120,14 @@ UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial
 output. Avoid too cheap offers from unknown HW sources, this might be
 counterfeit hardware.
 
+### NMEA0183 AIS
+
+If you already have an AIS with a NMEA0183 output on your boat you can
+use it as a GNSS source. MicronetToNMEA also have the capability to
+forward AIS data to the PC/Tablet. Be careful that AIS outputs are not
+3.3V and that you will likely need a level shifter or a RS422/485
+transceiver to protect Teensy boards.
+
 ### LSM303DLH or LSM303DLHC navigation compass breakout board
 
 Connected to Teensy I2C bus, this IC will allow getting magnetic
@@ -144,8 +155,8 @@ MicronetToNMEA. This is the first software you must install.
 ### Teensyduino (required)
 
 Teensyduino is an extension to Arduino IDE which add full support to all
-Teensy’s board, including Teensy 3.5. It must be installed on top of
-Arduino IDE to enable compilation for Teensy 3.5.
+Teensy’s board. It must be installed on top of Arduino IDE to enable
+compilation for Teensy targets.
 
 ## Optional software
 
@@ -160,52 +171,54 @@ can handle project for Teensy boards. MicronetToNMEA includes
 configuration files for PlatformIO which will help you to quickly setup
 your environment.
 
+Note that you don’t need Arduino IDE or Teensyduino if you use Visual
+Studio Code and PlatformIO.
+
 # Compilation
 
 ## With Arduino IDE
 
 Here are the steps to compile MicronetToNMEA with Arduino IDE:
 
-  - Get the source code from MicronetToNMEA repository
-    (<https://github.com/Rodemfr/MicronetToNMEA>)
+- Get the source code from MicronetToNMEA repository
+  (<https://github.com/Rodemfr/MicronetToNMEA>)
 
-  - Double-click on src/src.ino. This should open Arduino IDE.
+- Double-click on src/src.ino. This should open Arduino IDE.
 
-  - In Arduino IDE, select the appropriate Teensy board with menu
-    “Tools-\>Board-\>Teensyduino-\>Teensy4.0”
+- In Arduino IDE, select the appropriate Teensy board with menu
+  “Tools-\>Board-\>Teensyduino-\>Teensy4.0”
 
-  - Go to menu “Tools-\>Manage Libraries...” and install TeensyTimerTool
-    library
+- Go to menu “Tools-\>Manage Libraries...” and install TeensyTimerTool
+  library
 
-  - Click on “Verify” button in the button bar, this should compile the
-    project without error.
+- Click on “Verify” button in the button bar, this should compile the
+  project without error.
 
-  - Connect your Teensy board onto USB port of your PC and Click
-    “Upload” button to upload MicronetToNMEA binary into Teensy
-    flash memory
+- Connect your Teensy board onto USB port of your PC and Click “Upload”
+  button to upload MicronetToNMEA binary into Teensy flash memory
 
 ## With Visual Studio Code and PlatformIO
 
 Here are the steps to compile MicronetToNMEA with Visual Studio Code :
 
-  - Install Visual Studio Code from Microsoft website :
-    <https://code.visualstudio.com>
+- Install Visual Studio Code from Microsoft website :
+  <https://code.visualstudio.com>
 
-  - Start Visual Studio Code and install PlatformIO extension. Note that
-    you might have to install *python3-distutils* package under Linux
-    for the installation to be successful.
+- Start Visual Studio Code and install PlatformIO extension. Note that
+  you might have to install *python3-distutils* package under Linux for
+  the installation to be successful.
 
-  - Open MicronetToNMEA base folder with menu *"File-\>Open Folder"*.
-    The base folder is the one with *platformio.ini* file.
+- Open MicronetToNMEA base folder with menu *"File-\>Open Folder"*. The
+  base folder is the one with *platformio.ini* file.
 
-  - At the first opening, PlatformIO plugin will download and install
-    Teensy toolchain. This can take a while since there is more than 1Gb
-    of data to download from network.
+- At the first opening, PlatformIO plugin will download and install
+  Teensy toolchain. This can take a while since there is more than 1Gb
+  of data to download from network.
 
-  - Once PlatformIO is ready, you can compile MicronetToNMEA by pressing
-    *SHIFT-CTRL-B*.
+- Once PlatformIO is ready, you can compile MicronetToNMEA by pressing
+  *SHIFT-CTRL-B*.
 
-  - To upload the compiled binary to the Teensy, press *SHIFT-CTRL-U*.
+- To upload the compiled binary to the Teensy, press *SHIFT-CTRL-U*.
 
 Your project should compile now.
 
@@ -218,42 +231,52 @@ extent to adapt your own needs. The file bearing this configuration is
 “BoardConfig.h”. Note that no coherency check is made in the software,
 it is your responsibility to provide a reachable configuration (i.e. not
 to connect SPI wires to non SPI capable pins). Table
-<span>[\[table:configswitches\]](#table:configswitches)</span> lists all
-available switches and their meaning.
+<a href="#table:configswitches" data-reference-type="ref"
+data-reference="table:configswitches">[table:configswitches]</a> lists
+all available switches and their meaning.
 
-| **Compile Switch**        | **Description**                                                                                                                                                                    |
-| :------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FREQUENCY\_SYSTEM         | Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)                                                                                                |
-| NAVCOMPASS\_I2C           | Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)                                 |
-| CS0\_PIN                  | Defines SPI Chip Select line connected to RF IC                                                                                                                                    |
-| MOSI\_PIN                 | Defines MOSI pin of SPI bus connected to RF IC                                                                                                                                     |
-| MISO\_PIN                 | Defines MISO pin of SPI bus connected to RF IC                                                                                                                                     |
-| SCK\_PIN                  | Defines SCK pin of SPI bus connected to RF IC                                                                                                                                      |
-| GDO0\_PIN                 | Defines GDO0 pin of SPI bus connected to RF IC                                                                                                                                     |
-| LED\_PIN                  | Defines the pin driving the LED, which is used for error signaling                                                                                                                 |
-| GNSS\_UBLOXM8N            | Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)                                                                                                            |
-| GNSS\_SERIAL              | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                                           |
-| GNSS\_BAUDRATE            | Defines GNSS UART default baud-rate                                                                                                                                                |
-| GNSS\_RX\_PIN             | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                                                |
-| GNSS\_TX\_PIN             | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                                                |
-| USB\_NMEA                 | Defines which serial port is connected to the USB NMEA connection                                                                                                                  |
-| USB\_BAUDRATE             | Defines baud rate of USB serial converter                                                                                                                                          |
-| WIRED\_NMEA               | Defines which serial port is connected to the wired NMEA connection                                                                                                                |
-| WIRED\_BAUDRATE           | Defines baud rate of the wired NMEA connection                                                                                                                                     |
-| WIRED\_RX\_PIN            | Defines serial RX pin used for wired NMEA                                                                                                                                          |
-| WIRED\_TX\_PIN            | Defines serial TX pin used for wired NMEA                                                                                                                                          |
-| CONSOLE                   | Defines on which serial port is displayed the console (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than NMEA\_EXT                                             |
-| NMEA\_EXT                 | Defines to which serial port is connected the external NMEA stream. (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than CONSOLE and NMEA\_IN.                   |
-| NAV\_SOURCE\_LINK         | Defines where navigation data is coming from (related to RMB sentences). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.            |
-| GNSS\_SOURCE\_LINK        | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values. |
-| WIND\_SOURCE\_LINK        | Defines where wind data is coming from (related to MWV sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.                   |
-| DEPTH\_SOURCE\_LINK       | Defines where depth data is coming from (related to DPT sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.                  |
-| SPEED\_SOURCE\_LINK       | Defines where speed data is coming from (related to SPD, LOG sentences). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.            |
-| VOLTAGE\_SOURCE\_LINK     | Defines where voltage data is coming from (related to XDR sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.                |
-| SEATEMP\_SOURCE\_LINK     | Defines where temperature data is coming from (related to STP sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.            |
-| COMPASS\_SOURCE\_LINK     | Defines where heading data data is coming from (related to HDG sentence). See Section <span>[5.1.7](#supportednmeasentences)</span> for more details on possible values.           |
-| INVERTED\_RMB\_WORKAROUND | Inverts "FROM" and "TO" fields of RMB NMEA sentence if set to 1. Useful if your navigation software wrongly inverts them.                                                          |
-| EMULATE\_SPD\_WITH\_SOG   | If set to 1, MicronetToNMEA will copy SOG value received from GNSS to SPD on the Micronet network. Not to be used if you have water speed measurements coming from T121 or NMEA.   |
+| **Compile Switch**       | **Description**                                                                                                                                                                  |
+|:-------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| FREQUENCY_SYSTEM         | Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)                                                                                              |
+| NAVCOMPASS_I2C           | Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)                               |
+| CS0_PIN                  | Defines SPI Chip Select line connected to RF IC                                                                                                                                  |
+| MOSI_PIN                 | Defines MOSI pin of SPI bus connected to RF IC                                                                                                                                   |
+| MISO_PIN                 | Defines MISO pin of SPI bus connected to RF IC                                                                                                                                   |
+| SCK_PIN                  | Defines SCK pin of SPI bus connected to RF IC                                                                                                                                    |
+| GDO0_PIN                 | Defines GDO0 pin of SPI bus connected to RF IC                                                                                                                                   |
+| LED_PIN                  | Defines the pin driving the LED, which is used for error signaling                                                                                                               |
+| GNSS_UBLOXM8N            | Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)                                                                                                          |
+| GNSS_SERIAL              | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                                         |
+| GNSS_BAUDRATE            | Defines GNSS UART default baud-rate                                                                                                                                              |
+| GNSS_RX_PIN              | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                                              |
+| GNSS_TX_PIN              | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                                              |
+| USB_NMEA                 | Defines which serial port is connected to the USB NMEA connection                                                                                                                |
+| USB_BAUDRATE             | Defines baud rate of USB serial converter                                                                                                                                        |
+| WIRED_NMEA               | Defines which serial port is connected to the wired NMEA connection                                                                                                              |
+| WIRED_BAUDRATE           | Defines baud rate of the wired NMEA connection                                                                                                                                   |
+| WIRED_RX_PIN             | Defines serial RX pin used for wired NMEA                                                                                                                                        |
+| WIRED_TX_PIN             | Defines serial TX pin used for wired NMEA                                                                                                                                        |
+| CONSOLE                  | Defines on which serial port is displayed the console (can be USB_NMEA or WIRED_NMEA). Can be on the same serial link than NMEA_EXT                                              |
+| NMEA_EXT                 | Defines to which serial port is connected the external NMEA stream. (can be USB_NMEA or WIRED_NMEA). Can be on the same serial link than CONSOLE and NMEA_IN.                    |
+| NAV_SOURCE_LINK          | Defines where navigation data is coming from (related to RMB sentences). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                 
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| GNSS_SOURCE_LINK         | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Section <a href="#supportednmeasentences" data-reference-type="ref"                      
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| WIND_SOURCE_LINK         | Defines where wind data is coming from (related to MWV sentence). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                        
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| DEPTH_SOURCE_LINK        | Defines where depth data is coming from (related to DPT sentence). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                       
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| SPEED_SOURCE_LINK        | Defines where speed data is coming from (related to SPD, LOG sentences). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                 
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| VOLTAGE_SOURCE_LINK      | Defines where voltage data is coming from (related to XDR sentence). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                     
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| SEATEMP_SOURCE_LINK      | Defines where temperature data is coming from (related to STP sentence). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                 
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| COMPASS_SOURCE_LINK      | Defines where heading data data is coming from (related to HDG sentence). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                
+                            data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
+| SOG_COG_FILTERING_ENABLE | If set to 1, MicronetToNMEA will filter SOG and COG values before sending them to Micronet displays or to NMEA_EXT link.                                                         |
+| SOG_COG_FILTERING_DEPTH  | Sets the strength of the SOG/COG filtering, if enabled. Minimum value is 1 (no filtering), maximum reasonable value is 20 (average on 20 samples). Default is set to 7.          |
+| EMULATE_SPD_WITH_SOG     | If set to 1, MicronetToNMEA will copy SOG value received from GNSS to SPD on the Micronet network. Not to be used if you have water speed measurements coming from T121 or NMEA. |
 
 # Installation
 
@@ -270,9 +293,9 @@ mixing 3.3 & 5V levels.
 The first and most important connection to build is the power supply.
 You have two options there, you can either :
 
-  - Power the system via USB
+- Power the system via USB
 
-  - Power the system using external DC power source
+- Power the system using external DC power source
 
 ### Power via USB
 
@@ -284,18 +307,19 @@ the system. Be careful that USB 2.0 limits 5V output current to 500mA,
 but you should be even more careful since Teensy’s regulator recommends
 not to exceed 250mA for 3.3V. So you must take care that your system
 does not exceed these limits. As an example, table
-[4.1](#table:boardconsumption) shows maximum current values for various
-boards.
+<a href="#table:boardconsumption" data-reference-type="ref"
+data-reference="table:boardconsumption">4.1</a> shows maximum current
+values for various boards.
 
 <div id="table:boardconsumption">
 
 | Board                      | Supply voltage | Max current | Comment                                 |
-| :------------------------- | :------------: | :---------: | :-------------------------------------- |
+|:---------------------------|:--------------:|:-----------:|:----------------------------------------|
 | Teensy 3.5                 |       5V       |    50mA     | CPU running at 120MHz                   |
 | Teensy 3.6                 |       5V       |    80mA     | Input not 5V tolerant                   |
 | Teensy 4.1                 |       5V       |    100mA    | Input not 5V tolerant                   |
 | CC1101                     |      3.3V      |    40mA     | RF at 868MHz                            |
-| NEO M8N GNSS               |       5V       |    45mA     | IO is 3.3V                              |
+| NEO M8N GNSS               |       5V       |    45mA     | IOs are 3.3V                            |
 | LSM303DLH(C)               |      3.3V      |    10mA     | Unspecified in datasheet, value assumed |
 | HC06 Bluetooth transceiver |      3.3V      |    40mA     | Peak during pairing                     |
 | Serial WiFi (ESP8266)      |       5V       |    150mA    | 80mA average, upto 400mA peak           |
@@ -324,28 +348,40 @@ voltages from 3.6 to 6V but it is strongly recommended to use 5V here.
 This way, if you accidentally connect a USB cable while powering Vin,
 there will be no heavy short circuit.
 
-![Powering Teensy with a DC-DC converter](MicronetToNMEA_DC_Power.png)
+<figure id="figure:dcpower">
+<img src="MicronetToNMEA_DC_Power.png" style="width:100mm" />
+<figcaption>Powering Teensy with a DC-DC converter</figcaption>
+</figure>
 
 ## Connecting CC1101
 
 CC1101 uses 3.3V voltage so you can connect Teensy’s 3.3V & GND pins to
 CC1101’s VCC & GND. MOSI(SI), MISO(SO), CS0 and GD0 must be connected as
-per your BoardConfig.h definitions. Note that GD2 isn’t used by
+per your BoardConfig.h definitions. Note that GDO2 isn’t used by
 MicronetToNMEA and doesn’t need to be connected to Teensy. Figure
-[4.2](#figure:cc1101) shows how to connect CC1101 with the default
-configuration.
+<a href="#figure:cc1101" data-reference-type="ref"
+data-reference="figure:cc1101">4.2</a> shows how to connect CC1101 with
+the default configuration.
 
-![Connecting Teensy and CC1101](MicronetToNMEA_CC1101.png)
+<figure id="figure:cc1101">
+<img src="MicronetToNMEA_CC1101.png" style="width:50mm" />
+<figcaption>Connecting Teensy and CC1101</figcaption>
+</figure>
 
 ## Connecting LSM303
 
 LSM303DLH(C) uses 3.3V voltage so you can connect Teensy’s 3.3V & GND
 pins to CC1101’s VCC & GND. In addition SDA & SCL must be connected as
 per your BoardConfig.h definitions. Note that DRDY, I1 & I2 don’t need
-to be connected. Figure [4.3](#figure:lsm303) shows how to connect
-LSM303DLH(C) with the default configuration.
+to be connected. Figure
+<a href="#figure:lsm303" data-reference-type="ref"
+data-reference="figure:lsm303">4.3</a> shows how to connect LSM303DLH(C)
+with the default configuration.
 
-![Connecting Teensy to LSM303](MicronetToNMEA_LSM303.png)
+<figure id="figure:lsm303">
+<img src="MicronetToNMEA_LSM303.png" style="width:50mm" />
+<figcaption>Connecting Teensy to LSM303</figcaption>
+</figure>
 
 ## Connecting GNSS
 
@@ -358,25 +394,29 @@ UART. The recommended UBLOX M8N module has an internal regulator to 3.3V
 on board, so you can connect GNSS directly even if it is using 5V supply
 voltage. This situation may be different for other GNSS modules.
 
-Figure [4.4](#figure:gnss) shows how to connect GNSS for the default
-configuration.
+Figure <a href="#figure:gnss" data-reference-type="ref"
+data-reference="figure:gnss">4.4</a> shows how to connect GNSS for the
+default configuration.
 
-![Connecting Teensy and GNSS](MicronetToNMEA_GNSS.png)
+<figure id="figure:gnss">
+<img src="MicronetToNMEA_GNSS.png" style="width:50mm" />
+<figcaption>Connecting Teensy and GNSS</figcaption>
+</figure>
 
 MicronetToNMEA can connect to a wide variety of GNSS. You just have to
 configure the GNSS with the correct parameters before connecting it.
 GNSS has to output an NMEA compatible stream at the same bit-rate than
 specified in BoardConfig.h. MicronetToNMEA can automatically configure
-the GNSS if it is a UBLOX Neo M8N. Just enable GNSS\_UBLOXM8N option in
+the GNSS if it is a UBLOX Neo M8N. Just enable GNSS_UBLOXM8N option in
 BoardConfig.h.
 
 GNSS should output the following sentences :
 
-  - GGA : Position
+- GGA : Position
 
-  - RMC : Time
+- RMC : Time
 
-  - VTG : Track and speed
+- VTG : Track and speed
 
 ## Connecting wireless serial modules
 
@@ -385,10 +425,14 @@ to a standard wired UART (i.e not USB), you can consider connecting a
 HC-06 Bluetooth transceiver or an Serial WiFi board to easily get
 wireless connectivity to your PC/Tablet. Both boards are powered with 5V
 but can handle 3.3V signals. Only VCC, GND, RXD & TXD need to be
-connected. Figure [4.5](#figure:hc06) shows how to connect e.g. HC-06
+connected. Figure <a href="#figure:hc06" data-reference-type="ref"
+data-reference="figure:hc06">4.5</a> shows how to connect e.g. HC-06
 with the default configuration.
 
-![Connecting Teensy and HC-06](MicronetToNMEA_HC06.png)
+<figure id="figure:hc06">
+<img src="MicronetToNMEA_HC06.png" style="width:85mm" />
+<figcaption>Connecting Teensy and HC-06</figcaption>
+</figure>
 
 As for the GNSS, MicronetToNMEA does not configure HC-06 itself. It is
 your responsibility to configure HC-06 properly (i.e. with parameters
@@ -414,9 +458,11 @@ The quality of CC1101’s antenna is critical to maximize RF performance
 and operational range. Antennas provided with low cost breakout boards
 are often designed to be small at the cost of RF performance. An easy
 way to get a good quality antenna is to use a simple electrical wire
-with the adequate length (half wavelength: 173mm for 869MHz or 164mm for
-915MHz). With such an antenna you can reach an operating range close to
-original TackTick devices.
+with the adequate length (quarter wavelength: 86.5mm for 869MHz or 82mm
+for 915MHz). With such an antenna you can reach a very good operating
+range. Wire antenna also have the interesting feature of beeing flexible
+so that you can orient them to maximize wind reception (use *"Test RF
+quality"* menu for that).
 
 ### Magnetic compass disturbances
 
@@ -427,7 +473,7 @@ magnetic compass. As an example, a running 24" TV monitor can deviate
 the compass by 20° at 50cm and still a few degrees at 1m. Also, metal
 must be avoided : it deviates magnetic field. The bigger the piece of
 metal is the farthest you should put your device. In a boat you should
-avoid the keel, batteries and the inboard engine. At a smaller level,
+avoid the keel, batteries and the inboard engine. At a smaller scale,
 you should keep LSM303 board away from DC-DC converter if you can.
 
 ### Magnetic compass calibration
@@ -477,7 +523,7 @@ configuration menu.
 The menu should look like this :
 
     *** MicronetToNMEA ***
-    
+
     0 - Print this menu
     1 - General info on MicronetToNMEA
     2 - Scan Micronet networks
@@ -491,7 +537,7 @@ The menu should look like this :
 ### Attaching your Micronet network to MicronetToNMEA
 
 We need to identify your Micronet network for MicronetToNMEA to be able
-to recognize it and to discard other devices that may be in you
+to recognize it and to ignore other networks that may be in you
 vicinity. You will typically find several networks when in a marina with
 many sailing boats. To identify your network, you have to power-up your
 Micronet display and to ensure that your master device, the one you used
@@ -510,7 +556,7 @@ This is the signal strength. For each network you get a hexadecimal
 number which is the so called "Network ID". Write it on a piece of paper
 (*83038F54* in our example). Now enter menu *"3 - Attach converter to a
 network"* by pressing 3, and type your network ID when requested. This
-will attach MicronetToNMEA to your Micronet devices. Once done,
+will attach MicronetToNMEA to your Micronet network. Once done,
 MicronetToNMEA will save this value to EEPROM and will remember it. You
 don’t need to do this operation at each start-up. Now that
 MicronetToNMEA is attached, it will automatically go to NMEA conversion
@@ -560,7 +606,9 @@ bias on the 3 axis. This bias is produced by the LSM303 itself, but also
 by surrounding electronics (Teensy, GNSS, etc.).
 
 Before starting calibration, you must first prepare your environment as
-explained in [4.6.2](#compass-recommendations). Once ready, you can
+explained in
+<a href="#compass-recommendations" data-reference-type="ref"
+data-reference="compass-recommendations">4.6.2</a>. Once ready, you can
 enter menu *"7 - Calibrate compass"*.
 
 This menu will produce a permanent output of calibration values looking
@@ -628,43 +676,47 @@ good wind reception.
 
 Menu *"4 - Start NMEA conversion"* actually start Micronet/NMEA
 conversion as suggested by the name. Once you enter in this mode
-MicronetToNMEA will output NMEA sentences to the NMEA\_EXT link. By
-default, NMEA\_EXT is routed to the same serial link than the console
+MicronetToNMEA will output NMEA sentences to the NMEA_EXT link. By
+default, NMEA_EXT is routed to the same serial link than the console
 (USB serial). It means that you will immediately see NMEA sentences
 beeing written onto console. Additionnaly, MicronetToNMEA also decodes
-any incoming NMEA sentence from NMEA\_EXT serial and transmits it to
-your Micronet network. You need to be in this mode to see decoded GNSS
-or NMEA data displayed onto your Micronet displays. You also need to be
-in this mode for the configuration parameters modified onto your
-Micronet displays to be memorized by MicronetToNMEA (e.g. speed factor,
-sounder offset, etc.). If attached to a network, MicronetToNMEA will
+any incoming NMEA sentence from NMEA_EXT serial and transmits it to your
+Micronet network. You need to be in this mode to see decoded GNSS or
+NMEA data displayed onto your Micronet displays. You also need to be in
+this mode for the configuration parameters modified onto your Micronet
+displays to be memorized by MicronetToNMEA (e.g. speed factor, sounder
+offset, etc.). If attached to a network, MicronetToNMEA will
 automatically switch to this mode when powered-up. You can leave it by
 just pressing *\<ESC\>* in the console.  
   
 Here is a summary of all actions realized by MicronetToNMEA in this
 mode, with the default configuration :
 
-  - Collect and decode GNSS related NMEA sentences from GNSS\_NMEA link
+- Collect and decode GNSS related NMEA sentences from GNSS_NMEA link
 
-  - Collect and decode navigation related NMEA sentences from NMEA\_EXT
-    link
+- Collect and decode navigation related NMEA sentences from NMEA_EXT
+  link
 
-  - Forward GNSS related NMEA sentences from GNSS\_NMEA link to
-    NMEA\_EXT link
+- Forward GNSS related NMEA sentences from GNSS_NMEA link to NMEA_EXT
+  link
 
-  - Collect and decode data from Micronet devices
+- Forward AIS related NMEA sentences from GNSS_NMEA link to NMEA_EXT
+  link is an AIS is used to get GNSS data
 
-  - Send all data collected from NMEA links to Micronet network
+- Collect and decode data from Micronet devices
 
-  - Send all data collected from Micronet devices to NMEA\_EXT link
+- Send all data collected from NMEA links to Micronet network
 
-  - Calculate heading from LSM303DLH(C)
+- Send all data collected from Micronet devices to NMEA_EXT link
 
-  - Send heading data to Micronet network and NMEA\_EXT link
+- Calculate heading from LSM303DLH(C)
+
+- Send heading data to Micronet network and NMEA_EXT link
 
 It is important to note that the configuration can change this sequence
 and the way MicronetToNMEA decodes/forwards data. See chapter
-<span>[5.1.7](#supportednmeasentences)</span> for more details.
+<a href="#supportednmeasentences" data-reference-type="ref"
+data-reference="supportednmeasentences">5.1.7</a> for more details.
 
 ### NMEA sentences and data flow
 
@@ -675,46 +727,48 @@ the possibility to configure how Micronet data and NMEA sentences are
 processed. NMEA sentences can be configured to be decoded/encoded from
 the following links :
 
-  - LINK\_MICRONET : This link accesses data of the Micronet newtork
-    through CC1101 IC. If a sentence is configured to be received from
-    this link, it means that it will be encoded every second from
-    Micronet data and sent to NMEA\_EXT link.
+- LINK_MICRONET : This link accesses data of the Micronet newtork
+  through CC1101 IC. If a sentence is configured to be received from
+  this link, it means that it will be decoded every second from Micronet
+  data and sent to NMEA_EXT link.
 
-  - LINK\_NMEA\_GNSS : This is the NMEA link with the optional GNSS. It
-    is a receiving only link. If a sentence is configured to be received
-    from this link, it means that it will be decoded and sent to
-    Micronet network. It will also be forwarded to NMEA\_EXT.
+- LINK_NMEA_GNSS : This is the NMEA link with the optional GNSS or AIS.
+  It is a receiving only link. If a sentence is configured to be
+  received from this link, it means that it will be decoded and sent to
+  Micronet network. It will also be forwarded to NMEA_EXT.
 
-  - LINK\_NMEA\_EXT : This is the NMEA link with the "external" device.
-    The external device can be a PC with a navigation software, a WiFi
-    or Bluetooth bridge, etc. Practically it uses NMEA\_IN and NMEA\_OUT
-    serial links defined in BoardConfig.h. If a sentence is configured
-    to be received from this link, it means that it will be decoded and
-    sent to Micronet network.
+- LINK_NMEA_EXT : This is the NMEA link with the "external" device. The
+  external device can be a PC with a navigation software, a WiFi or
+  Bluetooth bridge, etc. Practically it uses NMEA_IN and NMEA_OUT serial
+  links defined in BoardConfig.h. If a sentence is configured to be
+  received from this link, it means that it will be decoded and sent to
+  Micronet network.
 
-  - LINK\_COMPASS : This is the I2C link with LSM303DLH(C) optional IC.
-    If a sentence is configured to be received from this link, it means
-    that it will be sent to Micronet network, then encoded to NMEA\_EXT.
+- LINK_COMPASS : This is the I2C link with LSM303DLH(C) optional IC. If
+  a sentence is configured to be received from this link, it means that
+  it will be sent to Micronet network, then encoded to NMEA_EXT.
 
 The following table summarizes all supported NMEA sentences, the
 corresponding Micronet data and the possible source links:
 
 <div id="table:nmeasentences">
 
-| **Sentence** |    **Action**     | **Corresponding Micronet data** | **Possible sources**                         |
-| :----------- | :---------------: | :-----------------------------: | :------------------------------------------- |
-| RMB          |      Decoded      |        XTE DTW BTW VMGWP        | LINK\_NMEA\_EXT                              |
-| RMC          | Decoded/Forwarded |            TIME DATE            | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| GGA          | Decoded/Forwarded |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| GLL          | Decoded/Forwarded |             LAT LON             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| VTG          | Decoded/Forwarded |             COG SOG             | LINK\_NMEA\_GNSS LINK\_NMEA\_EXT             |
-| MWV          |  Decoded/Encoded  |         AWA AWS TWA TWS         | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| DPT          |  Decoded/Encoded  |               DPT               | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| MTW          |  Decoded/Encoded  |               STP               | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| VLW          |  Decoded/Encoded  |            LOG TRIP             | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| VHW          |  Decoded/Encoded  |               SPD               | LINK\_MICRONET LINK\_NMEA\_EXT               |
-| HDG          |  Decoded/Encoded  |               HDG               | LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS |
-| XDR          |      Decoded      |               VCC               | LINK\_MICRONET                               |
+| **Sentence** |    **Action**     | **Corresponding Micronet data** | **Possible sources**                     |
+|:-------------|:-----------------:|:-------------------------------:|:-----------------------------------------|
+| RMB          |      Decoded      |        XTE DTW BTW VMGWP        | LINK_NMEA_EXT                            |
+| RMC          | Decoded/Forwarded |            TIME DATE            | LINK_NMEA_GNSS LINK_NMEA_EXT             |
+| GGA          | Decoded/Forwarded |             LAT LON             | LINK_NMEA_GNSS LINK_NMEA_EXT             |
+| GLL          | Decoded/Forwarded |             LAT LON             | LINK_NMEA_GNSS LINK_NMEA_EXT             |
+| VTG          | Decoded/Forwarded |             COG SOG             | LINK_NMEA_GNSS LINK_NMEA_EXT             |
+| MWV          |  Decoded/Encoded  |         AWA AWS TWA TWS         | LINK_MICRONET LINK_NMEA_EXT              |
+| DPT          |  Decoded/Encoded  |               DPT               | LINK_MICRONET LINK_NMEA_EXT              |
+| MTW          |  Decoded/Encoded  |               STP               | LINK_MICRONET LINK_NMEA_EXT              |
+| VLW          |  Decoded/Encoded  |            LOG TRIP             | LINK_MICRONET LINK_NMEA_EXT              |
+| VHW          |  Decoded/Encoded  |               SPD               | LINK_MICRONET LINK_NMEA_EXT              |
+| HDG          |  Decoded/Encoded  |               HDG               | LINK_MICRONET LINK_NMEA_EXT LINK_COMPASS |
+| XDR          |      Decoded      |               VCC               | LINK_MICRONET                            |
+| VDM          |     Forwarded     |              None               | LINK_NMEA_GNSS                           |
+| VDO          |     Forwarded     |              None               | LINK_NMEA_GNSS                           |
 
 Supported NMEA sentences
 

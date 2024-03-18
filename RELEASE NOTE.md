@@ -1,5 +1,8 @@
 # MicronetToNMEA Release Note
 
+## V2.4
+- SOG and COG can now be filtered to get more stable values at low speed
+
 ## V2.3
 - Decode SOG & COG from RMC sentence in addition of GGA
 
