@@ -75,6 +75,12 @@ void setup()
     // Init USB serial link
     USB_NMEA.begin(USB_BAUDRATE);
 
+    // Setup LSM303AGR CS pins
+    pinMode(LSM303AGR_CSXL, OUTPUT);
+    pinMode(LSM303AGR_CSM, OUTPUT);
+    digitalWrite(LSM303AGR_CSXL, HIGH);
+    digitalWrite(LSM303AGR_CSM, HIGH);
+
     // Init GNSS NMEA serial link
     GNSS_SERIAL.setRX(GNSS_RX_PIN);
     GNSS_SERIAL.setTX(GNSS_TX_PIN);
@@ -129,11 +135,7 @@ void setup()
 
     // Attach callback to GDO0 pin
     // According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-    attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, RISING);
-#else
     attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, HIGH);
-#endif
 
     // Display serial menu
     gMenuManager.PrintMenu();
@@ -166,4 +168,3 @@ void RfIsr()
 {
     gRfReceiver.RfIsr();
 }
-

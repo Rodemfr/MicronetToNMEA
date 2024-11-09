@@ -41,58 +41,33 @@
 #define FREQUENCY_SYSTEM 0
 
 // Selects on which I2C bus is connected compass as per Wiring library definition
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-#define NAVCOMPASS_I2C Wire1 // SDA1: 38 SCL1: 37
-#else                        // Teensy 4.0 Configuration
-#define NAVCOMPASS_I2C Wire  // SDA0: 18 SCL0: 19
-#endif
+#define NAVCOMPASS_I2C Wire // SDA0: 18 SCL0: 19
+#define LSM303AGR_CSM  3
+#define LSM303AGR_CSXL 4
 
 // CC1101/SPI pins
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-#define CS0_PIN  10
-#define MOSI_PIN 11
-#define MISO_PIN 12
-#define SCK_PIN  14
-#define GDO0_PIN 24
-#else // Teensy 4.0 Configuration
 #define CS0_PIN  10
 #define MOSI_PIN 11
 #define MISO_PIN 12
 #define SCK_PIN  13
 #define GDO0_PIN 9
-#endif
 
 // NMEA GNSS UART pins
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
 #define GNSS_UBLOXM8N 1 // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
-#define GNSS_SERIAL   Serial1
+#define GNSS_SERIAL   Serial3
 #define GNSS_BAUDRATE 9600
-#define GNSS_RX_PIN   0
-#define GNSS_TX_PIN   1
-#else                   // Teensy 4.0 Configuration
-#define GNSS_UBLOXM8N 1 // Set to one if your GNSS is a UBLOX M8N, 0 else. If set to one, GNSS will be automatically configured at startup
-#define GNSS_SERIAL   Serial2
-#define GNSS_BAUDRATE 9600
-#define GNSS_RX_PIN   7
-#define GNSS_TX_PIN   8
-#endif
+#define GNSS_RX_PIN   15
+#define GNSS_TX_PIN   14
 
 // USB UART params
 #define USB_NMEA     SerialUSB
 #define USB_BAUDRATE 115200
 
 // Wired UART params
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-#define WIRED_NMEA     Serial5
-#define WIRED_BAUDRATE 115200
-#define WIRED_RX_PIN   34
-#define WIRED_TX_PIN   33
-#else // Teensy 4.0 Configuration
 #define WIRED_NMEA     Serial1
 #define WIRED_BAUDRATE 115200
 #define WIRED_RX_PIN   0
 #define WIRED_TX_PIN   1
-#endif
 
 // The console to use for menu and NMEA output
 // USB_NMEA -> USB-Serial link

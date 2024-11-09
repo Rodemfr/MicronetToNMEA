@@ -86,9 +86,9 @@ DataBridge::DataBridge(MicronetCodec *micronetCodec)
     compassSourceLink = COMPASS_SOURCE_LINK;
 
     sogFilterIndex = 0;
-    memset(sogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH);
+    memset(sogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH * sizeof(float));
     cogFilterIndex = 0;
-    memset(cogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH);
+    memset(cogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH * sizeof(float));
 }
 
 DataBridge::~DataBridge()

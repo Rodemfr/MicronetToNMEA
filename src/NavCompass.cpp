@@ -35,6 +35,7 @@
 #include "Globals.h"
 #include "LSM303DLHCDriver.h"
 #include "LSM303DLHDriver.h"
+#include "LSM303AGRDriver.h"
 
 #include <cmath>
 #include <vector>
@@ -80,6 +81,12 @@ bool NavCompass::Init()
     {
         delete navCompassDriver;
         navCompassDriver = new LSM303DLHDriver();
+    }
+
+    if (!navCompassDriver->Init())
+    {
+        delete navCompassDriver;
+        navCompassDriver = new LSM303AGRDriver();
     }
 
     if (!navCompassDriver->Init())
