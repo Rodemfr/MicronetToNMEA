@@ -43,6 +43,7 @@
 #define LOW_BANDWIDTH_VALUE    80
 #define MEDIUM_BANDWIDTH_VALUE 125
 #define HIGH_BANDWIDTH_VALUE   250
+#define RF_TX_PROG_DELAY_US    185 // Time needed to program CC1101 before sending the first byte with CPU@24MHz
 
 /***************************************************************************/
 /*                                Types                                    */

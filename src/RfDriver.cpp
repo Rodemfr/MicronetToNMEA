@@ -351,7 +351,7 @@ void RfDriver::ScheduleTransmit()
             timerInt.stop();
             return;
         }
-        int32_t transmitDelay = transmitList[transmitIndex].startTime_us - micros();
+        int32_t transmitDelay = transmitList[transmitIndex].startTime_us - micros() - RF_TX_PROG_DELAY_US;
         if ((transmitDelay <= 0) || (transmitDelay > 3000000))
         {
             // Transmit already in the past, or invalid : delete it and schedule the next one
@@ -418,10 +418,10 @@ void RfDriver::TransmitCallback()
 
     int32_t triggerDelay = micros() - transmitList[nextTransmitIndex].startTime_us;
 
-    if (triggerDelay < 0)
+    // Depending on the Teensy version, timer may not be able to reach delay of more than
+    // about 50ms. in that case we reprogram it until we reach the specified amount of time
+    if (triggerDelay < -RF_TX_PROG_DELAY_US - 25)
     {
-        // Depending on the Teensy version, timer may not be able to reach delay of more than
-        // about 50ms. in that case we reprogram it until we reach the specified amount of time
         ScheduleTransmit();
         return;
     }
