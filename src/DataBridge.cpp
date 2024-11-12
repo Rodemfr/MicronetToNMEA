@@ -102,11 +102,11 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 
     switch (sourceLink)
     {
-    case LINK_NMEA_EXT:
+    case LINK_NAV:
         nmeaBuffer     = nmeaExtBuffer;
         nmeaWriteIndex = &nmeaExtWriteIndex;
         break;
-    case LINK_NMEA_GNSS:
+    case LINK_GNSS:
         nmeaBuffer     = nmeaGnssBuffer;
         nmeaWriteIndex = &nmeaGnssWriteIndex;
         break;
@@ -144,9 +144,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeRMCSentence(nmeaBuffer);
-                        if (sourceLink != LINK_NMEA_EXT)
+                        if (sourceLink != LINK_NAV)
                         {
-                            NMEA_EXT.println(nmeaBuffer);
+                            NAV_NMEA.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -154,9 +154,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeGGASentence(nmeaBuffer);
-                        if (sourceLink != LINK_NMEA_EXT)
+                        if (sourceLink != LINK_NAV)
                         {
-                            NMEA_EXT.println(nmeaBuffer);
+                            NAV_NMEA.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -164,9 +164,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeGLLSentence(nmeaBuffer);
-                        if (sourceLink != LINK_NMEA_EXT)
+                        if (sourceLink != LINK_NAV)
                         {
-                            NMEA_EXT.println(nmeaBuffer);
+                            NAV_NMEA.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -174,9 +174,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeVTGSentence(nmeaBuffer);
-                        if (sourceLink != LINK_NMEA_EXT)
+                        if (sourceLink != LINK_NAV)
                         {
-                            NMEA_EXT.println(nmeaBuffer);
+                            NAV_NMEA.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -205,11 +205,11 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 default:
-                    // An unknown sentence is forwarded to NMEA_EXT if it is coming from the GNSS link. It is useful to forward AIVDM/AIVDO
+                    // An unknown sentence is forwarded to NAV_NMEA if it is coming from the GNSS link. It is useful to forward AIVDM/AIVDO
                     // sentences coming from an AIS receiver.
-                    if ((sourceLink == gnssSourceLink) && (sourceLink != LINK_NMEA_EXT))
+                    if ((sourceLink == gnssSourceLink) && (sourceLink != LINK_NAV))
                     {
-                        NMEA_EXT.println(nmeaBuffer);
+                        NAV_NMEA.println(nmeaBuffer);
                     }
                     break;
                 }
@@ -898,7 +898,7 @@ void DataBridge::EncodeMWV_R()
             sprintf(sentence, "$INMWV,%.1f,R,%.1f,N,A", absAwa, micronetCodec->navData.aws_kt.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwr = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }
@@ -922,7 +922,7 @@ void DataBridge::EncodeMWV_T()
             sprintf(sentence, "$INMWV,%.1f,T,%.1f,N,A", absTwa, micronetCodec->navData.tws_kt.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwt = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }
@@ -942,7 +942,7 @@ void DataBridge::EncodeDPT()
             sprintf(sentence, "$INDPT,%.1f,%.1f,", micronetCodec->navData.dpt_m.value, micronetCodec->navData.depthOffset_m);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.dpt = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }
@@ -962,7 +962,7 @@ void DataBridge::EncodeMTW()
             sprintf(sentence, "$INMTW,%.1f,C", micronetCodec->navData.stp_degc.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.mtw = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }
@@ -983,7 +983,7 @@ void DataBridge::EncodeVLW()
             sprintf(sentence, "$INVLW,%.1f,N,%.1f,N,,N,,N", micronetCodec->navData.log_nm.value, micronetCodec->navData.trip_nm.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vlw = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }
@@ -1018,7 +1018,7 @@ void DataBridge::EncodeVHW()
             }
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vhw = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }
@@ -1039,7 +1039,7 @@ void DataBridge::EncodeHDG()
                     (micronetCodec->navData.magneticVariation_deg < 0.0f) ? 'W' : 'E');
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.hdg = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }
@@ -1059,7 +1059,7 @@ void DataBridge::EncodeXDR()
             sprintf(sentence, "$INXDR,U,%.1f,V,TACKTICK#0", micronetCodec->navData.vcc_v.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vcc = millis();
-            NMEA_EXT.println(sentence);
+            NAV_NMEA.println(sentence);
         }
     }
 }

@@ -33,9 +33,9 @@
 #include "NavCompass.h"
 #include "BoardConfig.h"
 #include "Globals.h"
+#include "LSM303AGRDriver.h"
 #include "LSM303DLHCDriver.h"
 #include "LSM303DLHDriver.h"
-#include "LSM303AGRDriver.h"
 
 #include <cmath>
 #include <vector>

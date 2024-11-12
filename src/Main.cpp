@@ -72,8 +72,8 @@ void setup()
     // Load configuration from EEPROM
     gConfiguration.LoadFromEeprom();
 
-    // Init USB serial link
-    USB_NMEA.begin(USB_BAUDRATE);
+    // Init Console USB serial link
+    CONSOLE.begin(CONSOLE_BAUDRATE);
 
     // Setup LSM303AGR CS pins
     pinMode(LSM303AGR_CSXL, OUTPUT);
@@ -81,23 +81,22 @@ void setup()
     digitalWrite(LSM303AGR_CSXL, HIGH);
     digitalWrite(LSM303AGR_CSM, HIGH);
 
-    // Init GNSS NMEA serial link
-    GNSS_SERIAL.setRX(GNSS_RX_PIN);
-    GNSS_SERIAL.setTX(GNSS_TX_PIN);
-    GNSS_SERIAL.begin(GNSS_BAUDRATE);
+    // Init Ublox GNSS serial link
+    GNSS.setRX(GNSS_RX_PIN);
+    GNSS.setTX(GNSS_TX_PIN);
+    GNSS.begin(GNSS_BAUDRATE);
 
-    // Init wired serial link
-    WIRED_NMEA.setRX(WIRED_RX_PIN);
-    WIRED_NMEA.setTX(WIRED_TX_PIN);
-    WIRED_NMEA.begin(WIRED_BAUDRATE);
+    // Init external navigation computer serial link
+    NAV_NMEA.setRX(NAV_NMEA_RX_PIN);
+    NAV_NMEA.setTX(NAV_NMEA_TX_PIN);
+    NAV_NMEA.begin(NAV_NMEA_BAUDRATE);
 
     // Let time for serial drivers to set-up
     delay(250);
 
-#if (GNSS_UBLOXM8N == 1)
-    CONSOLE.println("Configuring UBlox M8N GNSS");
+    CONSOLE.print("Configuring UBlox M8N GNSS ... ");
     gM8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
-#endif
+    CONSOLE.println("OK");
 
     CONSOLE.print("Initializing CC1101 ... ");
     // Check connection to CC1101

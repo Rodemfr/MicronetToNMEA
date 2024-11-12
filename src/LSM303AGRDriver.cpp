@@ -107,7 +107,7 @@
 #define MAG_GAUSS_PER_LSB 0.0015f
 
 /***************************************************************************/
-/*               MAG_GAUSS_PER_LSB              Local types                                 */
+/*                             Local types                                 */
 /***************************************************************************/
 
 /***************************************************************************/
@@ -138,7 +138,7 @@ bool LSM303AGRDriver::Init()
 {
     uint8_t whoami = 0;
 
-    NAVCOMPASS_I2C.begin();
+    COMPASS_I2C.begin();
 
     digitalWrite(LSM303AGR_CSXL, HIGH);
     digitalWrite(LSM303AGR_CSM, HIGH);
@@ -250,35 +250,35 @@ void LSM303AGRDriver::GetAcceleration(vec *acc)
 
 bool LSM303AGRDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
 {
-    NAVCOMPASS_I2C.beginTransmission(i2cAddress);
-    NAVCOMPASS_I2C.write(address);
-    if (NAVCOMPASS_I2C.endTransmission() != 0)
+    COMPASS_I2C.beginTransmission(i2cAddress);
+    COMPASS_I2C.write(address);
+    if (COMPASS_I2C.endTransmission() != 0)
     {
         return false;
     }
-    NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t)1);
-    *data = NAVCOMPASS_I2C.read();
+    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)1);
+    *data = COMPASS_I2C.read();
 
-    return (NAVCOMPASS_I2C.endTransmission() == 0);
+    return (COMPASS_I2C.endTransmission() == 0);
 }
 
 bool LSM303AGRDriver::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
 {
-    NAVCOMPASS_I2C.beginTransmission(i2cAddress);
-    NAVCOMPASS_I2C.write(address);
-    if (NAVCOMPASS_I2C.endTransmission() != 0)
+    COMPASS_I2C.beginTransmission(i2cAddress);
+    COMPASS_I2C.write(address);
+    if (COMPASS_I2C.endTransmission() != 0)
     {
         return false;
     }
-    NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t)length);
-    NAVCOMPASS_I2C.readBytes(buffer, NAVCOMPASS_I2C.available());
-    return (NAVCOMPASS_I2C.endTransmission() == 0);
+    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)length);
+    COMPASS_I2C.readBytes(buffer, COMPASS_I2C.available());
+    return (COMPASS_I2C.endTransmission() == 0);
 }
 
 bool LSM303AGRDriver::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
 {
-    NAVCOMPASS_I2C.beginTransmission(i2cAddress);
-    NAVCOMPASS_I2C.write(address);
-    NAVCOMPASS_I2C.write(data);
-    return (NAVCOMPASS_I2C.endTransmission() == 0);
+    COMPASS_I2C.beginTransmission(i2cAddress);
+    COMPASS_I2C.write(address);
+    COMPASS_I2C.write(data);
+    return (COMPASS_I2C.endTransmission() == 0);
 }

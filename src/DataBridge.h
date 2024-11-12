@@ -49,10 +49,11 @@
 
 typedef enum
 {
-    LINK_NMEA_EXT,
-    LINK_NMEA_GNSS,
+    LINK_NAV,
+    LINK_GNSS,
     LINK_MICRONET,
-    LINK_COMPASS
+    LINK_COMPASS,
+    LINK_AIS
 } LinkId_t;
 
 typedef enum

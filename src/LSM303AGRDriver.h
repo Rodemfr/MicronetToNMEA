@@ -59,7 +59,7 @@ class LSM303AGRDriver : public NavCompassDriver
     virtual void   GetAcceleration(vec *acc) override;
 
   private:
-    float   GPerLsb;
+    float GPerLsb;
 
     bool I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data);
     bool I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length);

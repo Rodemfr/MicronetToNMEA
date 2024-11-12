@@ -114,21 +114,21 @@ void MenuConvertToNmea()
             gRxMessageFifo.DeleteMessage();
         }
 
-        while (GNSS_SERIAL.available() > 0)
+        while (GNSS.available() > 0)
         {
-            dataBridge.PushNmeaChar(GNSS_SERIAL.read(), LINK_NMEA_GNSS);
+            dataBridge.PushNmeaChar(GNSS.read(), LINK_GNSS);
         }
 
         char c;
-        while (NMEA_EXT.available() > 0)
+        while (NAV_NMEA.available() > 0)
         {
-            c = NMEA_EXT.read();
-            if (((void *)(&CONSOLE) == (void *)(&NMEA_EXT)) && (c == 0x1b))
+            c = NAV_NMEA.read();
+            if (((void *)(&CONSOLE) == (void *)(&NAV_NMEA)) && (c == 0x1b))
             {
                 CONSOLE.println("ESC key pressed, stopping conversion.");
                 exitNmeaLoop = true;
             }
-            dataBridge.PushNmeaChar(c, LINK_NMEA_EXT);
+            dataBridge.PushNmeaChar(c, LINK_NAV);
         }
 
         // Only execute magnetic heading code if navigation compass is available
@@ -143,7 +143,7 @@ void MenuConvertToNmea()
             }
         }
 
-        if ((void *)(&CONSOLE) != (void *)(&NMEA_EXT))
+        if ((void *)(&CONSOLE) != (void *)(&NAV_NMEA))
         {
             while (CONSOLE.available() > 0)
             {
@@ -168,7 +168,6 @@ void MenuConvertToNmea()
 
     gRfReceiver.DisableFrequencyTracking();
 }
-
 
 void SaveCalibration(MicronetCodec &micronetCodec)
 {

@@ -70,14 +70,14 @@ void M8NDriver::GPS_SendConfig(const uint8_t *progmemPtr, uint8_t arraySize)
     for (index = 0; index < arraySize; index++)
     {
         byteread = pgm_read_byte_near(progmemPtr++);
-        GNSS_SERIAL.write(byteread);
+        GNSS.write(byteread);
     }
     delay(100);
 }
 
 void M8NDriver::GPS_SendPUBX(const char pubxMsg[])
 {
-    GNSS_SERIAL.println(pubxMsg);
+    GNSS.println(pubxMsg);
 }
 
 void M8NDriver::Start(uint32_t nmeaSentences)
@@ -85,12 +85,12 @@ void M8NDriver::Start(uint32_t nmeaSentences)
     GPS_SendConfig(ClearConfig, 21);
     delay(500);
     GPS_SendConfig(UART1_38400, 28);
-    GNSS_SERIAL.begin(38400);
+    GNSS.begin(38400);
     delay(100);
-    GNSS_SERIAL.println("");
+    GNSS.println("");
     GPS_SendConfig(GNSSSetup, 68);
     delay(200);
-    GNSS_SERIAL.println("");
+    GNSS.println("");
     GPS_SendPUBX(DTM_off);
     GPS_SendPUBX(GBS_off);
     if (nmeaSentences & M8N_GGA_ENABLE)

@@ -118,7 +118,7 @@ bool LSM303DLHDriver::Init()
 {
     uint8_t ira = 0, irb = 0, irc = 0, sr, whoami = 0;
 
-    NAVCOMPASS_I2C.begin();
+    COMPASS_I2C.begin();
 
     // First we search for linear acceleration address which depends on SA0 pin level on LSM303DLH
     if (!I2CRead(LSM303DLH_ACC_ADDR_1, STATUS_REG_A, &sr))
@@ -235,35 +235,35 @@ void LSM303DLHDriver::GetAcceleration(vec *acc)
 // TODO : Create a static class to drive I2C so that this code will not be duplicated for each compass driver
 bool LSM303DLHDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
 {
-    NAVCOMPASS_I2C.beginTransmission(i2cAddress);
-    NAVCOMPASS_I2C.write(address);
-    if (NAVCOMPASS_I2C.endTransmission() != 0)
+    COMPASS_I2C.beginTransmission(i2cAddress);
+    COMPASS_I2C.write(address);
+    if (COMPASS_I2C.endTransmission() != 0)
     {
         return false;
     }
-    NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t)1);
-    *data = NAVCOMPASS_I2C.read();
+    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)1);
+    *data = COMPASS_I2C.read();
 
-    return (NAVCOMPASS_I2C.endTransmission() == 0);
+    return (COMPASS_I2C.endTransmission() == 0);
 }
 
 bool LSM303DLHDriver::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
 {
-    NAVCOMPASS_I2C.beginTransmission(i2cAddress);
-    NAVCOMPASS_I2C.write(address);
-    if (NAVCOMPASS_I2C.endTransmission() != 0)
+    COMPASS_I2C.beginTransmission(i2cAddress);
+    COMPASS_I2C.write(address);
+    if (COMPASS_I2C.endTransmission() != 0)
     {
         return false;
     }
-    NAVCOMPASS_I2C.requestFrom(i2cAddress, (uint8_t)length);
-    NAVCOMPASS_I2C.readBytes(buffer, NAVCOMPASS_I2C.available());
-    return (NAVCOMPASS_I2C.endTransmission() == 0);
+    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)length);
+    COMPASS_I2C.readBytes(buffer, COMPASS_I2C.available());
+    return (COMPASS_I2C.endTransmission() == 0);
 }
 
 bool LSM303DLHDriver::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
 {
-    NAVCOMPASS_I2C.beginTransmission(i2cAddress);
-    NAVCOMPASS_I2C.write(address);
-    NAVCOMPASS_I2C.write(data);
-    return (NAVCOMPASS_I2C.endTransmission() == 0);
+    COMPASS_I2C.beginTransmission(i2cAddress);
+    COMPASS_I2C.write(address);
+    COMPASS_I2C.write(data);
+    return (COMPASS_I2C.endTransmission() == 0);
 }
