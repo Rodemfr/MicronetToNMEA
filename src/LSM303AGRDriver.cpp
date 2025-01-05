@@ -180,12 +180,11 @@ bool LSM303AGRDriver::Init()
 
     // Initialize registers and conversion coefficients
     I2CWrite(LSM303AGR_MAG_ADDR, 0x00, CFG_REG_A_M);    // 0x00 ODR 10Hz, continuous mode
-                                                        //    I2CWrite(LSM303AGR_MAG_ADDR, 0x01, CFG_REG_B_M);    // 0x01 Low pass filter enabled
     I2CWrite(LSM303AGR_MAG_ADDR, 0x01, CFG_REG_C_M);    // 0x10 BDU enabled
     I2CWrite(LSM303AGR_MAG_ADDR, 0x00, INT_CRTL_REG_M); // 0x00 No interrupt handling
 
     I2CWrite(LSM303AGR_ACC_ADDR, 0x27, CTRL_REG1_A); // 0x47 Normal Mode, ODR 50hz, all axes on
-                                                     //    I2CWrite(LSM303AGR_ACC_ADDR, 0x00, CTRL_REG4_A); // 0x00 Range: +/-2 Gal, Sens.: 1mGal/LSB
+    I2CWrite(LSM303AGR_ACC_ADDR, 0x00, CTRL_REG4_A); // 0x00 Range: +/-2 Gal, Sens.: 1mGal/LSB
     GPerLsb = 1.0 / 16384.0;
 
     return true;

@@ -96,11 +96,20 @@
 // 1 -> enabled
 #define EMULATE_SPD_WITH_SOG 0
 
-// Define which compass axis will be compared to magnetic north
+// Define which compass axis will be compared to magnetic north.
+// This is the axis which will point to the bow of the boat.
 // Set one of the (X, Y, Z) to 1.0 or -1.0
 #define HEADING_AXIS                                                                                                                                 \
     {                                                                                                                                                \
-        1.0f, 0.0f, 0.0f                                                                                                                             \
+        0.0f, 0.0f, -1.0f                                                                                                                             \
+    }
+
+// Define which compass axis will be used to compute heel angle.
+// This is the vertical axis which will point down to the bottom of the boat.
+// Set one of the (X, Y, Z) to 1.0 or -1.0
+#define DOWN_AXIS                                                                                                                                    \
+    {                                                                                                                                                \
+        -1.0f, 0.0f, 0.0f                                                                                                                            \
     }
 
 /***************************************************************************/
