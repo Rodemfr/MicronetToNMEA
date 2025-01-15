@@ -101,7 +101,7 @@
 // Set one of the (X, Y, Z) to 1.0 or -1.0
 #define HEADING_AXIS                                                                                                                                 \
     {                                                                                                                                                \
-        0.0f, 0.0f, -1.0f                                                                                                                             \
+        0.0f, 0.0f, -1.0f                                                                                                                            \
     }
 
 // Define which compass axis will be used to compute heel angle.

@@ -81,19 +81,22 @@ bool NavCompass::Init()
     {
         delete navCompassDriver;
         navCompassDriver = new LSM303DLHDriver();
+        if (!navCompassDriver->Init())
+        {
+            delete navCompassDriver;
+            navCompassDriver = new LSM303AGRDriver();
+            if (!navCompassDriver->Init())
+            {
+                delete navCompassDriver;
+                return false;
+            }
+        }
     }
 
-    if (!navCompassDriver->Init())
-    {
-        delete navCompassDriver;
-        navCompassDriver = new LSM303AGRDriver();
-    }
-
-    if (!navCompassDriver->Init())
-    {
-        delete navCompassDriver;
-        return false;
-    }
+    // Compute starboard axis from heading/box axis and down axis
+    headingAxis = HEADING_AXIS;
+    downAxis    = DOWN_AXIS;
+    CrossProduct(&downAxis, &headingAxis, &starBoardAxis);
 
     navCompassDetected = true;
     return true;
@@ -109,14 +112,12 @@ string NavCompass::GetDeviceName()
     return string("");
 }
 
-float NavCompass::GetHeading()
+void NavCompass::GetHeadingAndHeel(float *heading_deg, float *heel_deg)
 {
-    vec accel;
-    vec mag;
-    vec E;
-    vec N;
-
-    vec from = HEADING_AXIS;
+    Vec3D accel;
+    Vec3D mag;
+    Vec3D E;
+    Vec3D N;
 
     // Get Acceleration and Magnetic data from LSM303
     // Note that we don't care about units of both acceleration and magnetic field since we
@@ -136,12 +137,12 @@ float NavCompass::GetHeading()
     // D X M = E, cross acceleration vector Down with M (magnetic north + inclination) to produce "East"
     CrossProduct(&mag, &accel, &E);
     Normalize(&E);
-    // E X D = N, cross "East" with "Down" to produce "North" (parallel to the ground)
+    // E X D = N, cross "East" with "Down" to produce "North" (parallel to the ground plane)
     CrossProduct(&accel, &E, &N);
     Normalize(&N);
 
     // compute heading
-    float heading = atan2f(vector_dot(&E, &from), vector_dot(&N, &from)) * 180.0f / PI;
+    float heading = atan2f(VectorDot(&E, &headingAxis), VectorDot(&N, &headingAxis)) * 180.0f / PI;
 
     if (heading < 0)
         heading += 360;
@@ -173,14 +174,30 @@ float NavCompass::GetHeading()
         heading += value;
     }
 
-    return heading / HEADING_HISTORY_LENGTH;
+    *heading_deg = heading / HEADING_HISTORY_LENGTH;
+
+    // compute heel angle
+    float heel               = atan2f(-VectorDot(&accel, &starBoardAxis), -VectorDot(&accel, &downAxis)) * 180.0f / PI;
+    heelHistory[heelIndex++] = heel;
+    if (heelIndex >= HEEL_HISTORY_LENGTH)
+    {
+        heelIndex = 0;
+    }
+
+    heel = 0.0f;
+    for (int i = 0; i < HEEL_HISTORY_LENGTH; i++)
+    {
+        heel += heelHistory[i];
+    }
+
+    *heel_deg = heel / HEEL_HISTORY_LENGTH;
 }
 
 void NavCompass::GetMagneticField(float *magX, float *magY, float *magZ)
 {
     if (navCompassDetected)
     {
-        vec mag;
+        Vec3D mag;
 
         navCompassDriver->GetMagneticField(&mag);
         *magX = mag.x;
@@ -193,7 +210,7 @@ void NavCompass::GetAcceleration(float *accX, float *accY, float *accZ)
 {
     if (navCompassDetected)
     {
-        vec acc;
+        Vec3D acc;
 
         navCompassDriver->GetAcceleration(&acc);
         *accX = acc.x;
@@ -202,22 +219,22 @@ void NavCompass::GetAcceleration(float *accX, float *accY, float *accZ)
     }
 }
 
-void NavCompass::Normalize(vec *a)
+void NavCompass::Normalize(Vec3D *a)
 {
-    float mag = sqrt(vector_dot(a, a));
+    float mag = sqrtf(VectorDot(a, a));
     a->x /= mag;
     a->y /= mag;
     a->z /= mag;
 }
 
-void NavCompass::CrossProduct(vec *a, vec *b, vec *out)
+void NavCompass::CrossProduct(Vec3D *a, Vec3D *b, Vec3D *out)
 {
     out->x = (a->y * b->z) - (a->z * b->y);
     out->y = (a->z * b->x) - (a->x * b->z);
     out->z = (a->x * b->y) - (a->y * b->x);
 }
 
-float NavCompass::vector_dot(vec *a, vec *b)
+float NavCompass::VectorDot(Vec3D *a, Vec3D *b)
 {
     return (a->x * b->x) + (a->y * b->y) + (a->z * b->z);
 }

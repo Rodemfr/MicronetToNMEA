@@ -84,6 +84,7 @@ NavigationData::NavigationData()
     waypoint.valid      = false;
     vmgwp_kt.valid      = false;
     magHdg_deg.valid    = false;
+    roll_deg.valid      = false;
 
     calibrationUpdated          = false;
     waterSpeedFactor_per        = 0.0f;
@@ -148,4 +149,6 @@ void NavigationData::UpdateValidity()
         vmgwp_kt.valid = false;
     if (currentTime - magHdg_deg.timeStamp > VALIDITY_TIME_FAST_MS)
         magHdg_deg.valid = false;
+    if (currentTime - roll_deg.timeStamp > VALIDITY_TIME_FAST_MS)
+        roll_deg.valid = false;
 }

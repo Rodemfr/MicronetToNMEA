@@ -159,7 +159,7 @@ string LSM303DLHCDriver::GetDeviceName()
     return (string("LSM303DLHC"));
 }
 
-void LSM303DLHCDriver::GetMagneticField(vec *mag)
+void LSM303DLHCDriver::GetMagneticField(Vec3D *mag)
 {
     uint8_t magBuffer[6];
     int16_t mx, my, mz;
@@ -175,7 +175,7 @@ void LSM303DLHCDriver::GetMagneticField(vec *mag)
     mag->z = ((float)mz) / LSB_per_Gauss_Z;
 }
 
-void LSM303DLHCDriver::GetAcceleration(vec *acc)
+void LSM303DLHCDriver::GetAcceleration(Vec3D *acc)
 {
     int16_t ax, ay, az;
     uint8_t regValue = 0;

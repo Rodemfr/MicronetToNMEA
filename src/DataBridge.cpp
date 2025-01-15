@@ -232,7 +232,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
     }
 }
 
-void DataBridge::UpdateCompassData(float heading_deg)
+void DataBridge::UpdateCompassData(float heading_deg, float heel_deg)
 {
     if (COMPASS_SOURCE_LINK == LINK_COMPASS)
     {
@@ -243,7 +243,11 @@ void DataBridge::UpdateCompassData(float heading_deg)
         micronetCodec->navData.magHdg_deg.value     = heading_deg;
         micronetCodec->navData.magHdg_deg.valid     = true;
         micronetCodec->navData.magHdg_deg.timeStamp = millis();
+        micronetCodec->navData.roll_deg.value       = heel_deg;
+        micronetCodec->navData.roll_deg.valid       = true;
+        micronetCodec->navData.roll_deg.timeStamp   = millis();
         EncodeHDG();
+        EncodeRollXDR();
     }
 }
 
@@ -256,7 +260,7 @@ void DataBridge::UpdateMicronetData()
     EncodeVLW();
     EncodeVHW();
     EncodeHDG();
-    EncodeXDR();
+    EncodeBatteryXDR();
 }
 
 float DataBridge::FilteredSOG(float newSog_kt)
@@ -1044,7 +1048,7 @@ void DataBridge::EncodeHDG()
     }
 }
 
-void DataBridge::EncodeXDR()
+void DataBridge::EncodeBatteryXDR()
 {
     if (VOLTAGE_SOURCE_LINK == LINK_MICRONET)
     {
@@ -1061,6 +1065,23 @@ void DataBridge::EncodeXDR()
             nmeaTimeStamps.vcc = millis();
             NAV_NMEA.println(sentence);
         }
+    }
+}
+
+void DataBridge::EncodeRollXDR()
+{
+    bool update;
+
+    update = (micronetCodec->navData.roll_deg.timeStamp > nmeaTimeStamps.roll + NMEA_SENTENCE_MIN_PERIOD_MS);
+    update = update && micronetCodec->navData.roll_deg.valid;
+
+    if (update)
+    {
+        char sentence[NMEA_SENTENCE_MAX_LENGTH];
+        sprintf(sentence, "$INXDR,A,%.0f,D,ROLL", micronetCodec->navData.roll_deg.value);
+        AddNmeaChecksum(sentence);
+        nmeaTimeStamps.roll = millis();
+        NAV_NMEA.println(sentence);
     }
 }
 

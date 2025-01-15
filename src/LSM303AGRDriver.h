@@ -55,8 +55,8 @@ class LSM303AGRDriver : public NavCompassDriver
 
     virtual bool   Init() override;
     virtual string GetDeviceName() override;
-    virtual void   GetMagneticField(vec *mag) override;
-    virtual void   GetAcceleration(vec *acc) override;
+    virtual void   GetMagneticField(Vec3D *mag) override;
+    virtual void   GetAcceleration(Vec3D *acc) override;
 
   private:
     float GPerLsb;

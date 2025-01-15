@@ -42,7 +42,8 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-#define HEADING_HISTORY_LENGTH 4
+#define HEADING_HISTORY_LENGTH 15
+#define HEEL_HISTORY_LENGTH    15
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -62,19 +63,24 @@ class NavCompass
 
     bool   Init();
     string GetDeviceName();
-    float  GetHeading();
+    void   GetHeadingAndHeel(float *heading_deg, float *heel_deg);
     void   GetMagneticField(float *magX, float *magY, float *magZ);
     void   GetAcceleration(float *accX, float *accY, float *accZ);
 
   private:
     float             headingHistory[HEADING_HISTORY_LENGTH];
     uint32_t          headingIndex;
+    float             heelHistory[HEEL_HISTORY_LENGTH];
+    uint32_t          heelIndex;
     bool              navCompassDetected;
     NavCompassDriver *navCompassDriver;
+    Vec3D             headingAxis;
+    Vec3D             downAxis;
+    Vec3D             starBoardAxis;
 
-    void  Normalize(vec *a);
-    void  CrossProduct(vec *a, vec *b, vec *out);
-    float vector_dot(vec *a, vec *b);
+    void  Normalize(Vec3D *a);
+    void  CrossProduct(Vec3D *a, Vec3D *b, Vec3D *out);
+    float VectorDot(Vec3D *a, Vec3D *b);
 };
 
 #endif /* NAVCOMPASS_H_ */

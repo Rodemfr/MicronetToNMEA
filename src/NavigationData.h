@@ -111,6 +111,7 @@ class NavigationData
     FloatValue_t   vmgwp_kt;
 
     FloatValue_t magHdg_deg; // Magnetic heading (includes heading offset but not magnetic variation or deviation)
+    FloatValue_t roll_deg;
 
     bool  calibrationUpdated;
     float waterSpeedFactor_per;

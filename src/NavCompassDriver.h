@@ -12,7 +12,7 @@
 
 using string = std::string;
 
-struct vec
+struct Vec3D
 {
     float x, y, z;
 };
@@ -20,11 +20,11 @@ struct vec
 class NavCompassDriver
 {
   public:
-    virtual ~NavCompassDriver()               = 0;
-    virtual bool   Init()                     = 0;
-    virtual string GetDeviceName()            = 0;
-    virtual void   GetMagneticField(vec *mag) = 0;
-    virtual void   GetAcceleration(vec *acc)  = 0;
+    virtual ~NavCompassDriver()                 = 0;
+    virtual bool   Init()                       = 0;
+    virtual string GetDeviceName()              = 0;
+    virtual void   GetMagneticField(Vec3D *mag) = 0;
+    virtual void   GetAcceleration(Vec3D *acc)  = 0;
 };
 
 #endif /* NAVCOMPASSDRIVER_H_ */

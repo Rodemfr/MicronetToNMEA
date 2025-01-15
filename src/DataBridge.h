@@ -80,9 +80,10 @@ typedef struct
     uint32_t vhw;
     uint32_t hdg;
     uint32_t vcc;
+    uint32_t roll;
 } NmeaTimeStamps_t;
 
-#define NMEA_SENTENCE_MIN_PERIOD_MS 500
+#define NMEA_SENTENCE_MIN_PERIOD_MS 1000
 
 class DataBridge
 {
@@ -91,7 +92,7 @@ class DataBridge
     virtual ~DataBridge();
 
     void PushNmeaChar(char c, LinkId_t sourceLink);
-    void UpdateCompassData(float heading_deg);
+    void UpdateCompassData(float heading_deg, float heel_deg);
     void UpdateMicronetData();
 
   private:
@@ -138,7 +139,8 @@ class DataBridge
     void EncodeVLW();
     void EncodeVHW();
     void EncodeHDG();
-    void EncodeXDR();
+    void EncodeBatteryXDR();
+    void EncodeRollXDR();
 
     uint8_t AddNmeaChecksum(char *sentence);
 };

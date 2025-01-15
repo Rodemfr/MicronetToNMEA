@@ -198,7 +198,7 @@ string LSM303AGRDriver::GetDeviceName()
 
 // Returns magnetic field measurements on X, Y and Z axis
 // Unit is Gauss
-void LSM303AGRDriver::GetMagneticField(vec *mag)
+void LSM303AGRDriver::GetMagneticField(Vec3D *mag)
 {
     uint8_t magBuffer[6];
     int16_t mx, my, mz;
@@ -219,7 +219,7 @@ void LSM303AGRDriver::GetMagneticField(vec *mag)
 
 // Returns linear acceleration measurements on X, Y and Z axis
 // Unit is G
-void LSM303AGRDriver::GetAcceleration(vec *acc)
+void LSM303AGRDriver::GetAcceleration(Vec3D *acc)
 {
     int16_t ax, ay, az;
     uint8_t regValue = 0;
