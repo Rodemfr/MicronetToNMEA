@@ -139,9 +139,9 @@ void MenuConvertToNmea()
             if ((millis() - lastHeadingTime) > 100)
             {
                 lastHeadingTime = millis();
-                float heading_deg, heel_deg;
-                gNavCompass.GetHeadingAndHeel(&heading_deg, &heel_deg);
-                dataBridge.UpdateCompassData(heading_deg + micronetCodec.navData.headingOffset_deg, heel_deg);
+                float heading_deg, roll_deg;
+                gNavCompass.GetHeadingAndRoll(&heading_deg, &roll_deg);
+                dataBridge.UpdateCompassData(heading_deg + micronetCodec.navData.headingOffset_deg, roll_deg);
             }
         }
 

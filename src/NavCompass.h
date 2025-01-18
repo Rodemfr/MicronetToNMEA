@@ -43,7 +43,7 @@
 /***************************************************************************/
 
 #define HEADING_HISTORY_LENGTH 15
-#define HEEL_HISTORY_LENGTH    15
+#define ROLL_HISTORY_LENGTH    15
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -63,15 +63,15 @@ class NavCompass
 
     bool   Init();
     string GetDeviceName();
-    void   GetHeadingAndHeel(float *heading_deg, float *heel_deg);
+    void   GetHeadingAndRoll(float *heading_deg, float *roll_deg);
     void   GetMagneticField(float *magX, float *magY, float *magZ);
     void   GetAcceleration(float *accX, float *accY, float *accZ);
 
   private:
     float             headingHistory[HEADING_HISTORY_LENGTH];
     uint32_t          headingIndex;
-    float             heelHistory[HEEL_HISTORY_LENGTH];
-    uint32_t          heelIndex;
+    float             rollHistory[ROLL_HISTORY_LENGTH];
+    uint32_t          rollIndex;
     bool              navCompassDetected;
     NavCompassDriver *navCompassDriver;
     Vec3D             headingAxis;

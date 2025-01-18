@@ -104,7 +104,7 @@
         0.0f, 0.0f, -1.0f                                                                                                                            \
     }
 
-// Define which compass axis will be used to compute heel angle.
+// Define which compass axis will be used to compute roll angle.
 // This is the vertical axis which will point down to the bottom of the boat.
 // Set one of the (X, Y, Z) to 1.0 or -1.0
 #define DOWN_AXIS                                                                                                                                    \

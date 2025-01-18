@@ -112,7 +112,7 @@ string NavCompass::GetDeviceName()
     return string("");
 }
 
-void NavCompass::GetHeadingAndHeel(float *heading_deg, float *heel_deg)
+void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
 {
     Vec3D accel;
     Vec3D mag;
@@ -176,21 +176,21 @@ void NavCompass::GetHeadingAndHeel(float *heading_deg, float *heel_deg)
 
     *heading_deg = heading / HEADING_HISTORY_LENGTH;
 
-    // compute heel angle
-    float heel               = atan2f(-VectorDot(&accel, &starBoardAxis), -VectorDot(&accel, &downAxis)) * 180.0f / PI;
-    heelHistory[heelIndex++] = heel;
-    if (heelIndex >= HEEL_HISTORY_LENGTH)
+    // compute roll angle
+    float roll               = atan2f(-VectorDot(&accel, &starBoardAxis), -VectorDot(&accel, &downAxis)) * 180.0f / PI;
+    rollHistory[rollIndex++] = roll;
+    if (rollIndex >= ROLL_HISTORY_LENGTH)
     {
-        heelIndex = 0;
+        rollIndex = 0;
     }
 
-    heel = 0.0f;
-    for (int i = 0; i < HEEL_HISTORY_LENGTH; i++)
+    roll = 0.0f;
+    for (int i = 0; i < ROLL_HISTORY_LENGTH; i++)
     {
-        heel += heelHistory[i];
+        roll += rollHistory[i];
     }
 
-    *heel_deg = heel / HEEL_HISTORY_LENGTH;
+    *roll_deg = roll / ROLL_HISTORY_LENGTH;
 }
 
 void NavCompass::GetMagneticField(float *magX, float *magY, float *magZ)
