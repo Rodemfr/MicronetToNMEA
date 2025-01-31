@@ -87,9 +87,13 @@ void setup()
     GNSS.begin(GNSS_BAUDRATE);
 
     // Init external navigation computer serial link
-    NAV_NMEA.setRX(NAV_NMEA_RX_PIN);
-    NAV_NMEA.setTX(NAV_NMEA_TX_PIN);
-    NAV_NMEA.begin(NAV_NMEA_BAUDRATE);
+    // Only do it if it is not the same than CONSOLE
+    if ((void *)(&CONSOLE) != (void *)(&PLOTTER_NMEA))
+    {
+        PLOTTER_NMEA.setRX(PLOTTER_NMEA_RX_PIN);
+        PLOTTER_NMEA.setTX(PLOTTER_NMEA_TX_PIN);
+        PLOTTER_NMEA.begin(PLOTTER_NMEA_BAUDRATE);
+    }
 
     // Let time for serial drivers to set-up
     delay(250);

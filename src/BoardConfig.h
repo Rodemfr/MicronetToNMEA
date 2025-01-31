@@ -35,9 +35,9 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-// Select EU (868MHz) or not-EU (915MHz) Micronet frequency
-// 0 -> EU (868Mhz)
-// 1 -> non-EU (915Mhz)
+// Select 868MHz or 915MHz Micronet frequency
+// 0 -> 868Mhz
+// 1 -> 915Mhz
 #define FREQUENCY_SYSTEM 0
 
 // Selects on which I2C bus is connected compass as per Wiring library definition
@@ -63,10 +63,10 @@
 #define CONSOLE_BAUDRATE 115200
 
 // Nav Computer/Plotter UART params
-#define NAV_NMEA          Serial1
-#define NAV_NMEA_BAUDRATE 115200
-#define NAV_NMEA_RX_PIN   0
-#define NAV_NMEA_TX_PIN   1
+#define PLOTTER_NMEA          Serial1
+#define PLOTTER_NMEA_BAUDRATE 115200
+#define PLOTTER_NMEA_RX_PIN   0
+#define PLOTTER_NMEA_TX_PIN   1
 
 // Defines which data comes from which link
 // LINK_NAV      -> External navigation computer
@@ -74,7 +74,7 @@
 // LINK_MICRONET -> Micronet network
 // LINK_COMPASS  -> Internal LSM303
 #define NAV_SOURCE_LINK     LINK_NAV      // Navigation data (RMB)
-#define GNSS_SOURCE_LINK    LINK_GNSS     // Positionning data (RMC, GGA, VTG)
+#define GNSS_SOURCE_LINK    LINK_NAV      // Positionning data (RMC, GGA, VTG)
 #define WIND_SOURCE_LINK    LINK_MICRONET // Wind data (MWV)
 #define DEPTH_SOURCE_LINK   LINK_MICRONET // Depth data (DPT)
 #define SPEED_SOURCE_LINK   LINK_MICRONET // Speed data (VHW, VLW)

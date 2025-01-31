@@ -120,10 +120,10 @@ void MenuConvertToNmea()
         }
 
         char c;
-        while (NAV_NMEA.available() > 0)
+        while (PLOTTER_NMEA.available() > 0)
         {
-            c = NAV_NMEA.read();
-            if (((void *)(&CONSOLE) == (void *)(&NAV_NMEA)) && (c == 0x1b))
+            c = PLOTTER_NMEA.read();
+            if (((void *)(&CONSOLE) == (void *)(&PLOTTER_NMEA)) && (c == 0x1b))
             {
                 CONSOLE.println("ESC key pressed, stopping conversion.");
                 exitNmeaLoop = true;
@@ -145,7 +145,7 @@ void MenuConvertToNmea()
             }
         }
 
-        if ((void *)(&CONSOLE) != (void *)(&NAV_NMEA))
+        if ((void *)(&CONSOLE) != (void *)(&PLOTTER_NMEA))
         {
             while (CONSOLE.available() > 0)
             {
