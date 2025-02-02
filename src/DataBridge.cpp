@@ -39,6 +39,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+// TODO : ASCII conversion for Micronet should be done in Micronet code
 const uint8_t DataBridge::asciiTable[128] = {
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',  ' ', ' ', ' ', ' ', ' ',  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\"', ' ', ' ', '%', '&', '\'', ' ', ' ', ' ', '+', ' ', '-', '.', '/', '0', '1', '2', '3',
@@ -66,12 +67,20 @@ const uint8_t DataBridge::asciiTable[128] = {
 /*                              Functions                                  */
 /***************************************************************************/
 
+/*
+ * @brief Constructor of the class
+ *
+ * @param micronetCodec Pointer to the MicronetCodec class that will be used by
+ * the data bridge to handle Micronetdata
+ */
 DataBridge::DataBridge(MicronetCodec *micronetCodec)
 {
-    nmeaExtWriteIndex  = 0;
-    nmeaExtBuffer[0]   = 0;
-    nmeaGnssWriteIndex = 0;
-    nmeaGnssBuffer[0]  = 0;
+    nmeaPlotterWriteIndex = 0;
+    nmeaPlotterBuffer[0]  = 0;
+    nmeaGnssWriteIndex    = 0;
+    nmeaGnssBuffer[0]     = 0;
+    nmeaAisWriteIndex     = 0;
+    nmeaAisBuffer[0]      = 0;
     memset(&nmeaTimeStamps, 0, sizeof(nmeaTimeStamps));
     this->micronetCodec = micronetCodec;
 
@@ -91,59 +100,82 @@ DataBridge::DataBridge(MicronetCodec *micronetCodec)
     memset(cogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH * sizeof(float));
 }
 
+/*
+ * @brief Desstructor of the class. Does nothing.
+ */
 DataBridge::~DataBridge()
 {
 }
 
+/*
+ * @brief Push a character in one of the NMEA queue of the bridge. This
+ * function must be called each time a character is received from one of
+ * the NMEA link.
+ *
+ * @param c Character received
+ * @param sourceLink Id of the link the character was received from
+ */
 void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 {
     char *nmeaBuffer     = nullptr;
     int  *nmeaWriteIndex = 0;
 
+    // Select the appropriate stream buffer
     switch (sourceLink)
     {
     case LINK_NAV:
-        nmeaBuffer     = nmeaExtBuffer;
-        nmeaWriteIndex = &nmeaExtWriteIndex;
+        nmeaBuffer     = nmeaPlotterBuffer;
+        nmeaWriteIndex = &nmeaPlotterWriteIndex;
         break;
     case LINK_GNSS:
         nmeaBuffer     = nmeaGnssBuffer;
         nmeaWriteIndex = &nmeaGnssWriteIndex;
         break;
+    case LINK_AIS:
+        nmeaBuffer     = nmeaAisBuffer;
+        nmeaWriteIndex = &nmeaAisWriteIndex;
+        break;
     default:
         return;
     }
 
+    // Check for the sentence start character
     if (((nmeaBuffer[0] != '$') && (nmeaBuffer[0] != '!')) || (c == '$') || (c == '!'))
     {
+        // A new sentence started : rewind stream buffer to the first character
         nmeaBuffer[0]   = c;
         *nmeaWriteIndex = 1;
         return;
     }
 
+    // Check if this is the last character of a sentence
     if ((*nmeaWriteIndex >= 10) && nmeaBuffer[*nmeaWriteIndex - 3] == '*')
     {
         nmeaBuffer[*nmeaWriteIndex] = 0;
 
+        // Sanity check
         if ((*nmeaWriteIndex >= 10) && (*nmeaWriteIndex < NMEA_SENTENCE_MAX_LENGTH - 1))
         {
+            // Is CRC valid
             if (IsSentenceValid(nmeaBuffer))
             {
-
+                // Decode the sentence
                 NmeaId_t sId = SentenceId(nmeaBuffer);
-
                 switch (sId)
                 {
                 case NMEA_ID_RMB:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == navSourceLink)
                     {
                         DecodeRMBSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_RMC:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeRMCSentence(nmeaBuffer);
+                        // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_NAV)
                         {
                             PLOTTER_NMEA.println(nmeaBuffer);
@@ -151,9 +183,11 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_GGA:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeGGASentence(nmeaBuffer);
+                        // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_NAV)
                         {
                             PLOTTER_NMEA.println(nmeaBuffer);
@@ -161,9 +195,11 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_GLL:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeGLLSentence(nmeaBuffer);
+                        // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_NAV)
                         {
                             PLOTTER_NMEA.println(nmeaBuffer);
@@ -171,9 +207,11 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_VTG:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == gnssSourceLink)
                     {
                         DecodeVTGSentence(nmeaBuffer);
+                        // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_NAV)
                         {
                             PLOTTER_NMEA.println(nmeaBuffer);
@@ -181,33 +219,37 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_MWV:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == windSourceLink)
                     {
                         DecodeMWVSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_DPT:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == depthSourceLink)
                     {
                         DecodeDPTSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_VHW:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == speedSourceLink)
                     {
                         DecodeVHWSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_HDG:
+                    // Check that with received the sentence from where we expect it
                     if (sourceLink == compassSourceLink)
                     {
                         DecodeHDGSentence(nmeaBuffer);
                     }
                     break;
                 default:
-                    // An unknown sentence is forwarded to PLOTTER_NMEA if it is coming from the GNSS link. It is useful to forward AIVDM/AIVDO
-                    // sentences coming from an AIS receiver.
-                    if ((sourceLink == gnssSourceLink) && (sourceLink != LINK_NAV))
+                    // If an unknown sentence is received from AIS link, forward it to the chart plotter.
+                    // It is especially useful to provide AIVDM/AIVDO and alert sentences.
+                    if (sourceLink == LINK_AIS)
                     {
                         PLOTTER_NMEA.println(nmeaBuffer);
                     }
@@ -215,15 +257,17 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                 }
             }
         }
-
+        // Reset the stream buffer
         nmeaBuffer[0]   = 0;
         *nmeaWriteIndex = 0;
         return;
     }
 
+    // We are in the middle of a sentence : store the caracter in the stream buffer
     nmeaBuffer[*nmeaWriteIndex] = c;
     (*nmeaWriteIndex)++;
 
+    // Check for overflow
     if (*nmeaWriteIndex >= NMEA_SENTENCE_MAX_LENGTH)
     {
         nmeaBuffer[0]   = 0;
@@ -232,18 +276,31 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
     }
 }
 
-void DataBridge::UpdateCompassData(float heading_deg, float heel_deg)
+/*
+ * @brief Update heading & roll angle from LSM303 electronic compass. This
+ * function will ignore the updated values if MicronetToNMEA has not been
+ * configured to use LSM303.
+ *
+ * @param heading_deg Magnetic heading in degrees
+ * @param roll_deg Roll angle in degrees
+ */
+void DataBridge::UpdateCompassData(float heading_deg, float roll_deg)
 {
+    // Only update compass data if the source link is LSM303
     if (COMPASS_SOURCE_LINK == LINK_COMPASS)
     {
         while (heading_deg < 0.0f)
             heading_deg += 360.0f;
         while (heading_deg >= 360.0f)
             heading_deg -= 360.0f;
+        while (roll_deg < 0.0f)
+            roll_deg += 360.0f;
+        while (roll_deg >= 360.0f)
+            roll_deg -= 360.0f;
         micronetCodec->navData.magHdg_deg.value     = heading_deg;
         micronetCodec->navData.magHdg_deg.valid     = true;
         micronetCodec->navData.magHdg_deg.timeStamp = millis();
-        micronetCodec->navData.roll_deg.value       = heel_deg;
+        micronetCodec->navData.roll_deg.value       = roll_deg;
         micronetCodec->navData.roll_deg.valid       = true;
         micronetCodec->navData.roll_deg.timeStamp   = millis();
         EncodeHDG();
@@ -251,7 +308,12 @@ void DataBridge::UpdateCompassData(float heading_deg, float heel_deg)
     }
 }
 
-void DataBridge::UpdateMicronetData()
+/*
+ * @brief Send NMEA sentences generated from updated micronet data. This
+ * function checks which micronet data has been updated since last call and
+ * sends the associated NMEA sentence to the concerned device.
+ */
+void DataBridge::SendUpdatedNMEASentences()
 {
     EncodeMWV_R();
     EncodeMWV_T();
@@ -263,6 +325,13 @@ void DataBridge::UpdateMicronetData()
     EncodeBatteryXDR();
 }
 
+/*
+ * @brief Updates the SOG filter with the lastest SOG raw value and returns
+ * the updated filtered SOG value.
+ *
+ * @param newSog_kt Latest raw SOG value from GNSS
+ * @return Filtered SOG value in knots
+ */
 float DataBridge::FilteredSOG(float newSog_kt)
 {
 #if (SOG_COG_FILTERING == 1)
@@ -284,6 +353,13 @@ float DataBridge::FilteredSOG(float newSog_kt)
 #endif
 }
 
+/*
+ * @brief Updates the COG filter with the lastest COG raw value and returns
+ * the updated filtered COG value.
+ *
+ * @param newCog_deg Latest raw COG value from GNSS
+ * @return Filtered COG value in knots [0..360[
+ */
 float DataBridge::FilteredCOG(float newCog_deg)
 {
 #if (SOG_COG_FILTERING == 1)
@@ -328,6 +404,12 @@ float DataBridge::FilteredCOG(float newCog_deg)
 #endif
 }
 
+/*
+ * @brief Checks if a NMEA sentence is valid (CRC & syntax).
+ *
+ * @param nmeaBuffer Pointer to the null terminated NMEA sentence
+ * @return true if the sentence is valid, false else.
+ */
 bool DataBridge::IsSentenceValid(char *nmeaBuffer)
 {
     if ((nmeaBuffer[0] != '$') && (nmeaBuffer[0] != '!'))
@@ -352,6 +434,12 @@ bool DataBridge::IsSentenceValid(char *nmeaBuffer)
     return true;
 }
 
+/*
+ * @brief Retreives the ID of an NMEA sentence.
+ *
+ * @param nmeaBuffer Pointer to the null terminated NMEA sentence
+ * @return ID of the sentence
+ */
 NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
 {
     uint32_t sId = ((uint8_t)nmeaBuffer[3]) << 16;

@@ -103,7 +103,7 @@ void MenuConvertToNmea()
             micronetDevice.ProcessMessage(rxMessage, &txMessageFifo);
             gRfReceiver.Transmit(&txMessageFifo);
 
-            dataBridge.UpdateMicronetData();
+            dataBridge.SendUpdatedNMEASentences();
 
             if (micronetCodec.navData.calibrationUpdated)
             {
@@ -117,6 +117,11 @@ void MenuConvertToNmea()
         while (GNSS.available() > 0)
         {
             dataBridge.PushNmeaChar(GNSS.read(), LINK_GNSS);
+        }
+
+        while (AIS.available() > 0)
+        {
+            dataBridge.PushNmeaChar(AIS.read(), LINK_AIS);
         }
 
         char c;

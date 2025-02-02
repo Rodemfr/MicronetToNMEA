@@ -93,14 +93,16 @@ class DataBridge
 
     void PushNmeaChar(char c, LinkId_t sourceLink);
     void UpdateCompassData(float heading_deg, float heel_deg);
-    void UpdateMicronetData();
+    void SendUpdatedNMEASentences();
 
   private:
     static const uint8_t asciiTable[128];
-    char                 nmeaExtBuffer[NMEA_SENTENCE_MAX_LENGTH];
+    char                 nmeaPlotterBuffer[NMEA_SENTENCE_MAX_LENGTH];
     char                 nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
-    int                  nmeaExtWriteIndex;
+    char                 nmeaAisBuffer[NMEA_SENTENCE_MAX_LENGTH];
+    int                  nmeaPlotterWriteIndex;
     int                  nmeaGnssWriteIndex;
+    int                  nmeaAisWriteIndex;
     NmeaTimeStamps_t     nmeaTimeStamps;
     LinkId_t             navSourceLink;
     LinkId_t             gnssSourceLink;

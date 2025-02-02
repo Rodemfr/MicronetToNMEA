@@ -52,15 +52,20 @@
 #define SCK_PIN  13
 #define GDO0_PIN 9
 
+// Console UART params
+#define CONSOLE          SerialUSB
+#define CONSOLE_BAUDRATE 115200
+
 // UBlox GNSS UART pins
 #define GNSS          Serial3
 #define GNSS_BAUDRATE 9600
 #define GNSS_RX_PIN   15
 #define GNSS_TX_PIN   14
 
-// Console UART params
-#define CONSOLE          SerialUSB
-#define CONSOLE_BAUDRATE 115200
+// AIS UART pins
+#define AIS          Serial2
+#define AIS_BAUDRATE 38400
+#define AIS_RX_PIN   17
 
 // Nav Computer/Plotter UART params
 #define PLOTTER_NMEA          Serial1
