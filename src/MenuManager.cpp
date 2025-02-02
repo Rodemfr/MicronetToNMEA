@@ -36,7 +36,6 @@
 #include "MenuCalibrateXtal.h"
 #include "MenuConvertToNmea.h"
 #include "MenuScanMicronetTraffic.h"
-#include "MenuScanNetworks.h"
 #include "MenuTestRfQuality.h"
 
 #include <Arduino.h>
@@ -59,8 +58,7 @@
 
 MenuEntry_t MenuManager::menu[] = {{"MicronetToNMEA", nullptr},
                                    {"General info on MicronetToNMEA", MenuAbout},
-                                   {"Scan Micronet networks", MenuScanNetworks},
-                                   {"Attach converter to a network", MenuAttachNetwork},
+                                   {"Attach converter to closest network", MenuAttachNetwork},
                                    {"Start NMEA conversion", MenuConvertToNmea},
                                    {"Scan surrounding Micronet traffic", MenuScanMicronetTraffic},
                                    {"Calibrate RF XTAL", MenuCalibrateXtal},

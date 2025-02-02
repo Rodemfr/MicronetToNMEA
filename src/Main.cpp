@@ -86,6 +86,10 @@ void setup()
     GNSS.setTX(GNSS_TX_PIN);
     GNSS.begin(GNSS_BAUDRATE);
 
+    // Init AIS serial link
+    AIS.setRX(AIS_RX_PIN);
+    AIS.begin(AIS_BAUDRATE);
+
     // Init external navigation computer serial link
     // Only do it if it is not the same than CONSOLE
     if ((void *)(&CONSOLE) != (void *)(&PLOTTER_NMEA))
