@@ -289,14 +289,12 @@ void DataBridge::UpdateCompassData(float heading_deg, float roll_deg)
     // Only update compass data if the source link is LSM303
     if (COMPASS_SOURCE_LINK == LINK_COMPASS)
     {
-        while (heading_deg < 0.0f)
+        heading_deg = fmod(heading_deg, 360);
+        if (heading_deg < 0.0f)
             heading_deg += 360.0f;
-        while (heading_deg >= 360.0f)
-            heading_deg -= 360.0f;
-        while (roll_deg < 0.0f)
+        roll_deg = fmod(roll_deg, 360);
+        if (roll_deg < 0.0f)
             roll_deg += 360.0f;
-        while (roll_deg >= 360.0f)
-            roll_deg -= 360.0f;
         micronetCodec->navData.magHdg_deg.value     = heading_deg;
         micronetCodec->navData.magHdg_deg.valid     = true;
         micronetCodec->navData.magHdg_deg.timeStamp = millis();

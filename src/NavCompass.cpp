@@ -119,6 +119,20 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     Vec3D E;
     Vec3D N;
 
+    // Set heading & roll to default values. These values will only be used if something
+    // went wrong in calculations below (i.e. in case of bad measurements from LSM303)
+    int tempIndex = headingIndex - 1;
+    if (tempIndex < 0) {
+        tempIndex += HEADING_HISTORY_LENGTH;
+    }
+    *heading_deg = headingHistory[tempIndex];
+    
+    tempIndex = rollIndex - 1;
+    if (tempIndex < 0) {
+        tempIndex += ROLL_HISTORY_LENGTH;
+    }
+    *roll_deg = rollHistory[tempIndex];
+
     // Get Acceleration and Magnetic data from LSM303
     // Note that we don't care about units of both acceleration and magnetic field since we
     // are only calculating angles.
@@ -130,15 +144,26 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     mag.y -= gConfiguration.yMagOffset;
     mag.z -= gConfiguration.zMagOffset;
 
+    // Check for invalid measurements
+    if (isZero(&accel) || isZero(&mag)) {
+        return;
+    }
+
     // normalize
     Normalize(&accel);
     Normalize(&mag);
 
     // D X M = E, cross acceleration vector Down with M (magnetic north + inclination) to produce "East"
     CrossProduct(&mag, &accel, &E);
-    Normalize(&E);
     // E X D = N, cross "East" with "Down" to produce "North" (parallel to the ground plane)
     CrossProduct(&accel, &E, &N);
+
+    // Check for invalid vectors
+    if (isZero(&E) || isZero(&N)) {
+        return;
+    }
+
+    Normalize(&E);
     Normalize(&N);
 
     // compute heading
@@ -217,6 +242,11 @@ void NavCompass::GetAcceleration(float *accX, float *accY, float *accZ)
         *accY = acc.y;
         *accZ = acc.z;
     }
+}
+
+bool  NavCompass::isZero(Vec3D *a)
+{
+    return ((a->x == 0) && (a->y == 0) && (a->z == 0));
 }
 
 void NavCompass::Normalize(Vec3D *a)

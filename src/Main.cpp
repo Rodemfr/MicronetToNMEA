@@ -157,8 +157,8 @@ void loop()
     // We directly jump to NMEA conversion mode.
     if ((firstLoop) && (gConfiguration.networkId != 0))
     {
-        // Menu 4 is NMEA Conversion
-        gMenuManager.ActivateMenu(4);
+        // Menu 3 is NMEA Conversion
+        gMenuManager.ActivateMenu(3);
         gMenuManager.PrintMenu();
     }
 

@@ -78,6 +78,7 @@ class NavCompass
     Vec3D             downAxis;
     Vec3D             starBoardAxis;
 
+    bool  isZero(Vec3D *a);
     void  Normalize(Vec3D *a);
     void  CrossProduct(Vec3D *a, Vec3D *b, Vec3D *out);
     float VectorDot(Vec3D *a, Vec3D *b);
