@@ -49,7 +49,7 @@
 
 typedef enum
 {
-    LINK_NAV,
+    LINK_PLOTTER,
     LINK_GNSS,
     LINK_MICRONET,
     LINK_COMPASS,

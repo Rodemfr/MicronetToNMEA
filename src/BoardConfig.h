@@ -41,9 +41,7 @@
 #define FREQUENCY_SYSTEM 0
 
 // Selects on which I2C bus is connected compass as per Wiring library definition
-#define COMPASS_I2C    Wire
-#define LSM303AGR_CSM  3
-#define LSM303AGR_CSXL 4
+#define COMPASS_I2C Wire
 
 // CC1101/SPI pins
 #define CS0_PIN  10
@@ -67,19 +65,21 @@
 #define AIS_BAUDRATE 38400
 #define AIS_RX_PIN   17
 
-// Nav Computer/Plotter UART params
-#define PLOTTER_NMEA          Serial1
-#define PLOTTER_NMEA_BAUDRATE 115200
-#define PLOTTER_NMEA_RX_PIN   0
-#define PLOTTER_NMEA_TX_PIN   1
+// Plotter/Nav Computer UART params
+#define PLOTTER          Serial1
+#define PLOTTER_BAUDRATE 115200
+#define PLOTTER_RX_PIN   0
+#define PLOTTER_TX_PIN   1
 
-// Defines which data comes from which link
-// LINK_NAV      -> External navigation computer
+// Defines which data comes from which link.
+// MicronetToNMEA will decide which data to receive or send to which link by reading this configuration.
+// LINK_PLOTTER  -> External Plotter/Nav Computer link
 // LINK_GNSS     -> Internal UBlox GNSS link
 // LINK_MICRONET -> Micronet network
 // LINK_COMPASS  -> Internal LSM303
-#define NAV_SOURCE_LINK     LINK_NAV      // Navigation data (RMB)
-#define GNSS_SOURCE_LINK    LINK_NAV      // Positionning data (RMC, GGA, VTG)
+// LINK_AIS      -> External AIS link
+#define NAV_SOURCE_LINK     LINK_PLOTTER  // Navigation data (RMB)
+#define GNSS_SOURCE_LINK    LINK_AIS      // Positionning data (RMC, GGA, VTG)
 #define WIND_SOURCE_LINK    LINK_MICRONET // Wind data (MWV)
 #define DEPTH_SOURCE_LINK   LINK_MICRONET // Depth data (DPT)
 #define SPEED_SOURCE_LINK   LINK_MICRONET // Speed data (VHW, VLW)
@@ -96,7 +96,7 @@
 #define SOG_COG_FILTERING_DEPTH 7
 
 // Emulate water speed (SPD) with SOG from GNSS
-// To be used when you don't have a speedo in your network
+// Only to be used when you don't have a speedo on your network
 // 0 -> disabled
 // 1 -> enabled
 #define EMULATE_SPD_WITH_SOG 0

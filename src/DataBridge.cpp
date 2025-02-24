@@ -123,7 +123,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
     // Select the appropriate stream buffer
     switch (sourceLink)
     {
-    case LINK_NAV:
+    case LINK_PLOTTER:
         nmeaBuffer     = nmeaPlotterBuffer;
         nmeaWriteIndex = &nmeaPlotterWriteIndex;
         break;
@@ -176,9 +176,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     {
                         DecodeRMCSentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
-                        if (sourceLink != LINK_NAV)
+                        if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER_NMEA.println(nmeaBuffer);
+                            PLOTTER.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -188,9 +188,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     {
                         DecodeGGASentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
-                        if (sourceLink != LINK_NAV)
+                        if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER_NMEA.println(nmeaBuffer);
+                            PLOTTER.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -200,9 +200,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     {
                         DecodeGLLSentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
-                        if (sourceLink != LINK_NAV)
+                        if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER_NMEA.println(nmeaBuffer);
+                            PLOTTER.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -212,9 +212,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     {
                         DecodeVTGSentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
-                        if (sourceLink != LINK_NAV)
+                        if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER_NMEA.println(nmeaBuffer);
+                            PLOTTER.println(nmeaBuffer);
                         }
                     }
                     break;
@@ -251,7 +251,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     // It is especially useful to provide AIVDM/AIVDO and alert sentences.
                     if (sourceLink == LINK_AIS)
                     {
-                        PLOTTER_NMEA.println(nmeaBuffer);
+                        PLOTTER.println(nmeaBuffer);
                     }
                     break;
                 }
@@ -642,7 +642,6 @@ void DataBridge::DecodeRMCSentence(char *sentence)
         micronetCodec->navData.sog_kt.value     = FilteredSOG(value);
         micronetCodec->navData.sog_kt.valid     = true;
         micronetCodec->navData.sog_kt.timeStamp = millis();
-
 #if (EMULATE_SPD_WITH_SOG == 1)
         micronetCodec->navData.spd_kt.value     = FilteredSOG(value);
         micronetCodec->navData.spd_kt.valid     = true;
@@ -988,7 +987,7 @@ void DataBridge::EncodeMWV_R()
             sprintf(sentence, "$INMWV,%.1f,R,%.1f,N,A", absAwa, micronetCodec->navData.aws_kt.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwr = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1012,7 +1011,7 @@ void DataBridge::EncodeMWV_T()
             sprintf(sentence, "$INMWV,%.1f,T,%.1f,N,A", absTwa, micronetCodec->navData.tws_kt.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwt = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1032,7 +1031,7 @@ void DataBridge::EncodeDPT()
             sprintf(sentence, "$INDPT,%.1f,%.1f,", micronetCodec->navData.dpt_m.value, micronetCodec->navData.depthOffset_m);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.dpt = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1052,7 +1051,7 @@ void DataBridge::EncodeMTW()
             sprintf(sentence, "$INMTW,%.1f,C", micronetCodec->navData.stp_degc.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.mtw = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1073,7 +1072,7 @@ void DataBridge::EncodeVLW()
             sprintf(sentence, "$INVLW,%.1f,N,%.1f,N,,N,,N", micronetCodec->navData.log_nm.value, micronetCodec->navData.trip_nm.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vlw = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1108,7 +1107,7 @@ void DataBridge::EncodeVHW()
             }
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vhw = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1129,7 +1128,7 @@ void DataBridge::EncodeHDG()
                     (micronetCodec->navData.magneticVariation_deg < 0.0f) ? 'W' : 'E');
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.hdg = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1149,7 +1148,7 @@ void DataBridge::EncodeBatteryXDR()
             sprintf(sentence, "$INXDR,U,%.1f,V,TACKTICK#0", micronetCodec->navData.vcc_v.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vcc = millis();
-            PLOTTER_NMEA.println(sentence);
+            PLOTTER.println(sentence);
         }
     }
 }
@@ -1167,7 +1166,7 @@ void DataBridge::EncodeRollXDR()
         sprintf(sentence, "$INXDR,A,%.0f,D,ROLL", micronetCodec->navData.roll_deg.value);
         AddNmeaChecksum(sentence);
         nmeaTimeStamps.roll = millis();
-        PLOTTER_NMEA.println(sentence);
+        PLOTTER.println(sentence);
     }
 }
 

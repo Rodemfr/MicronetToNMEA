@@ -24,56 +24,25 @@
  ***************************************************************************
  */
 
-#ifndef MICRONETSLAVEDEVICE_H_
-#define MICRONETSLAVEDEVICE_H_
+#ifndef MENUTCONFIGBT_H_
+#define MENUTCONFIGBT_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "Micronet.h"
-#include "MicronetCodec.h"
-#include "MicronetMessageFifo.h"
-#include <Arduino.h>
-
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
-
-#define NUMBER_OF_VIRTUAL_SLAVES 4
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                               Classes                                   */
+/*                              Functions                                  */
 /***************************************************************************/
 
-class MicronetSlaveDevice
-{
-  public:
-    MicronetSlaveDevice(MicronetCodec *micronetCodec);
-    virtual ~MicronetSlaveDevice();
+void MenuConfigBt();
 
-    void            SetDeviceId(uint32_t deviceId);
-    void            SetNetworkId(uint32_t networkId);
-    void            SetDataFields(uint32_t dataMask);
-    void            AddDataFields(uint32_t dataMask);
-    NavigationData *GetNavigationData();
-    void            ProcessMessage(MicronetMessage_t *message, MicronetMessageFifo *messageFifo);
-
-  private:
-    MicronetCodec            *micronetCodec;
-    MicronetCodec::NetworkMap networkMap;
-    uint32_t                  deviceId;
-    uint32_t                  networkId;
-    uint32_t                  dataFields;
-    uint32_t                  splitDataFields[NUMBER_OF_VIRTUAL_SLAVES];
-    uint8_t                   latestSignalStrength;
-
-    void    SplitDataFields();
-    uint8_t GetShortestSlave();
-};
-
-#endif /* MICRONETSLAVEDEVICE_H_ */
+#endif

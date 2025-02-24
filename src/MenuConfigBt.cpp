@@ -33,15 +33,8 @@
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
-#include "MenuManager.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
-#include "MicronetMessageFifo.h"
-#include "NavCompass.h"
-#include "Version.h"
-
-#include <SPI.h>
-#include <Wire.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -55,117 +48,109 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
-void RfIsr();
+bool isResponseOk();
+void PrintResponse();
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
-bool firstLoop;
-
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-void setup()
+void MenuConfigBt()
 {
-    // Load configuration from EEPROM
-    gConfiguration.LoadFromEeprom();
+    const int   baudRateTable[] = {9600, 19200, 38400, 57600, 115200};
+    const char *baudStrings[]   = {"AT+BAUD0", "AT+BAUD1", "AT+BAUD2", "AT+BAUD3", "AT+BAUD4"};
+    const char *sppNameCommand  = "AT+SPNAMicronetToNMEA";
+    const char *bleNameCommand  = "AT+LENAMicronetToNMEA";
+    int         actualBaudrate  = 0;
 
-    // Init Console USB serial link
-    CONSOLE.begin(CONSOLE_BAUDRATE);
+    CONSOLE.println("Detecting bluetooth module ... ");
 
-    // Init Ublox GNSS serial link
-    GNSS.setRX(GNSS_RX_PIN);
-    GNSS.setTX(GNSS_TX_PIN);
-    GNSS.begin(GNSS_BAUDRATE);
-
-    // Init AIS serial link
-    AIS.setRX(AIS_RX_PIN);
-    AIS.begin(AIS_BAUDRATE);
-
-    // Init external navigation computer serial link
-    // Only do it if it is not the same than CONSOLE
-    if ((void *)(&CONSOLE) != (void *)(&PLOTTER))
+    for (uint i = 0; i < (sizeof(baudRateTable) / sizeof(int)); i++)
     {
-        PLOTTER.setRX(PLOTTER_RX_PIN);
-        PLOTTER.setTX(PLOTTER_TX_PIN);
-        PLOTTER.begin(PLOTTER_BAUDRATE);
-    }
-
-    // Let time for serial drivers to set-up
-    delay(250);
-
-    CONSOLE.print("Configuring UBlox M8N GNSS ... ");
-    gM8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
-    CONSOLE.println("OK");
-
-    CONSOLE.print("Initializing CC1101 ... ");
-    // Check connection to CC1101
-    if (!gRfReceiver.Init(&gRxMessageFifo, gConfiguration.rfFrequencyOffset_MHz))
-    {
-        CONSOLE.println("Failed");
-        CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
-        CONSOLE.println("Halted");
-
-        while (1)
+        // Reconfigure UART speed
+        PLOTTER.end();
+        PLOTTER.begin(baudRateTable[i]);
+        delay(100);
+        // Request switch to command mode
+        PLOTTER.println("AT+ENAT");
+        delay(100);
+        if (isResponseOk())
         {
-            digitalWrite(LED_BUILTIN, HIGH);
-            delay(500);
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(500);
+            CONSOLE.print("VG 6328A found with baudrate ");
+            CONSOLE.println(baudRateTable[i]);
+            actualBaudrate = baudRateTable[i];
+            break;
         }
     }
-    CONSOLE.println("OK");
 
-    CONSOLE.print("Initializing navigation compass ... ");
-    if (!gNavCompass.Init())
+    if (actualBaudrate == 0)
     {
-        CONSOLE.println("NOT DETECTED");
-        gConfiguration.navCompassAvailable = false;
-    }
-    else
-    {
-        CONSOLE.print(gNavCompass.GetDeviceName().c_str());
-        CONSOLE.println(" Found");
-        gConfiguration.navCompassAvailable = true;
+        CONSOLE.println("Bluetooth module not found, aborting configuration.");
+        return;
     }
 
-    // Start listening
-    gRfReceiver.RestartReception();
-
-    // Attach callback to GDO0 pin
-    // According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
-    attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, HIGH);
-
-    // Display serial menu
-    gMenuManager.PrintMenu();
-
-    // For the main loop to know when it is executing for the first time
-    firstLoop = true;
+    if (actualBaudrate != PLOTTER_BAUDRATE)
+    {
+        for (uint i = 0; i < (sizeof(baudRateTable) / sizeof(int)); i++)
+        {
+            if (baudRateTable[i] == PLOTTER_BAUDRATE)
+            {
+                CONSOLE.print("Configuring baudrate to ");
+                CONSOLE.print(baudRateTable[i]);
+                CONSOLE.println(" baud");
+                // Request switch to command mode
+                PLOTTER.println(baudStrings[i]);
+                delay(100);
+                PLOTTER.clear();
+                break;
+            }
+        }
+    }
+    CONSOLE.println("Changing device name to MicronetToNMEA");
+    PLOTTER.println(sppNameCommand);
+    delay(500);
+    PLOTTER.println(bleNameCommand);
+    delay(500);
+    CONSOLE.println("Switching OFF BLE");
+    PLOTTER.println("AT+LEOF");
+    delay(500);
+    CONSOLE.println("Switching ON SPP");
+    PLOTTER.println("AT+SPON");
+    delay(500);
+    PLOTTER.print("AT+REST");
+    delay(500);
+    PLOTTER.clear();
 }
 
-void loop()
+bool isResponseOk()
 {
-    // If this is the first loop, we verify if we are already attached to a Micronet network. if yes,
-    // We directly jump to NMEA conversion mode.
-    if ((firstLoop) && (gConfiguration.networkId != 0))
+    char response[5];
+    int  nbChars = PLOTTER.available();
+    if (nbChars == 4)
     {
-        // Menu 3 is NMEA Conversion
-        gMenuManager.ActivateMenu(3);
-        gMenuManager.PrintMenu();
+        response[0] = (char)PLOTTER.read();
+        response[1] = (char)PLOTTER.read();
+        response[2] = (char)PLOTTER.read();
+        response[3] = (char)PLOTTER.read();
+        response[4] = 0;
+        PLOTTER.clear();
+        if (!strcmp(response, "OK\r\n"))
+        {
+            return true;
+        }
     }
 
-    // Process console input
-    while (CONSOLE.available() > 0)
-    {
-        gMenuManager.PushChar(CONSOLE.read());
-    }
-
-    firstLoop = false;
+    return false;
 }
 
-void RfIsr()
+void PrintResponse()
 {
-    gRfReceiver.RfIsr();
+    while (PLOTTER.available() > 0)
+    {
+        CONSOLE.print((char)PLOTTER.read());
+    }
 }

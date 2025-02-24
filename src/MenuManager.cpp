@@ -37,6 +37,7 @@
 #include "MenuConvertToNmea.h"
 #include "MenuScanMicronetTraffic.h"
 #include "MenuTestRfQuality.h"
+#include "MenuConfigBt.h"
 
 #include <Arduino.h>
 
@@ -64,6 +65,7 @@ MenuEntry_t MenuManager::menu[] = {{"MicronetToNMEA", nullptr},
                                    {"Calibrate RF XTAL", MenuCalibrateXtal},
                                    {"Calibrate compass", MenuCalibrateCompass},
                                    {"Test RF quality", MenuTestRfQuality},
+                                   {"Configure Bluetooth module", MenuConfigBt},
                                    {nullptr, nullptr}};
 
 /***************************************************************************/

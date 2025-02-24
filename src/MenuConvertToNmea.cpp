@@ -125,15 +125,15 @@ void MenuConvertToNmea()
         }
 
         char c;
-        while (PLOTTER_NMEA.available() > 0)
+        while (PLOTTER.available() > 0)
         {
-            c = PLOTTER_NMEA.read();
-            if (((void *)(&CONSOLE) == (void *)(&PLOTTER_NMEA)) && (c == 0x1b))
+            c = PLOTTER.read();
+            if (((void *)(&CONSOLE) == (void *)(&PLOTTER)) && (c == 0x1b))
             {
                 CONSOLE.println("ESC key pressed, stopping conversion.");
                 exitNmeaLoop = true;
             }
-            dataBridge.PushNmeaChar(c, LINK_NAV);
+            dataBridge.PushNmeaChar(c, LINK_PLOTTER);
         }
 
         // Only execute magnetic heading code if navigation compass is available
@@ -150,7 +150,7 @@ void MenuConvertToNmea()
             }
         }
 
-        if ((void *)(&CONSOLE) != (void *)(&PLOTTER_NMEA))
+        if ((void *)(&CONSOLE) != (void *)(&PLOTTER))
         {
             while (CONSOLE.available() > 0)
             {
@@ -232,7 +232,7 @@ void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice)
         micronetDevice.AddDataFields(DATA_FIELD_SPD);
     }
 
-    // Only send wind data to Micronet if configured so or if wind repeating is enabled
+    // Only send wind data to Micronet if configured so
     if (WIND_SOURCE_LINK != LINK_MICRONET)
     {
         micronetDevice.AddDataFields(DATA_FIELD_AWS | DATA_FIELD_AWA);

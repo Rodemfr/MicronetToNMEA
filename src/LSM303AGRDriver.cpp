@@ -140,9 +140,6 @@ bool LSM303AGRDriver::Init()
 
     COMPASS_I2C.begin();
 
-    digitalWrite(LSM303AGR_CSXL, HIGH);
-    digitalWrite(LSM303AGR_CSM, HIGH);
-
     // Check that we can read linear acceleration I2C address
     if (!I2CRead(LSM303AGR_ACC_ADDR, WHO_AM_I_A, &whoami))
     {
