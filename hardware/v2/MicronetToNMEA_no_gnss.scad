@@ -1,9 +1,9 @@
 $fs = 0.1;
 
 // Enable parts of the case
-mainCaseEnable = 1;
-topPanelEnable = 0;
-usbAccessHole = 1;
+mainCaseEnable = true;
+topPanelEnable = true;
+usbAccessHole = true;
 
 // Case
 ctn = 2;  // Case thickness
@@ -33,7 +33,7 @@ stw = 16.1; // Width
 stfp = 0.5; // Freespace between hole borders and connectors
 
 // Screw pads
-spw = 10; // Pad width
+spw = 10;   // Pad width
 sdia = 3.2; // screw diameter
 
 // Teensy USB connector
@@ -69,7 +69,7 @@ module screwPad()
     }
 }
 
-if (mainCaseEnable == 1)
+if (mainCaseEnable == true)
 {
     // Bottom panel
     cube([ pcbw + ctn * 2 + fs * 2 + efs, pcbl + ctn * 2 + fs * 2, ctn ]);
@@ -79,7 +79,7 @@ if (mainCaseEnable == 1)
     {
         // Panel
         cube([ pcbw + ctn * 2 + fs * 2 + efs, ctn, ch ]);
-        if (usbAccessHole == 1)
+        if (usbAccessHole == true)
         {
             // Teensy USB connector hole
             translate([ tucx + ctn + fs + efs / 2, -0.1, ctn + ph + pcbt + tucz ]) cube([ tucw, ctn + 3, tuch ], center = true);
@@ -120,7 +120,7 @@ if (mainCaseEnable == 1)
 }
 
 // Top panel
-if (topPanelEnable == 1)
+if (topPanelEnable == true)
 {
     panelShift = 20;
 
@@ -134,7 +134,7 @@ if (topPanelEnable == 1)
         }
 }
 
-if (usbAccessHole == 2)
+if (usbAccessHole == true)
 {
     usbPlugShift = pcbl + fs * 2 + 5;
     usbPlugExt = 1.5;
