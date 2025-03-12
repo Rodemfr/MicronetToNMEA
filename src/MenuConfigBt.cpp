@@ -105,7 +105,7 @@ void MenuConfigBt()
                 CONSOLE.println("");
                 break;
             }
-            else if ((c == 0x08) && (charIndex > 0))
+            else if ((c == 0x08) && (charIndex > 7))
             {
                 charIndex--;
                 CONSOLE.print(c);
