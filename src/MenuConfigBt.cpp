@@ -63,8 +63,6 @@ void MenuConfigBt()
 {
     const int   baudRateTable[] = {9600, 19200, 38400, 57600, 115200};
     const char *baudStrings[]   = {"AT+BAUD0", "AT+BAUD1", "AT+BAUD2", "AT+BAUD3", "AT+BAUD4"};
-    const char *sppNameCommand  = "AT+SPNAMicronetToNMEA";
-    const char *bleNameCommand  = "AT+LENAMicronetToNMEA";
     int         actualBaudrate  = 0;
 
     CONSOLE.println("Detecting bluetooth module ... ");
@@ -93,6 +91,35 @@ void MenuConfigBt()
         return;
     }
 
+    char     deviceName[27], c;
+    uint32_t charIndex = 7;
+    CONSOLE.print("Enter the name of the bluetooth device : ");
+    do
+    {
+        if (CONSOLE.available())
+        {
+            c = CONSOLE.read();
+            if (c == 0x0d)
+            {
+                deviceName[charIndex++] = 0;
+                CONSOLE.println("");
+                break;
+            }
+            else if ((c == 0x08) && (charIndex > 0))
+            {
+                charIndex--;
+                CONSOLE.print(c);
+                CONSOLE.print(" ");
+                CONSOLE.print(c);
+            }
+            else if (charIndex < sizeof(deviceName) - 1)
+            {
+                deviceName[charIndex++] = c;
+                CONSOLE.print(c);
+            }
+        };
+    } while (1);
+
     if (actualBaudrate != PLOTTER_BAUDRATE)
     {
         for (uint i = 0; i < (sizeof(baudRateTable) / sizeof(int)); i++)
@@ -110,10 +137,20 @@ void MenuConfigBt()
             }
         }
     }
-    CONSOLE.println("Changing device name to MicronetToNMEA");
-    PLOTTER.println(sppNameCommand);
+    CONSOLE.print("Changing device name to ");
+    CONSOLE.println(deviceName + 7);
+    deviceName[0] = 'A';
+    deviceName[1] = 'T';
+    deviceName[2] = '+';
+    deviceName[3] = 'S';
+    deviceName[4] = 'P';
+    deviceName[5] = 'N';
+    deviceName[6] = 'A';
+    PLOTTER.println(deviceName);
     delay(500);
-    PLOTTER.println(bleNameCommand);
+    deviceName[3] = 'L';
+    deviceName[4] = 'E';
+    PLOTTER.println(deviceName);
     delay(500);
     CONSOLE.println("Switching OFF BLE");
     PLOTTER.println("AT+LEOF");
@@ -124,6 +161,8 @@ void MenuConfigBt()
     PLOTTER.print("AT+REST");
     delay(500);
     PLOTTER.clear();
+    CONSOLE.print("");
+    CONSOLE.println("Bluetooth configuration finished. Switch Power OFF then ON to enable it.");
 }
 
 bool isResponseOk()
