@@ -114,8 +114,10 @@ class DataBridge
     LinkId_t             compassSourceLink;
     MicronetCodec       *micronetCodec;
     int                  sogFilterIndex;
+    uint32_t             sogFilterTimeStamp;
     float                sogFilterBuffer[SOG_COG_FILTERING_DEPTH];
     int                  cogFilterIndex;
+    uint32_t             cogFilterTimeStamp;
     float                cogFilterBuffer[SOG_COG_FILTERING_DEPTH];
 
     float FilteredSOG(float newSog_kt);

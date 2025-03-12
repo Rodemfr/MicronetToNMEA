@@ -94,9 +94,11 @@ DataBridge::DataBridge(MicronetCodec *micronetCodec)
     seaTempSourceLink = SEATEMP_SOURCE_LINK;
     compassSourceLink = COMPASS_SOURCE_LINK;
 
-    sogFilterIndex = 0;
+    sogFilterIndex     = 0;
+    sogFilterTimeStamp = 0;
     memset(sogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH * sizeof(float));
-    cogFilterIndex = 0;
+    cogFilterIndex     = 0;
+    cogFilterTimeStamp = 0;
     memset(cogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH * sizeof(float));
 }
 
@@ -333,10 +335,15 @@ void DataBridge::SendUpdatedNMEASentences()
 float DataBridge::FilteredSOG(float newSog_kt)
 {
 #if (SOG_COG_FILTERING == 1)
-    sogFilterBuffer[sogFilterIndex++] = newSog_kt;
-    if (sogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+    uint32_t now = micros();
+    if (now - sogFilterTimeStamp >= 1000000)
     {
-        sogFilterIndex = 0;
+        sogFilterBuffer[sogFilterIndex++] = newSog_kt;
+        if (sogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+        {
+            sogFilterIndex = 0;
+        }
+        sogFilterTimeStamp = now;
     }
 
     float filteredSog_kt = sogFilterBuffer[0];
@@ -361,10 +368,16 @@ float DataBridge::FilteredSOG(float newSog_kt)
 float DataBridge::FilteredCOG(float newCog_deg)
 {
 #if (SOG_COG_FILTERING == 1)
-    cogFilterBuffer[cogFilterIndex++] = newCog_deg;
-    if (cogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+    uint32_t now = micros();
+
+    if (now - cogFilterTimeStamp >= 1000000)
     {
-        cogFilterIndex = 0;
+        cogFilterBuffer[cogFilterIndex++] = newCog_deg;
+        if (cogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+        {
+            cogFilterIndex = 0;
+        }
+        cogFilterTimeStamp = now;
     }
 
     float filteredCog_deg = cogFilterBuffer[0];
