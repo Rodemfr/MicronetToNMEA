@@ -33,7 +33,15 @@
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
+#include "MenuAbout.h"
+#include "MenuAttachNetwork.h"
+#include "MenuCalibrateCompass.h"
+#include "MenuCalibrateXtal.h"
+#include "MenuConfigMtn.h"
+#include "MenuConvertToNmea.h"
 #include "MenuManager.h"
+#include "MenuScanMicronetTraffic.h"
+#include "MenuTestRfQuality.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
 #include "MicronetMessageFifo.h"
@@ -62,6 +70,17 @@ void RfIsr();
 /***************************************************************************/
 
 bool firstLoop;
+
+MenuEntry_t mainMenuDesc[] = {{"MicronetToNMEA", nullptr},
+                              {"General info on MicronetToNMEA", MenuAbout},
+                              {"Attach converter to closest network", MenuAttachNetwork},
+                              {"Start NMEA conversion", MenuConvertToNmea},
+                              {"Scan surrounding Micronet traffic", MenuScanMicronetTraffic},
+                              {"Calibrate RF XTAL", MenuCalibrateXtal},
+                              {"Calibrate compass", MenuCalibrateCompass},
+                              {"Test RF quality", MenuTestRfQuality},
+                              {"Configuration", MenuConfigMtn},
+                              {nullptr, nullptr}};
 
 /***************************************************************************/
 /*                              Functions                                  */
@@ -139,7 +158,9 @@ void setup()
     attachInterrupt(digitalPinToInterrupt(GDO0_PIN), RfIsr, HIGH);
 
     // Display serial menu
+    gMenuManager.SetMenuDescription(mainMenuDesc);
     gMenuManager.PrintMenu();
+    gMenuManager.PrintPrompt();
 
     // For the main loop to know when it is executing for the first time
     firstLoop = true;
@@ -154,6 +175,7 @@ void loop()
         // Menu 3 is NMEA Conversion
         gMenuManager.ActivateMenu(3);
         gMenuManager.PrintMenu();
+        gMenuManager.PrintPrompt();
     }
 
     // Process console input

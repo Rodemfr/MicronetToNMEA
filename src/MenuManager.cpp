@@ -30,14 +30,6 @@
 
 #include "MenuManager.h"
 #include "BoardConfig.h"
-#include "MenuAbout.h"
-#include "MenuAttachNetwork.h"
-#include "MenuCalibrateCompass.h"
-#include "MenuCalibrateXtal.h"
-#include "MenuConvertToNmea.h"
-#include "MenuScanMicronetTraffic.h"
-#include "MenuTestRfQuality.h"
-#include "MenuConfigBt.h"
 
 #include <Arduino.h>
 
@@ -57,31 +49,30 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-MenuEntry_t MenuManager::menu[] = {{"MicronetToNMEA", nullptr},
-                                   {"General info on MicronetToNMEA", MenuAbout},
-                                   {"Attach converter to closest network", MenuAttachNetwork},
-                                   {"Start NMEA conversion", MenuConvertToNmea},
-                                   {"Scan surrounding Micronet traffic", MenuScanMicronetTraffic},
-                                   {"Calibrate RF XTAL", MenuCalibrateXtal},
-                                   {"Calibrate compass", MenuCalibrateCompass},
-                                   {"Test RF quality", MenuTestRfQuality},
-                                   {"Configure Bluetooth module", MenuConfigBt},
-                                   {nullptr, nullptr}};
-
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
 MenuManager::MenuManager()
 {
-    while (menu[menuLength].description != nullptr)
-    {
-        menuLength++;
-    }
+    menu       = nullptr;
+    menuLength = 0;
 }
 
 MenuManager::~MenuManager()
 {
+}
+
+void MenuManager::SetMenuDescription(MenuEntry_t *menuDesc)
+{
+    if (menuDesc != nullptr)
+    {
+        menu = menuDesc;
+        while (menu[menuLength].description != nullptr)
+        {
+            menuLength++;
+        }
+    }
 }
 
 void MenuManager::PushChar(char c)
@@ -104,6 +95,7 @@ void MenuManager::PushChar(char c)
     {
         CONSOLE.println("0");
         PrintMenu();
+        PrintPrompt();
     }
 }
 
@@ -126,12 +118,11 @@ void MenuManager::PrintMenu()
         CONSOLE.print(" - ");
         CONSOLE.println(menu[i].description);
     }
-    PrintPrompt();
 }
 
 void MenuManager::ActivateMenu(uint32_t entry)
 {
-    if (entry < (uint32_t) menuLength)
+    if (entry < (uint32_t)menuLength)
     {
         if (menu[entry].entryCallback != nullptr)
         {

@@ -31,6 +31,7 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "Configuration.h"
 #include "MicronetCodec.h"
 #include "NavigationData.h"
 
@@ -46,15 +47,6 @@
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
-
-typedef enum
-{
-    LINK_PLOTTER,
-    LINK_GNSS,
-    LINK_MICRONET,
-    LINK_COMPASS,
-    LINK_AIS
-} LinkId_t;
 
 typedef enum
 {
@@ -104,21 +96,13 @@ class DataBridge
     int                  nmeaGnssWriteIndex;
     int                  nmeaAisWriteIndex;
     NmeaTimeStamps_t     nmeaTimeStamps;
-    LinkId_t             navSourceLink;
-    LinkId_t             gnssSourceLink;
-    LinkId_t             windSourceLink;
-    LinkId_t             depthSourceLink;
-    LinkId_t             speedSourceLink;
-    LinkId_t             voltageSourceLink;
-    LinkId_t             seaTempSourceLink;
-    LinkId_t             compassSourceLink;
     MicronetCodec       *micronetCodec;
-    int                  sogFilterIndex;
+    uint32_t             sogFilterIndex;
     uint32_t             sogFilterTimeStamp;
-    float                sogFilterBuffer[SOG_COG_FILTERING_DEPTH];
+    float                sogFilterBuffer[SOG_COG_MAX_FILTERING_DEPTH];
     int                  cogFilterIndex;
     uint32_t             cogFilterTimeStamp;
-    float                cogFilterBuffer[SOG_COG_FILTERING_DEPTH];
+    float                cogFilterBuffer[SOG_COG_MAX_FILTERING_DEPTH];
 
     float FilteredSOG(float newSog_kt);
     float FilteredCOG(float newCog_deg);

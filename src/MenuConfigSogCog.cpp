@@ -33,6 +33,7 @@
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
+#include "MenuConfigLink.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
 
@@ -48,147 +49,103 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
-bool isVgResponseOk();
+void PrintSogCogConfig();
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
+static bool     sogCogFilteringEnable;
+static uint32_t sogCogFilterLength;
+static bool     spdEmulation;
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-void MenuConfigBt()
+void MenuConfigSogCog()
 {
-    const int   baudRateTable[] = {9600, 19200, 38400, 57600, 115200};
-    const char *baudStrings[]   = {"AT+BAUD0", "AT+BAUD1", "AT+BAUD2", "AT+BAUD3", "AT+BAUD4"};
-    int         actualBaudrate  = 0;
+    char c;
+    bool exitLoop = false;
 
-    CONSOLE.println("Detecting bluetooth module ... ");
+    sogCogFilteringEnable = gConfiguration.sogCogFilteringEnable;
+    sogCogFilterLength    = gConfiguration.sogCogFilterLength;
+    spdEmulation          = gConfiguration.spdEmulation;
 
-    for (uint i = 0; i < (sizeof(baudRateTable) / sizeof(int)); i++)
+    while (!exitLoop)
     {
-        // Reconfigure UART speed
-        PLOTTER.end();
-        PLOTTER.begin(baudRateTable[i]);
-        delay(100);
-        // Request switch to command mode
-        PLOTTER.println("AT+ENAT");
-        delay(100);
-        if (isVgResponseOk())
+        PrintSogCogConfig();
+
+        do
         {
-            CONSOLE.print("VG 6328A found with baudrate ");
-            CONSOLE.println(baudRateTable[i]);
-            actualBaudrate = baudRateTable[i];
-            break;
-        }
-    }
-
-    if (actualBaudrate == 0)
-    {
-        CONSOLE.println("Bluetooth module not found or not recognized. Please, configure it manually.");
-        return;
-    }
-
-    char     deviceName[27], c;
-    uint32_t charIndex = 7;
-    CONSOLE.print("Enter the name of the bluetooth device : ");
-    do
-    {
-        if (CONSOLE.available())
-        {
+            yield();
             c = CONSOLE.read();
-            if (c == 0x0d)
-            {
-                deviceName[charIndex++] = 0;
-                CONSOLE.println("");
-                break;
-            }
-            else if ((c == 0x08) && (charIndex > 7))
-            {
-                charIndex--;
-                CONSOLE.print(c);
-                CONSOLE.print(" ");
-                CONSOLE.print(c);
-            }
-            else if (charIndex < sizeof(deviceName) - 1)
-            {
-                deviceName[charIndex++] = c;
-                CONSOLE.print(c);
-            }
-        };
-    } while (1);
+        } while (c == 0xff);
 
-    if (actualBaudrate != PLOTTER_BAUDRATE)
-    {
-        for (uint i = 0; i < (sizeof(baudRateTable) / sizeof(int)); i++)
+        if ((c >= 0x30) && (c <= 0x39))
         {
-            if (baudRateTable[i] == PLOTTER_BAUDRATE)
+            CONSOLE.println(c);
+            c -= 0x30;
+            switch (c)
             {
-                CONSOLE.print("Configuring baudrate to ");
-                CONSOLE.print(baudRateTable[i]);
-                CONSOLE.println(" baud");
-                // Request switch to command mode
-                PLOTTER.println(baudStrings[i]);
-                delay(100);
-                PLOTTER.clear();
+            case 0:
+                sogCogFilteringEnable = !sogCogFilteringEnable;
                 break;
+            case 1:
+                sogCogFilterLength = (sogCogFilterLength + 1) % SOG_COG_MAX_FILTERING_DEPTH;
+                if (sogCogFilterLength <= 0) {
+                    sogCogFilterLength = 1;
+                }
+                break;
+            case 2:
+                spdEmulation = !spdEmulation;
+                break;
+            case 3:
+                gConfiguration.sogCogFilteringEnable = sogCogFilteringEnable;
+                gConfiguration.sogCogFilterLength = sogCogFilterLength;
+                gConfiguration.spdEmulation = spdEmulation;
+                gConfiguration.SaveToEeprom();
+            case 4:
+                CONSOLE.println("Exiting to upper menu...");
+                return;
             }
         }
-    }
-    CONSOLE.print("Changing device name to ");
-    CONSOLE.println(deviceName + 7);
-    deviceName[0] = 'A';
-    deviceName[1] = 'T';
-    deviceName[2] = '+';
-    deviceName[3] = 'S';
-    deviceName[4] = 'P';
-    deviceName[5] = 'N';
-    deviceName[6] = 'A';
-    PLOTTER.println(deviceName);
-    delay(500);
-    deviceName[3] = 'L';
-    deviceName[4] = 'E';
-    PLOTTER.println(deviceName);
-    delay(500);
-    CONSOLE.println("Switching OFF BLE");
-    PLOTTER.println("AT+LEOF");
-    delay(500);
-    CONSOLE.println("Switching ON SPP");
-    PLOTTER.println("AT+SPON");
-    delay(500);
-    PLOTTER.print("AT+REST");
-    delay(500);
-    PLOTTER.clear();
-    CONSOLE.print("");
-    CONSOLE.println("Bluetooth configuration finished. Switch Power OFF then ON to enable it.");
-}
-
-bool isVgResponseOk()
-{
-    char response[5];
-    int  nbChars = PLOTTER.available();
-    if (nbChars == 4)
-    {
-        response[0] = (char)PLOTTER.read();
-        response[1] = (char)PLOTTER.read();
-        response[2] = (char)PLOTTER.read();
-        response[3] = (char)PLOTTER.read();
-        response[4] = 0;
-        PLOTTER.clear();
-        if (!strcmp(response, "OK\r\n"))
+        else if (c == 0x1b)
         {
-            return true;
+            exitLoop = true;
         }
     }
-
-    return false;
 }
 
-void PrintResponse()
+void PrintSogCogConfig()
 {
-    while (PLOTTER.available() > 0)
+    CONSOLE.println("");
+    CONSOLE.print("*** ");
+    CONSOLE.print("SOG/COG Configuration");
+    CONSOLE.println(" ***");
+    CONSOLE.println("");
+    CONSOLE.print("0 - SOG/COG Filter : ");
+    if (sogCogFilteringEnable)
     {
-        CONSOLE.print((char)PLOTTER.read());
+        CONSOLE.println("ENABLED");
     }
+    else
+    {
+        CONSOLE.println("DISABLED");
+    }
+    CONSOLE.print("1 - Filter strength : ");
+    CONSOLE.println(sogCogFilterLength);
+    CONSOLE.print("2 - Emulate water speed with SOG : ");
+    if (spdEmulation)
+    {
+        CONSOLE.println("ENABLED");
+    }
+    else
+    {
+        CONSOLE.println("DISABLED");
+    }
+    CONSOLE.println("3 - Save and exit");
+    CONSOLE.println("4 - Exit without saving");
+    CONSOLE.println("");
+    CONSOLE.print("Choice : ");
 }

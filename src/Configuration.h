@@ -37,9 +37,22 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+// Maximum depth of COG/SOG filter
+#define SOG_COG_MAX_FILTERING_DEPTH 16
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
+
+// TODO : Rename LINK_AIS by LINK_NMEA
+typedef enum
+{
+    LINK_PLOTTER = 0,
+    LINK_GNSS,
+    LINK_MICRONET,
+    LINK_COMPASS,
+    LINK_AIS
+} LinkId_t;
 
 /***************************************************************************/
 /*                               Classes                                   */
@@ -74,6 +87,19 @@ class Configuration
     float    yMagOffset;
     float    zMagOffset;
     float    rfFrequencyOffset_MHz;
+
+    LinkId_t gnssSource;    // Positionning data (RMC, GGA, VTG)
+    LinkId_t windSource;    // Wind data (MWV)
+    LinkId_t depthSource;   // Depth data (DPT)
+    LinkId_t speedSource;   // Speed data (VHW, VLW)
+    LinkId_t compassSource; // Heading data (HDG)
+
+    bool     sogCogFilteringEnable;
+    uint32_t sogCogFilterLength;
+    bool     spdEmulation;
+
+    float headingAxis[3];
+    float downAxis[3];
 };
 
 /***************************************************************************/

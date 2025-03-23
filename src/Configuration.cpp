@@ -29,6 +29,7 @@
 /***************************************************************************/
 
 #include "Configuration.h"
+#include "BoardConfig.h"
 
 #include <Arduino.h>
 #include <EEPROM.h>
@@ -62,6 +63,21 @@ typedef struct
     float    yMagOffset;
     float    zMagOffset;
     float    rfFrequencyOffset_MHz;
+    uint8_t  gnssSource;
+    uint8_t  windSource;
+    uint8_t  depthSource;
+    uint8_t  speedSource;
+    uint8_t  compassSource;
+    uint8_t  sogCogFilteringEnable;
+    uint8_t  sogCogFilterLength;
+    uint8_t  spdEmulation;
+    int8_t   headingX;
+    int8_t   headingY;
+    int8_t   headingZ;
+    int8_t   downX;
+    int8_t   downY;
+    int8_t   downZ;
+
     uint8_t  checksum;
 } ConfigBlock_t;
 #pragma pack()
@@ -96,6 +112,24 @@ Configuration::Configuration() : magicNumberFound(false), checksumValid(false)
     yMagOffset               = 0;
     zMagOffset               = 0;
     rfFrequencyOffset_MHz    = 0;
+
+    gnssSource    = LINK_GNSS;
+    windSource    = LINK_MICRONET;
+    depthSource   = LINK_MICRONET;
+    speedSource   = LINK_MICRONET;
+    compassSource = LINK_COMPASS;
+
+    sogCogFilteringEnable = false;
+    sogCogFilterLength    = 4;
+    spdEmulation          = false;
+
+    headingAxis[0] = 0.0f;
+    headingAxis[1] = 0.0f;
+    headingAxis[2] = -1.0f;
+
+    downAxis[0] = -1.0f;
+    downAxis[1] = 0.0f;
+    downAxis[2] = 0.0f;
 }
 
 Configuration::~Configuration()
@@ -137,6 +171,24 @@ void Configuration::LoadFromEeprom()
             yMagOffset               = configBlock.yMagOffset;
             zMagOffset               = configBlock.zMagOffset;
             rfFrequencyOffset_MHz    = configBlock.rfFrequencyOffset_MHz;
+            gnssSource               = (LinkId_t)configBlock.gnssSource;
+            windSource               = (LinkId_t)configBlock.windSource;
+            depthSource              = (LinkId_t)configBlock.depthSource;
+            speedSource              = (LinkId_t)configBlock.speedSource;
+            compassSource            = (LinkId_t)configBlock.compassSource;
+            sogCogFilteringEnable    = configBlock.sogCogFilteringEnable;
+            sogCogFilterLength       = configBlock.sogCogFilterLength;
+            if (sogCogFilterLength > SOG_COG_MAX_FILTERING_DEPTH)
+            {
+                sogCogFilterLength = SOG_COG_MAX_FILTERING_DEPTH;
+            }
+            spdEmulation             = configBlock.spdEmulation;
+            headingAxis[0]           = (float)configBlock.headingX;
+            headingAxis[1]           = (float)configBlock.headingX;
+            headingAxis[2]           = (float)configBlock.headingX;
+            downAxis[0]              = (float)configBlock.downX;
+            downAxis[1]              = (float)configBlock.downY;
+            downAxis[2]              = (float)configBlock.downZ;
         }
     }
 }
@@ -167,6 +219,20 @@ void Configuration::SaveToEeprom()
     configBlock.yMagOffset               = yMagOffset;
     configBlock.zMagOffset               = zMagOffset;
     configBlock.rfFrequencyOffset_MHz    = rfFrequencyOffset_MHz;
+    configBlock.gnssSource               = (uint8_t)gnssSource;
+    configBlock.windSource               = (uint8_t)windSource;
+    configBlock.depthSource              = (uint8_t)depthSource;
+    configBlock.speedSource              = (uint8_t)speedSource;
+    configBlock.compassSource            = (uint8_t)compassSource;
+    configBlock.sogCogFilteringEnable    = sogCogFilteringEnable;
+    configBlock.sogCogFilterLength       = sogCogFilterLength;
+    configBlock.spdEmulation             = spdEmulation;
+    configBlock.headingX                 = headingAxis[0];
+    configBlock.headingX                 = headingAxis[1];
+    configBlock.headingX                 = headingAxis[2];
+    configBlock.downX                    = downAxis[0];
+    configBlock.downY                    = downAxis[1];
+    configBlock.downZ                    = downAxis[2];
 
     for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
     {

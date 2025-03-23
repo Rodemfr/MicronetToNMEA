@@ -59,15 +59,15 @@ class MenuManager
     MenuManager();
     virtual ~MenuManager();
 
+    void SetMenuDescription(MenuEntry_t *menuDesc);
     void PushChar(char c);
     void PrintMenu();
+    void PrintPrompt();
     void ActivateMenu(uint32_t entry);
 
   private:
-    static MenuEntry_t menu[];
-    int                menuLength;
-
-    void PrintPrompt();
+    MenuEntry_t *menu;
+    int          menuLength;
 };
 
 #endif /* MENUMANAGER_H_ */

@@ -24,59 +24,88 @@
  ***************************************************************************
  */
 
-#ifndef BOARDCONFIG_H_
-#define BOARDCONFIG_H_
-
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
+
+#include <Arduino.h>
+
+#include "BoardConfig.h"
+#include "Configuration.h"
+#include "Globals.h"
+#include "MenuConfigBt.h"
+#include "MenuConfigLink.h"
+#include "MenuConfigSogCog.h"
+#include "MenuConfigMtn.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-// Select 868MHz or 915MHz Micronet frequency
-// 0 -> 868Mhz
-// 1 -> 915Mhz
-#define FREQUENCY_SYSTEM 0
-
-// Selects on which I2C bus is connected compass as per Wiring library definition
-#define COMPASS_I2C Wire
-
-// CC1101/SPI pins
-#define CS0_PIN  10
-#define MOSI_PIN 11
-#define MISO_PIN 12
-#define SCK_PIN  13
-#define GDO0_PIN 9
-
-// Console UART params
-#define CONSOLE          SerialUSB
-#define CONSOLE_BAUDRATE 115200
-
-// UBlox GNSS UART pins
-#define GNSS          Serial3
-#define GNSS_BAUDRATE 9600
-#define GNSS_RX_PIN   15
-#define GNSS_TX_PIN   14
-
-// AIS UART pins
-#define AIS          Serial2
-#define AIS_BAUDRATE 38400
-#define AIS_RX_PIN   17
-
-// Plotter/Nav Computer UART params
-#define PLOTTER          Serial1
-#define PLOTTER_BAUDRATE 115200
-#define PLOTTER_RX_PIN   0
-#define PLOTTER_TX_PIN   1
-
 /***************************************************************************/
-/*                                Types                                    */
+/*                             Local types                                 */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                           Local prototypes                              */
 /***************************************************************************/
 
-#endif /* BOARDCONFIG_H_ */
+void ConfigOrientation();
+void ConfigExit();
+
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
+
+bool        exitConfig;
+MenuEntry_t configMenuDesc[] = {{"Configuration", nullptr},
+                                {"Setup bluetooth link", MenuConfigBt},
+                                {"Configure data sources", MenuConfigLink},
+                                {"Configure SOG/COG", MenuConfigSogCog},
+                                {"Configure orientation", ConfigOrientation},
+                                {"Return to main menu", ConfigExit},
+                                {nullptr, nullptr}};
+
+/***************************************************************************/
+/*                              Functions                                  */
+/***************************************************************************/
+
+void MenuConfigMtn()
+{
+    MenuManager configMenuManager;
+
+    configMenuManager.SetMenuDescription(configMenuDesc);
+    configMenuManager.PrintMenu();
+    configMenuManager.PrintPrompt();
+    exitConfig = false;
+
+    while (!exitConfig)
+    {
+        // Process console input
+        while (CONSOLE.available() > 0)
+        {
+            configMenuManager.PushChar(CONSOLE.read());
+        }
+
+        yield();
+    }
+}
+
+void ConfigLink()
+{
+}
+
+void ConfigSogCog()
+{
+}
+
+void ConfigOrientation()
+{
+}
+
+void ConfigExit()
+{
+    exitConfig = true;
+}

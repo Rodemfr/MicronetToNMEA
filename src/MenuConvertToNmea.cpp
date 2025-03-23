@@ -166,11 +166,6 @@ void MenuConvertToNmea()
 
         yield();
 
-#if defined(ARDUINO_TEENSY35) || defined(ARDUINO_TEENSY36)
-        // Enter sleep mode to save power. CPU will be waken-up on next interrupt
-        asm("wfi\n");
-#endif
-
     } while (!exitNmeaLoop);
 
     gRfReceiver.DisableFrequencyTracking();
@@ -215,25 +210,25 @@ void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice)
                                  DATA_FIELD_BTW | DATA_FIELD_VMGWP | DATA_FIELD_NODE_INFO);
 
     // Only send Heading to Micronet if configured so
-    if (COMPASS_SOURCE_LINK != LINK_MICRONET)
+    if (gConfiguration.compassSource != LINK_MICRONET)
     {
         micronetDevice.AddDataFields(DATA_FIELD_HDG);
     }
 
     // Only send depth to Micronet if configured so
-    if (DEPTH_SOURCE_LINK != LINK_MICRONET)
+    if (gConfiguration.depthSource != LINK_MICRONET)
     {
         micronetDevice.AddDataFields(DATA_FIELD_DPT);
     }
 
     // Only send speed to Micronet if configured so or if SPD emulation is enabled
-    if ((EMULATE_SPD_WITH_SOG == 1) || (SPEED_SOURCE_LINK != LINK_MICRONET))
+    if ((gConfiguration.spdEmulation == 1) || (gConfiguration.speedSource != LINK_MICRONET))
     {
         micronetDevice.AddDataFields(DATA_FIELD_SPD);
     }
 
     // Only send wind data to Micronet if configured so
-    if (WIND_SOURCE_LINK != LINK_MICRONET)
+    if (gConfiguration.windSource != LINK_MICRONET)
     {
         micronetDevice.AddDataFields(DATA_FIELD_AWS | DATA_FIELD_AWA);
     }

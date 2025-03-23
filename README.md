@@ -77,13 +77,13 @@ GND         <-> GND
 3.3V        <-- 3.3V
 ```
 
-LSM303AGR,LSM303DLH or LSM303DLHC can be used. MicronetToNMEA will automatically recognize it and select the appropriate driver.
+LSM303AGR,LSM303DLHC or LSM303DLH can be used. MicronetToNMEA will automatically recognize it and select the appropriate driver.
 
 If you want to use a different connection layout, you have to edit the related definitions at the beginning of `BoardConfig.h` file. The [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.md) explains every configuration item.
 
 ## Quick Start & general guidance
 
-Burn MicronetToNMEA SW into your Teensy 4.0. See [Teensy 4.0 documentation](https://www.pjrc.com/store/teensy40.html) if you are not confortable with this board.
+Compile MicronetToNMEA SW and flash it into your Teensy 4.0. See [Teensy 4.0 documentation](https://www.pjrc.com/store/teensy40.html) if you are not confortable with this board.
 
 Power up your Teensy board through USB. Use a terminal software like [Tera Term](http://www.teraterm.org/) to reach the menu on the serial console.
 
@@ -91,10 +91,8 @@ Power up your Micronet network.
 
 The first thing to do is to calibrate the RF frequency to ensure a good range performance of the system : enter menu "Calibrate RF frequency" and follow instructions. At the end of operations, save the calibration when asked. 
 
-Now, you need to attach MicronetToNMEA to your Micronet network, for this, you have to scan existing networks
-(menu "Scan Micronet networks"). It will list all the detected networks in your vincinity (20-30m range max), in decreasing
-order of reception power. Yours is very likely at the top.
-Write down the identifier of your network and attach MicronetToNMEA to it with menu "Attach converter to a network".
+Now, you need to attach MicronetToNMEA to your Micronet network, for this, you have to select the
+dedicated "Attach converter to closest network" menu. It will scan all the Micronet networks in your vincinity (20-30m range max) and attach to the closest one. Ensure your network is up and running for attachement to be successful.
  
 You are now ready to convert your Micronet data to NMEA0183 with menu "Start NMEA conversion".
 
@@ -104,10 +102,9 @@ Some tips :
 
 - Once you have attached MicronetToNMEA to a Micronet network, it will automatically enter in NMEA conversion mode at each power-up. You don't need a connect a console anymore unless you want to attach to another network.
 - When in conversion mode, if you want to come back to the configuration menu in the console, just press "ESC" key
-- MicronetToNMEA listens to calibration values transiting on the network and will apply them to the converted values (wind speed factor, temperature offset, etc.). So if you change your sensor calibration from your Micronet display, MicronetToNMEA will memorize the new value. Be careful however that these calibration values are only processed when in NMEA conversion mode.
+- MicronetToNMEA listens to calibration values travelling on the network and will apply them to the converted values (wind speed factor, temperature offset, etc.). So if you change your sensor calibration from your Micronet display, MicronetToNMEA will memorize the new value. Be careful however that these calibration values are only processed when in NMEA conversion mode.
 - Calibration values are all saved in EEPROM so that you don't need to enter them again in the system at each power-up.
-- There is a menu "Scan surrounding Micronet traffic" allowing to scan all micronet traffic around you. This is useful to understand how devices are speaking to each other.
-- There is also a menu "Test RF quality", useful to evaluate where to put MicronetoNMEA in your boat to maximize signal strength
+- There is a menu "Test RF quality", useful to evaluate where to put MicronetoNMEA in your boat to maximize signal strength
   
 ## User manual
 

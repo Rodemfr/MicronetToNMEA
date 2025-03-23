@@ -94,8 +94,13 @@ bool NavCompass::Init()
     }
 
     // Compute starboard axis from heading/box axis and down axis
-    headingAxis = HEADING_AXIS;
-    downAxis    = DOWN_AXIS;
+    headingAxis.x = gConfiguration.headingAxis[0];
+    headingAxis.y = gConfiguration.headingAxis[1];
+    headingAxis.z = gConfiguration.headingAxis[2];
+    downAxis.x    = gConfiguration.downAxis[0];
+    downAxis.y    = gConfiguration.downAxis[1];
+    downAxis.z    = gConfiguration.downAxis[2];
+
     CrossProduct(&downAxis, &headingAxis, &starBoardAxis);
 
     navCompassDetected = true;
@@ -122,13 +127,15 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     // Set heading & roll to default values. These values will only be used if something
     // went wrong in calculations below (i.e. in case of bad measurements from LSM303)
     int tempIndex = headingIndex - 1;
-    if (tempIndex < 0) {
+    if (tempIndex < 0)
+    {
         tempIndex += HEADING_HISTORY_LENGTH;
     }
     *heading_deg = headingHistory[tempIndex];
-    
+
     tempIndex = rollIndex - 1;
-    if (tempIndex < 0) {
+    if (tempIndex < 0)
+    {
         tempIndex += ROLL_HISTORY_LENGTH;
     }
     *roll_deg = rollHistory[tempIndex];
@@ -145,7 +152,8 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     mag.z -= gConfiguration.zMagOffset;
 
     // Check for invalid measurements
-    if (isZero(&accel) || isZero(&mag)) {
+    if (isZero(&accel) || isZero(&mag))
+    {
         return;
     }
 
@@ -159,7 +167,8 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     CrossProduct(&accel, &E, &N);
 
     // Check for invalid vectors
-    if (isZero(&E) || isZero(&N)) {
+    if (isZero(&E) || isZero(&N))
+    {
         return;
     }
 
@@ -244,7 +253,7 @@ void NavCompass::GetAcceleration(float *accX, float *accY, float *accZ)
     }
 }
 
-bool  NavCompass::isZero(Vec3D *a)
+bool NavCompass::isZero(Vec3D *a)
 {
     return ((a->x == 0) && (a->y == 0) && (a->z == 0));
 }

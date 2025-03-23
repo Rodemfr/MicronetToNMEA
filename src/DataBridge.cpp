@@ -84,22 +84,12 @@ DataBridge::DataBridge(MicronetCodec *micronetCodec)
     memset(&nmeaTimeStamps, 0, sizeof(nmeaTimeStamps));
     this->micronetCodec = micronetCodec;
 
-    // Store static link configuration from BoardConfig.h
-    navSourceLink     = NAV_SOURCE_LINK;
-    gnssSourceLink    = GNSS_SOURCE_LINK;
-    windSourceLink    = WIND_SOURCE_LINK;
-    depthSourceLink   = DEPTH_SOURCE_LINK;
-    speedSourceLink   = SPEED_SOURCE_LINK;
-    voltageSourceLink = VOLTAGE_SOURCE_LINK;
-    seaTempSourceLink = SEATEMP_SOURCE_LINK;
-    compassSourceLink = COMPASS_SOURCE_LINK;
-
     sogFilterIndex     = 0;
     sogFilterTimeStamp = 0;
-    memset(sogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH * sizeof(float));
+    memset(sogFilterBuffer, 0, SOG_COG_MAX_FILTERING_DEPTH * sizeof(float));
     cogFilterIndex     = 0;
     cogFilterTimeStamp = 0;
-    memset(cogFilterBuffer, 0, SOG_COG_FILTERING_DEPTH * sizeof(float));
+    memset(cogFilterBuffer, 0, SOG_COG_MAX_FILTERING_DEPTH * sizeof(float));
 }
 
 /*
@@ -167,14 +157,14 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                 {
                 case NMEA_ID_RMB:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == navSourceLink)
+                    if (sourceLink == LINK_PLOTTER)
                     {
                         DecodeRMBSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_RMC:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == gnssSourceLink)
+                    if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeRMCSentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
@@ -186,7 +176,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     break;
                 case NMEA_ID_GGA:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == gnssSourceLink)
+                    if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeGGASentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
@@ -198,7 +188,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     break;
                 case NMEA_ID_GLL:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == gnssSourceLink)
+                    if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeGLLSentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
@@ -210,7 +200,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     break;
                 case NMEA_ID_VTG:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == gnssSourceLink)
+                    if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeVTGSentence(nmeaBuffer);
                         // If the sentence is not coming from the chart plotter, forward it.
@@ -222,28 +212,28 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     break;
                 case NMEA_ID_MWV:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == windSourceLink)
+                    if (sourceLink == gConfiguration.windSource)
                     {
                         DecodeMWVSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_DPT:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == depthSourceLink)
+                    if (sourceLink == gConfiguration.depthSource)
                     {
                         DecodeDPTSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_VHW:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == speedSourceLink)
+                    if (sourceLink == gConfiguration.speedSource)
                     {
                         DecodeVHWSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_HDG:
                     // Check that with received the sentence from where we expect it
-                    if (sourceLink == compassSourceLink)
+                    if (sourceLink == gConfiguration.compassSource)
                     {
                         DecodeHDGSentence(nmeaBuffer);
                     }
@@ -289,7 +279,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 void DataBridge::UpdateCompassData(float heading_deg, float roll_deg)
 {
     // Only update compass data if the source link is LSM303
-    if (COMPASS_SOURCE_LINK == LINK_COMPASS)
+    if (gConfiguration.compassSource == LINK_COMPASS)
     {
         heading_deg = fmod(heading_deg, 360);
         if (heading_deg < 0.0f)
@@ -334,28 +324,31 @@ void DataBridge::SendUpdatedNMEASentences()
  */
 float DataBridge::FilteredSOG(float newSog_kt)
 {
-#if (SOG_COG_FILTERING == 1)
-    uint32_t now = micros();
-    if (now - sogFilterTimeStamp >= 1000000)
+    if (gConfiguration.sogCogFilteringEnable)
     {
-        sogFilterBuffer[sogFilterIndex++] = newSog_kt;
-        if (sogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+        uint32_t now = micros();
+        if (now - sogFilterTimeStamp >= 1000000)
         {
-            sogFilterIndex = 0;
+            sogFilterBuffer[sogFilterIndex++] = newSog_kt;
+            if (sogFilterIndex >= gConfiguration.sogCogFilterLength)
+            {
+                sogFilterIndex = 0;
+            }
+            sogFilterTimeStamp = now;
         }
-        sogFilterTimeStamp = now;
-    }
 
-    float filteredSog_kt = sogFilterBuffer[0];
-    for (int i = 1; i < SOG_COG_FILTERING_DEPTH; i++)
+        float filteredSog_kt = sogFilterBuffer[0];
+        for (uint32_t i = 1; i < gConfiguration.sogCogFilterLength; i++)
+        {
+            filteredSog_kt += sogFilterBuffer[i];
+        }
+
+        return filteredSog_kt / gConfiguration.sogCogFilterLength;
+    }
+    else
     {
-        filteredSog_kt += sogFilterBuffer[i];
+        return newSog_kt;
     }
-
-    return filteredSog_kt / SOG_COG_FILTERING_DEPTH;
-#else
-    return newSog_kt;
-#endif
 }
 
 /*
@@ -367,52 +360,55 @@ float DataBridge::FilteredSOG(float newSog_kt)
  */
 float DataBridge::FilteredCOG(float newCog_deg)
 {
-#if (SOG_COG_FILTERING == 1)
-    uint32_t now = micros();
-
-    if (now - cogFilterTimeStamp >= 1000000)
+    if (gConfiguration.sogCogFilteringEnable)
     {
-        cogFilterBuffer[cogFilterIndex++] = newCog_deg;
-        if (cogFilterIndex >= SOG_COG_FILTERING_DEPTH)
+        uint32_t now = micros();
+
+        if (now - cogFilterTimeStamp >= 1000000)
         {
-            cogFilterIndex = 0;
+            cogFilterBuffer[cogFilterIndex++] = newCog_deg;
+            if (cogFilterIndex >= SOG_COG_MAX_FILTERING_DEPTH)
+            {
+                cogFilterIndex = 0;
+            }
+            cogFilterTimeStamp = now;
         }
-        cogFilterTimeStamp = now;
-    }
 
-    float filteredCog_deg = cogFilterBuffer[0];
-    float previousCog_deg = filteredCog_deg;
-    float bufferedCog_deg;
-    for (int i = 1; i < SOG_COG_FILTERING_DEPTH; i++)
-    {
-        bufferedCog_deg = cogFilterBuffer[i];
-        if (bufferedCog_deg - previousCog_deg > 180)
+        float filteredCog_deg = cogFilterBuffer[0];
+        float previousCog_deg = filteredCog_deg;
+        float bufferedCog_deg;
+        for (int i = 1; i < SOG_COG_MAX_FILTERING_DEPTH; i++)
         {
-            bufferedCog_deg -= 360;
+            bufferedCog_deg = cogFilterBuffer[i];
+            if (bufferedCog_deg - previousCog_deg > 180)
+            {
+                bufferedCog_deg -= 360;
+            }
+            else if (bufferedCog_deg - previousCog_deg < -180)
+            {
+                bufferedCog_deg += 360;
+            }
+            previousCog_deg = bufferedCog_deg;
+            filteredCog_deg += bufferedCog_deg;
         }
-        else if (bufferedCog_deg - previousCog_deg < -180)
+
+        filteredCog_deg = filteredCog_deg / SOG_COG_MAX_FILTERING_DEPTH;
+
+        if (filteredCog_deg < 0)
         {
-            bufferedCog_deg += 360;
+            filteredCog_deg += 360;
         }
-        previousCog_deg = bufferedCog_deg;
-        filteredCog_deg += bufferedCog_deg;
+        else if (filteredCog_deg >= 360)
+        {
+            filteredCog_deg -= 360;
+        }
+
+        return filteredCog_deg;
     }
-
-    filteredCog_deg = filteredCog_deg / SOG_COG_FILTERING_DEPTH;
-
-    if (filteredCog_deg < 0)
+    else
     {
-        filteredCog_deg += 360;
+        return newCog_deg;
     }
-    else if (filteredCog_deg >= 360)
-    {
-        filteredCog_deg -= 360;
-    }
-
-    return filteredCog_deg;
-#else
-    return newCog_deg;
-#endif
 }
 
 /*
@@ -655,11 +651,12 @@ void DataBridge::DecodeRMCSentence(char *sentence)
         micronetCodec->navData.sog_kt.value     = FilteredSOG(value);
         micronetCodec->navData.sog_kt.valid     = true;
         micronetCodec->navData.sog_kt.timeStamp = millis();
-#if (EMULATE_SPD_WITH_SOG == 1)
-        micronetCodec->navData.spd_kt.value     = FilteredSOG(value);
-        micronetCodec->navData.spd_kt.valid     = true;
-        micronetCodec->navData.spd_kt.timeStamp = millis();
-#endif
+        if (gConfiguration.spdEmulation)
+        {
+            micronetCodec->navData.spd_kt.value     = FilteredSOG(value);
+            micronetCodec->navData.spd_kt.valid     = true;
+            micronetCodec->navData.spd_kt.timeStamp = millis();
+        }
     }
     if ((sentence = strchr(sentence, ',')) == nullptr)
         return;
@@ -814,11 +811,12 @@ void DataBridge::DecodeVTGSentence(char *sentence)
         micronetCodec->navData.sog_kt.valid     = true;
         micronetCodec->navData.sog_kt.timeStamp = millis();
 
-#if (EMULATE_SPD_WITH_SOG == 1)
-        micronetCodec->navData.spd_kt.value     = FilteredSOG(value);
-        micronetCodec->navData.spd_kt.valid     = true;
-        micronetCodec->navData.spd_kt.timeStamp = millis();
-#endif
+        if (gConfiguration.spdEmulation)
+        {
+            micronetCodec->navData.spd_kt.value     = FilteredSOG(value);
+            micronetCodec->navData.spd_kt.valid     = true;
+            micronetCodec->navData.spd_kt.timeStamp = millis();
+        }
     }
 }
 
@@ -983,7 +981,7 @@ int16_t DataBridge::NibbleValue(char c)
 
 void DataBridge::EncodeMWV_R()
 {
-    if (WIND_SOURCE_LINK == LINK_MICRONET)
+    if (gConfiguration.windSource == LINK_MICRONET)
     {
         bool update;
 
@@ -1007,7 +1005,7 @@ void DataBridge::EncodeMWV_R()
 
 void DataBridge::EncodeMWV_T()
 {
-    if (WIND_SOURCE_LINK == LINK_MICRONET)
+    if (gConfiguration.windSource == LINK_MICRONET)
     {
         bool update;
 
@@ -1031,7 +1029,7 @@ void DataBridge::EncodeMWV_T()
 
 void DataBridge::EncodeDPT()
 {
-    if (DEPTH_SOURCE_LINK == LINK_MICRONET)
+    if (gConfiguration.depthSource == LINK_MICRONET)
     {
         bool update;
 
@@ -1051,7 +1049,7 @@ void DataBridge::EncodeDPT()
 
 void DataBridge::EncodeMTW()
 {
-    if (SEATEMP_SOURCE_LINK == LINK_MICRONET)
+    if (gConfiguration.depthSource == LINK_MICRONET)
     {
         bool update;
 
@@ -1071,7 +1069,7 @@ void DataBridge::EncodeMTW()
 
 void DataBridge::EncodeVLW()
 {
-    if (SPEED_SOURCE_LINK == LINK_MICRONET)
+    if (gConfiguration.speedSource == LINK_MICRONET)
     {
         bool update;
 
@@ -1092,7 +1090,7 @@ void DataBridge::EncodeVLW()
 
 void DataBridge::EncodeVHW()
 {
-    if (SPEED_SOURCE_LINK == LINK_MICRONET)
+    if (gConfiguration.speedSource == LINK_MICRONET)
     {
         bool update =
             (micronetCodec->navData.spd_kt.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS) && (micronetCodec->navData.spd_kt.valid);
@@ -1127,7 +1125,7 @@ void DataBridge::EncodeVHW()
 
 void DataBridge::EncodeHDG()
 {
-    if ((COMPASS_SOURCE_LINK == LINK_MICRONET) || (COMPASS_SOURCE_LINK == LINK_COMPASS))
+    if ((gConfiguration.compassSource == LINK_MICRONET) || (gConfiguration.compassSource == LINK_COMPASS))
     {
         bool update;
 
@@ -1148,21 +1146,18 @@ void DataBridge::EncodeHDG()
 
 void DataBridge::EncodeBatteryXDR()
 {
-    if (VOLTAGE_SOURCE_LINK == LINK_MICRONET)
+    bool update;
+
+    update = (micronetCodec->navData.vcc_v.timeStamp > nmeaTimeStamps.vcc + NMEA_SENTENCE_MIN_PERIOD_MS);
+    update = update && micronetCodec->navData.vcc_v.valid;
+
+    if (update)
     {
-        bool update;
-
-        update = (micronetCodec->navData.vcc_v.timeStamp > nmeaTimeStamps.vcc + NMEA_SENTENCE_MIN_PERIOD_MS);
-        update = update && micronetCodec->navData.vcc_v.valid;
-
-        if (update)
-        {
-            char sentence[NMEA_SENTENCE_MAX_LENGTH];
-            sprintf(sentence, "$INXDR,U,%.1f,V,TACKTICK#0", micronetCodec->navData.vcc_v.value);
-            AddNmeaChecksum(sentence);
-            nmeaTimeStamps.vcc = millis();
-            PLOTTER.println(sentence);
-        }
+        char sentence[NMEA_SENTENCE_MAX_LENGTH];
+        sprintf(sentence, "$INXDR,U,%.1f,V,TACKTICK#0", micronetCodec->navData.vcc_v.value);
+        AddNmeaChecksum(sentence);
+        nmeaTimeStamps.vcc = millis();
+        PLOTTER.println(sentence);
     }
 }
 
