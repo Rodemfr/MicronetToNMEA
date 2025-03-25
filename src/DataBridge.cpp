@@ -367,7 +367,7 @@ float DataBridge::FilteredCOG(float newCog_deg)
         if (now - cogFilterTimeStamp >= 1000000)
         {
             cogFilterBuffer[cogFilterIndex++] = newCog_deg;
-            if (cogFilterIndex >= SOG_COG_MAX_FILTERING_DEPTH)
+            if (cogFilterIndex >= gConfiguration.sogCogFilterLength)
             {
                 cogFilterIndex = 0;
             }
@@ -377,7 +377,7 @@ float DataBridge::FilteredCOG(float newCog_deg)
         float filteredCog_deg = cogFilterBuffer[0];
         float previousCog_deg = filteredCog_deg;
         float bufferedCog_deg;
-        for (int i = 1; i < SOG_COG_MAX_FILTERING_DEPTH; i++)
+        for (int i = 1; i < gConfiguration.sogCogFilterLength; i++)
         {
             bufferedCog_deg = cogFilterBuffer[i];
             if (bufferedCog_deg - previousCog_deg > 180)
@@ -392,7 +392,7 @@ float DataBridge::FilteredCOG(float newCog_deg)
             filteredCog_deg += bufferedCog_deg;
         }
 
-        filteredCog_deg = filteredCog_deg / SOG_COG_MAX_FILTERING_DEPTH;
+        filteredCog_deg = filteredCog_deg / gConfiguration.sogCogFilterLength;
 
         if (filteredCog_deg < 0)
         {
