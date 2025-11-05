@@ -24,96 +24,25 @@
  ***************************************************************************
  */
 
-#ifndef CONFIGURATION_H_
-#define CONFIGURATION_H_
+#ifndef MENUTCONFIGORIENT_H_
+#define MENUTCONFIGORIENT_H_
 
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <stdint.h>
-
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
-
-// Maximum depth of COG/SOG filter
-#define SOG_COG_MAX_FILTERING_DEPTH 16
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
-// TODO : Rename LINK_AIS by LINK_NMEA
-typedef enum
-{
-    LINK_PLOTTER = 0,
-    LINK_GNSS,
-    LINK_MICRONET,
-    LINK_COMPASS,
-    LINK_AIS
-} LinkId_t;
-
-typedef enum
-{
-    AXIS_X = 0,
-    AXIS_MINUS_X,
-    AXIS_Y,
-    AXIS_MINUS_Y,
-    AXIS_Z,
-    AXIS_MINUS_Z
-} Axis_t;
-
 /***************************************************************************/
-/*                               Classes                                   */
+/*                              Functions                                  */
 /***************************************************************************/
 
-class Configuration
-{
-  public:
-    Configuration();
-    virtual ~Configuration();
+void MenuConfigOrientation();
 
-    void LoadFromEeprom();
-    void SaveToEeprom();
-
-    // The following parameters are NOT loaded/saved from/to EEPROM
-    bool navCompassAvailable;
-    bool magicNumberFound;
-    bool checksumValid;
-
-    // The following parameters are loaded/saved from/to EEPROM
-    uint32_t networkId;
-    uint32_t deviceId;
-    float    waterSpeedFactor_per;
-    float    waterTemperatureOffset_C;
-    float    depthOffset_m;
-    float    windSpeedFactor_per;
-    float    windDirectionOffset_deg;
-    float    headingOffset_deg;
-    float    magneticVariation_deg;
-    float    windShift;
-    float    xMagOffset;
-    float    yMagOffset;
-    float    zMagOffset;
-    float    rfFrequencyOffset_MHz;
-
-    LinkId_t gnssSource;    // Positionning data (RMC, GGA, VTG)
-    LinkId_t windSource;    // Wind data (MWV)
-    LinkId_t depthSource;   // Depth data (DPT)
-    LinkId_t speedSource;   // Speed data (VHW, VLW)
-    LinkId_t compassSource; // Heading data (HDG)
-
-    bool     sogCogFilteringEnable;
-    uint32_t sogCogFilterLength;
-    bool     spdEmulation;
-
-    Axis_t headingAxis;
-    Axis_t downAxis;
-};
-
-/***************************************************************************/
-/*                              Prototypes                                 */
-/***************************************************************************/
-
-#endif /* CONFIGURATION_H_ */
+#endif

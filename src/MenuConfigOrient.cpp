@@ -32,14 +32,16 @@
 
 #include "BoardConfig.h"
 #include "Configuration.h"
-#include "MenuConfigBt.h"
 #include "Globals.h"
+#include "MenuConfigOrient.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
+
+#define NB_AXIS 6
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -49,147 +51,86 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
-bool isVgResponseOk();
+void PrintOrientationConfig();
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
+static uint32_t headingAxis;
+static uint32_t downAxis;
+
+static const char *axisName[NB_AXIS] = {"+X", "-X", "+Y", "-Y", "+Z", "-Z"};
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-void MenuConfigBt()
+void MenuConfigOrientation()
 {
-    const int   baudRateTable[] = {9600, 19200, 38400, 57600, 115200};
-    const char *baudStrings[]   = {"AT+BAUD0", "AT+BAUD1", "AT+BAUD2", "AT+BAUD3", "AT+BAUD4"};
-    int         actualBaudrate  = 0;
+    char c;
+    bool exitLoop = false;
 
-    CONSOLE.println("Detecting bluetooth module ... ");
+    headingAxis = gConfiguration.headingAxis;
+    downAxis    = gConfiguration.downAxis;
 
-    for (uint i = 0; i < (sizeof(baudRateTable) / sizeof(int)); i++)
+    while (!exitLoop)
     {
-        // Reconfigure UART speed
-        PLOTTER.end();
-        PLOTTER.begin(baudRateTable[i]);
-        delay(100);
-        // Request switch to command mode
-        PLOTTER.println("AT+ENAT");
-        delay(100);
-        if (isVgResponseOk())
+        PrintOrientationConfig();
+
+        do
         {
-            CONSOLE.print("VG 6328A found with baudrate ");
-            CONSOLE.println(baudRateTable[i]);
-            actualBaudrate = baudRateTable[i];
-            break;
-        }
-    }
-
-    if (actualBaudrate == 0)
-    {
-        CONSOLE.println("Bluetooth module not found or not recognized. Please, configure it manually.");
-        return;
-    }
-
-    char     deviceName[27], c;
-    uint32_t charIndex = 7;
-    CONSOLE.print("Enter the name of the bluetooth device : ");
-    do
-    {
-        if (CONSOLE.available())
-        {
+            yield();
             c = CONSOLE.read();
-            if (c == 0x0d)
-            {
-                deviceName[charIndex++] = 0;
-                CONSOLE.println("");
-                break;
-            }
-            else if ((c == 0x08) && (charIndex > 7))
-            {
-                charIndex--;
-                CONSOLE.print(c);
-                CONSOLE.print(" ");
-                CONSOLE.print(c);
-            }
-            else if (charIndex < sizeof(deviceName) - 1)
-            {
-                deviceName[charIndex++] = c;
-                CONSOLE.print(c);
-            }
-        };
-    } while (1);
+        } while (c == 0xff);
 
-    if (actualBaudrate != PLOTTER_BAUDRATE)
-    {
-        for (uint i = 0; i < (sizeof(baudRateTable) / sizeof(int)); i++)
+        if ((c >= 0x30) && (c <= 0x39))
         {
-            if (baudRateTable[i] == PLOTTER_BAUDRATE)
+            CONSOLE.println(c);
+            c -= 0x30;
+            switch (c)
             {
-                CONSOLE.print("Configuring baudrate to ");
-                CONSOLE.print(baudRateTable[i]);
-                CONSOLE.println(" baud");
-                // Request switch to command mode
-                PLOTTER.println(baudStrings[i]);
-                delay(100);
-                PLOTTER.clear();
+            case 0:
+                do
+                {
+                    headingAxis = (headingAxis + 1) % NB_AXIS;
+                } while (headingAxis == downAxis);
                 break;
+            case 1:
+                do
+                {
+                    downAxis = (downAxis + 1) % NB_AXIS;
+                } while (downAxis == headingAxis);
+                break;
+            case 2:
+                gConfiguration.headingAxis = (Axis_t)headingAxis;
+                gConfiguration.downAxis    = (Axis_t)downAxis;
+                gConfiguration.SaveToEeprom();
+            case 3:
+                CONSOLE.println("Exiting to upper menu...");
+                return;
             }
         }
-    }
-    CONSOLE.print("Changing device name to ");
-    CONSOLE.println(deviceName + 7);
-    deviceName[0] = 'A';
-    deviceName[1] = 'T';
-    deviceName[2] = '+';
-    deviceName[3] = 'S';
-    deviceName[4] = 'P';
-    deviceName[5] = 'N';
-    deviceName[6] = 'A';
-    PLOTTER.println(deviceName);
-    delay(500);
-    deviceName[3] = 'L';
-    deviceName[4] = 'E';
-    PLOTTER.println(deviceName);
-    delay(500);
-    CONSOLE.println("Switching OFF BLE");
-    PLOTTER.println("AT+LEOF");
-    delay(500);
-    CONSOLE.println("Switching ON SPP");
-    PLOTTER.println("AT+SPON");
-    delay(500);
-    PLOTTER.print("AT+REST");
-    delay(500);
-    PLOTTER.clear();
-    CONSOLE.print("");
-    CONSOLE.println("Bluetooth configuration finished. Switch Power OFF then ON to enable it.");
-}
-
-bool isVgResponseOk()
-{
-    char response[5];
-    int  nbChars = PLOTTER.available();
-    if (nbChars == 4)
-    {
-        response[0] = (char)PLOTTER.read();
-        response[1] = (char)PLOTTER.read();
-        response[2] = (char)PLOTTER.read();
-        response[3] = (char)PLOTTER.read();
-        response[4] = 0;
-        PLOTTER.clear();
-        if (!strcmp(response, "OK\r\n"))
+        else if (c == 0x1b)
         {
-            return true;
+            exitLoop = true;
         }
     }
-
-    return false;
 }
 
-void PrintResponse()
+void PrintOrientationConfig()
 {
-    while (PLOTTER.available() > 0)
-    {
-        CONSOLE.print((char)PLOTTER.read());
-    }
+    CONSOLE.println("");
+    CONSOLE.print("*** ");
+    CONSOLE.print("Compass orientation");
+    CONSOLE.println(" ***");
+    CONSOLE.println("");
+    CONSOLE.print("0 - Heading/bow axis : ");
+    CONSOLE.println(axisName[headingAxis]);
+    CONSOLE.print("1 - Bottom/down axis : ");
+    CONSOLE.println(axisName[downAxis]);
+    CONSOLE.println("2 - Save and exit");
+    CONSOLE.println("3 - Exit without saving");
+    CONSOLE.println("");
+    CONSOLE.print("Choice : ");
 }

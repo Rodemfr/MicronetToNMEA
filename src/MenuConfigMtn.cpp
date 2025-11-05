@@ -36,6 +36,7 @@
 #include "MenuConfigBt.h"
 #include "MenuConfigLink.h"
 #include "MenuConfigSogCog.h"
+#include "MenuConfigOrient.h"
 #include "MenuConfigMtn.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
@@ -52,7 +53,6 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
-void ConfigOrientation();
 void ConfigExit();
 
 /***************************************************************************/
@@ -64,7 +64,7 @@ MenuEntry_t configMenuDesc[] = {{"Configuration", nullptr},
                                 {"Setup bluetooth link", MenuConfigBt},
                                 {"Configure data sources", MenuConfigLink},
                                 {"Configure SOG/COG", MenuConfigSogCog},
-                                {"Configure orientation", ConfigOrientation},
+                                {"Configure orientation", MenuConfigOrientation},
                                 {"Return to main menu", ConfigExit},
                                 {nullptr, nullptr}};
 

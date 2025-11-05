@@ -33,7 +33,7 @@
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
-#include "MenuConfigLink.h"
+#include "MenuConfigSogCog.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
 

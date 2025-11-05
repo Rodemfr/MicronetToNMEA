@@ -9,34 +9,34 @@ title: MicronetToNMEA
 MicronetToNMEA is a Teensy/Arduino based project aimed at building a
 cheap NMEA/Micronet bridge. The initial purpose of this project was to
 understand Micronet wireless protocol and to be able to record wind and
-speed data on a PC. The understanding of the protocol went so well that
-MicronetToNMEA is now doing a lot more. It can:
+speed from Raymarine’s TackTick devices on a PC or a tablet. The
+understanding of the protocol went so well that MicronetToNMEA is now
+doing a lot more. It can:
 
-- Send or receive a NMEA stream to or from your PC/Tablet with data on
-  depth, water speed, wind, magnetic heading, GNSS positioning, speed,
-  time, etc.
+- Send or receive a NMEA stream to or from your PC with data on depth,
+  water speed, wind, magnetic heading, GNSS positioning, speed, time,
+  etc.
 
-- Send Heading data from the LSM303 navigation compass to your
-  Micronet’s displays (HDG).
+- Send Heading data from the LSM303 navigation compass to your TackTick
+  displays.
 
-- Send GNSS data to your Micronet displays (LAT, LON, TIME, DATE, COG,
-  SOG) and to your PC/Tablet.
+- Send GNSS data to your TackTick displays and to your PC.
 
-- Send navigation data from your PC/Tablet (OpenCPN, qtVlm, avnav, etc.)
-  to your Micronet displays (BTW, DTW, XTE, ETA).
+- Send navigation data from your PC (OpenCPN, qtVlm, avnav, etc.) to
+  your TackTick displays.
 
 ## What is NOT MicronetToNMEA
 
 MicronetToNMEA is not waterproof and more generally not reliable. All
 electronics used in this project are made for hobbyist and are all but
-robust. In the brutal, wet and salty environment of a boat, it will
-likely fail quickly. So be careful that MicronetToNMEA should not be
-used as primary navigation tool. Also note that Micronet wireless
-protocol has been reverse engineered and that many of its aspects are
-not yet properly understood. Worse, some understandings we think to be
-correct might be false in some circumstances. If you need state of the
-art and reliable navigation devices, just go to your nearest
-Raymarine/TackTick reseller.
+robust. In the brutal, wet and salty environment of a boat, it may fail
+very quickly. So be careful that MicronetToNMEA should not be used as
+primary navigation tool. Also note that Micronet wireless protocol has
+been reverse engineered and that some of its aspects are not yet
+properly understood. Worse, some understandings we think to be correct
+might be false in some circumstances. If you need state of the art and
+reliable navigation devices, just go to your nearest Raymarine/TackTick
+reseller.
 
 ## Contributors
 
@@ -53,8 +53,8 @@ Raymarine/TackTick reseller.
 
 ## Required hardware
 
-To work properly, MicronetToNMEA needs at least a Teensy 3.5, 3.6, 4.0
-or 4.1 board and a CC1101 based breakout board.
+To work properly, MicronetToNMEA needs at minimum a Teensy 4.0 board and
+a CC1101 based breakout board.
 
 ### Teensy micro-controller
 
@@ -70,10 +70,8 @@ proven to be pretty well adapted :
 
 - It has a lot of highly configurable peripherals
 
-- Teensy 3.5 GPIOs are 5V tolerant
-
-- Teensy 3.5, 3.6 and 4.1 have a MicroSD slot for potential recording
-  features
+The main drawback of Teensy 4.0 is its price : it is on the high side of
+MCU boards.
 
 In theory, you can port MicronetToNMEA SW to any 32bit Arduino
 compatible board. Practically, this might be a different story. Several
@@ -81,10 +79,7 @@ people got into troubles trying to use ESP32 boards. While this is
 technically feasible, Arduino’s library implementation between Teensy &
 Esp32 board can be slightly different in some sensitive areas like
 interrupt handling. This makes porting complex on a software which needs
-100us precise interrupt triggers.
-
-Practically, Teensy 4.0 is advised since the author currently use this
-board. It will help bug investigation if we all have the same hardware.
+\<100us precise interrupt triggers.
 
 Teensy boards can be ordered here : <https://www.pjrc.com/teensy/>
 
@@ -92,15 +87,14 @@ Teensy boards can be ordered here : <https://www.pjrc.com/teensy/>
 
 CC1101 is mandatory to MicronetToNMEA. It is the IC which enables RF
 communication with Micronet/TackTick devices. CC1101 breakout boards are
-very cheap but the quality of design and components is often less than
-average. So do not expect to have the same distance performance than
-original TackTick devices. Be careful when ordering this board since it
-is designed for a specific range of frequencies (filter and antenna),
-even if the board is announced to support 434 & 868MHz (the IC can, but
-the antenna filter can not). MicronetToNMEA needs a board designed for
-868/915MHz usage. Ordering the wrong board would dramatically reduce
-operating distance between MicronetToNMEA and TackTick devices. Here is
-an example of a suitable board: [868MHz CC1101
+cheap and can be found easily on internet. Be careful when ordering this
+board since it is designed for a specific range of frequencies (filter
+and antenna), even if it is announced to support 434 & 868MHz. The IC
+can support several frequencies, but not the antenna filter.
+MicronetToNMEA needs a board designed for 868/915MHz usage. Ordering the
+wrong board would dramatically reduce operating distance between
+MicronetToNMEA and TackTick devices. Here is an example of a suitable
+board: [868MHz CC1101
 module](https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G)
 
 These low-cost boards are often delivered without any documentation,
@@ -126,13 +120,13 @@ If you already have an AIS with a NMEA0183 output on your boat you can
 use it as a GNSS source. MicronetToNMEA also have the capability to
 forward AIS data to the PC/Tablet. Be careful that AIS outputs are not
 3.3V and that you will likely need a level shifter or a RS422/485
-transceiver to protect Teensy boards.
+transceiver. A signal above 3.6V will burn your Teensy input.
 
-### LSM303DLH or LSM303DLHC navigation compass breakout board
+### LSM303AGR, LSM303DLHC or LSM303DLH navigation compass breakout board
 
 Connected to Teensy I2C bus, this IC will allow getting magnetic
 heading. MicronetToNMEA automatically detects the presence and type of
-LSM303DLH/DLHC on its I2C bus.
+LSM303AGR/DLHC/DLH on its I2C bus.
 
 ### Wireless serial devices for NMEA link (BT or WiFi)
 
@@ -142,8 +136,8 @@ an ESP8266 based Serial to WiFi board (Wemos, nodeCPU etc.) allow you to
 establish an WiFi access point and a client connection to navigation
 software like OpenCPN.
 
-Note that MicronetToNMEA does not configure both boards, it is up to you
-to configure before connecting it.
+Note that MicronetToNMEA does not configure these boards, it is up to
+you to configure them before connecting it.
 
 ## Required software
 
@@ -238,26 +232,24 @@ all available switches and their meaning.
 | **Compile Switch**       | **Description**                                                                                                                                                                  |
 |:-------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | FREQUENCY_SYSTEM         | Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)                                                                                              |
-| NAVCOMPASS_I2C           | Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)                               |
+| COMPASS_I2C              | Sets the I2C bus to which the navigation compass (i.e. LSM303) is connected. Defined as per “Wiring” library definition (Wire, Wire1, etc.)                                      |
 | CS0_PIN                  | Defines SPI Chip Select line connected to RF IC                                                                                                                                  |
 | MOSI_PIN                 | Defines MOSI pin of SPI bus connected to RF IC                                                                                                                                   |
 | MISO_PIN                 | Defines MISO pin of SPI bus connected to RF IC                                                                                                                                   |
 | SCK_PIN                  | Defines SCK pin of SPI bus connected to RF IC                                                                                                                                    |
 | GDO0_PIN                 | Defines GDO0 pin of SPI bus connected to RF IC                                                                                                                                   |
-| LED_PIN                  | Defines the pin driving the LED, which is used for error signaling                                                                                                               |
-| GNSS_UBLOXM8N            | Enable automatic configuration of UBLOX M8N GPS (0=disabled, 1=enabled)                                                                                                          |
-| GNSS_SERIAL              | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                                         |
-| GNSS_BAUDRATE            | Defines GNSS UART default baud-rate                                                                                                                                              |
+| CONSOLE                  | Defines on which serial port is connected the external console (SerialUSB, Serial1, Serial2, etc.)                                                                               |
+| GNSS                     | Defines on which serial port is connected the NMEA GNSS (Serial, Serial1, Serial2, etc.)                                                                                         |
+| GNSS_BAUDRATE            | Defines GNSS UART baud-rate                                                                                                                                                      |
 | GNSS_RX_PIN              | Defines serial RX pin connected to NMEA GNSS TX pin                                                                                                                              |
 | GNSS_TX_PIN              | Defines serial TX pin connected to NMEA GNSS RX pin                                                                                                                              |
-| USB_NMEA                 | Defines which serial port is connected to the USB NMEA connection                                                                                                                |
-| USB_BAUDRATE             | Defines baud rate of USB serial converter                                                                                                                                        |
-| WIRED_NMEA               | Defines which serial port is connected to the wired NMEA connection                                                                                                              |
-| WIRED_BAUDRATE           | Defines baud rate of the wired NMEA connection                                                                                                                                   |
-| WIRED_RX_PIN             | Defines serial RX pin used for wired NMEA                                                                                                                                        |
-| WIRED_TX_PIN             | Defines serial TX pin used for wired NMEA                                                                                                                                        |
-| CONSOLE                  | Defines on which serial port is displayed the console (can be USB_NMEA or WIRED_NMEA). Can be on the same serial link than NMEA_EXT                                              |
-| NMEA_EXT                 | Defines to which serial port is connected the external NMEA stream. (can be USB_NMEA or WIRED_NMEA). Can be on the same serial link than CONSOLE and NMEA_IN.                    |
+| AIS                      | Defines which serial port is connected to the AIS receiver                                                                                                                       |
+| AIS_BAUDRATE             | Defines baud rate of USB serial converter                                                                                                                                        |
+| AIS_RX_PIN               | Defines serial RX pin connected to AIS receiver                                                                                                                                  |
+| PLOTTER                  | Defines which serial port is connected to the plotter                                                                                                                            |
+| PLOTTER_BAUDRATE         | Defines baud rate of plotter serial connection                                                                                                                                   |
+| PLOTTER_RX_PIN           | Defines serial RX pin connected to plotter TX pin                                                                                                                                |
+| PLOTTER_TX_PIN           | Defines serial TX pin connected to plotter RX pin                                                                                                                                |
 | NAV_SOURCE_LINK          | Defines where navigation data is coming from (related to RMB sentences). See Section <a href="#supportednmeasentences" data-reference-type="ref"                                 
                             data-reference="supportednmeasentences">5.1.7</a> for more details on possible values.                                                                                            |
 | GNSS_SOURCE_LINK         | Defines where positioning data is coming from (related to RMC, GGA, VTG sentences). See Section <a href="#supportednmeasentences" data-reference-type="ref"                      
@@ -496,8 +488,9 @@ power has a cost : power consumption. MicronetToNMEA doesn’t need so
 much power so it is advised to reduce the CPU speed to 24MHz. It will
 significantly reduce power consumption. On a system with a Teensy
 4.0@24MHz, a NEO M8M GNSS, a HC-06 Bluetooth transceiver, a CC1101, a
-LSM303DLH and a oversized DC-DC converter, the complete power
-consumption at 12V connector is averaging around 850mW (700-1000mW).
+LSM303DLH and a oversized 5V DC-DC converter, the complete power
+consumption at 12V connector is averaging around 800mW. With an
+optimized 3.3V DC-DC, this can be as low as 500mW.
 
 # Usage
 

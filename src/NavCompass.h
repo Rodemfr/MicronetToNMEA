@@ -34,6 +34,7 @@
 /***************************************************************************/
 
 #include "NavCompassDriver.h"
+#include "Configuration.h"
 
 #include <stdint.h>
 #include <string>
@@ -68,15 +69,18 @@ class NavCompass
     void   GetAcceleration(float *accX, float *accY, float *accZ);
 
   private:
-    float             headingHistory[HEADING_HISTORY_LENGTH];
-    uint32_t          headingIndex;
-    float             rollHistory[ROLL_HISTORY_LENGTH];
-    uint32_t          rollIndex;
-    bool              navCompassDetected;
-    NavCompassDriver *navCompassDriver;
-    Vec3D             headingAxis;
-    Vec3D             downAxis;
-    Vec3D             starBoardAxis;
+    float              headingHistory[HEADING_HISTORY_LENGTH];
+    uint32_t           headingIndex;
+    float              rollHistory[ROLL_HISTORY_LENGTH];
+    uint32_t           rollIndex;
+    bool               navCompassDetected;
+    NavCompassDriver  *navCompassDriver;
+    Vec3D              headingAxis;
+    Vec3D              downAxis;
+    Vec3D              starBoardAxis;
+    static const Vec3D Axis[6];
+    Axis_t             previousHeadingAxis;
+    Axis_t             previousDownAxis;
 
     bool  isZero(Vec3D *a);
     void  Normalize(Vec3D *a);

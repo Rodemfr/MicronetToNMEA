@@ -71,14 +71,10 @@ typedef struct
     uint8_t  sogCogFilteringEnable;
     uint8_t  sogCogFilterLength;
     uint8_t  spdEmulation;
-    int8_t   headingX;
-    int8_t   headingY;
-    int8_t   headingZ;
-    int8_t   downX;
-    int8_t   downY;
-    int8_t   downZ;
+    uint8_t  headingAxis;
+    uint8_t  downAxis;
 
-    uint8_t  checksum;
+    uint8_t checksum;
 } ConfigBlock_t;
 #pragma pack()
 
@@ -123,13 +119,8 @@ Configuration::Configuration() : magicNumberFound(false), checksumValid(false)
     sogCogFilterLength    = 4;
     spdEmulation          = false;
 
-    headingAxis[0] = 0.0f;
-    headingAxis[1] = 0.0f;
-    headingAxis[2] = -1.0f;
-
-    downAxis[0] = -1.0f;
-    downAxis[1] = 0.0f;
-    downAxis[2] = 0.0f;
+    headingAxis = AXIS_MINUS_Z;
+    downAxis    = AXIS_MINUS_X;
 }
 
 Configuration::~Configuration()
@@ -182,13 +173,9 @@ void Configuration::LoadFromEeprom()
             {
                 sogCogFilterLength = SOG_COG_MAX_FILTERING_DEPTH;
             }
-            spdEmulation             = configBlock.spdEmulation;
-            headingAxis[0]           = (float)configBlock.headingX;
-            headingAxis[1]           = (float)configBlock.headingX;
-            headingAxis[2]           = (float)configBlock.headingX;
-            downAxis[0]              = (float)configBlock.downX;
-            downAxis[1]              = (float)configBlock.downY;
-            downAxis[2]              = (float)configBlock.downZ;
+            spdEmulation = configBlock.spdEmulation;
+            headingAxis  = (Axis_t)configBlock.headingAxis;
+            downAxis     = (Axis_t)configBlock.downAxis;
         }
     }
 }
@@ -227,12 +214,8 @@ void Configuration::SaveToEeprom()
     configBlock.sogCogFilteringEnable    = sogCogFilteringEnable;
     configBlock.sogCogFilterLength       = sogCogFilterLength;
     configBlock.spdEmulation             = spdEmulation;
-    configBlock.headingX                 = headingAxis[0];
-    configBlock.headingX                 = headingAxis[1];
-    configBlock.headingX                 = headingAxis[2];
-    configBlock.downX                    = downAxis[0];
-    configBlock.downY                    = downAxis[1];
-    configBlock.downZ                    = downAxis[2];
+    configBlock.headingAxis              = headingAxis;
+    configBlock.downAxis                 = downAxis;
 
     for (uint32_t i = 0; i < sizeof(ConfigBlock_t) - 1; i++)
     {

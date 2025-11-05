@@ -48,7 +48,8 @@ DID = Device ID (4 bytes) - Unique number identifying the device sending the mes
           0x06 SDPOD
           0x83 Analog Wind Display
           0x81 Dual Display
-          0x86 Dual Maxi Display 
+          0x86 Dual Maxi Display
+          0x87 Compass
           0x88 Remote Display 
 
 MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to know how to decode payload.
@@ -318,9 +319,17 @@ FI = Field ID
           |01|02|03|04|05|06|
           |04|12|FP| VAL |CS|
           VAL = Speed * 100 (KT)
-     0x1b VCC
+     0x17 Deviation calibration
+          |01|02|03|04|05|06|07|
+          |05|17|MX| ANG |FL|CS|
+          MX = Unclear what it is. Value was always 0x04 on the tested device. Could this be the maximum allowed turn rate in degrees/min ?
+          ANG = Current turn angle since beginning of the calibration procedure
+          FL = Looks like those are status flags.
+                0x01 -> Turn rate OK ?
+                0x02 -> Turn rate too high ?
+     0x1B VCC
           |01|02|03|04|05|06|
-          |04|1b|FP| VAL |CS|
+          |04|1B|FP| VAL |CS|
           VAL = Voltage * 10 (V)
      0x1F DTW
           |01|02|03|04|05|06|07|08|
@@ -407,12 +416,12 @@ Example : Set time zone
 
 Example : Acknowledge NO VOLT alarm
 |             MESSAGE HEADER              |  DISPLAY  |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|AL|VE|CS|
 |83 09 2C 36|81 07 1E 60|06|09|00|03|10|10|F9|0C|02|07|
 
 Example : Raise NO VOLT alarm
 |             MESSAGE HEADER              |  DISPLAY  |
-|    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
+|    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|AL|VE|CS|
 |01 0B 29 06|01 0B C9 44|06|01|09|72|10|10|E2|0C|01|EF|
 
 CO Command - This byte defines the command you want to send.
@@ -452,7 +461,7 @@ PI Parameter ID - Id of the parameter to be changed in the page
       VA = 0x10 : SLOW
       VA = 0x20 : MED
       VA = 0x30 : FAST
-   0xFF 0x05 Wind Speed or Compass heading filtering level
+   0xFF 0x05 Wind Speed and Compass heading filtering level (high nibble if for compass, low niblle for wind)
       VA = 0x00 : AUTO (Wind Speed)
       VA = 0x01 : SLOW (Wind Speed)
       VA = 0x02 : MED (Wind Speed)
@@ -467,6 +476,10 @@ PI Parameter ID - Id of the parameter to be changed in the page
       VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
    0xFF 0x09 Compass heading offset
       VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+   0xFF 0x0B Related to Compass deviation calibration
+      VA = A signed 16-bit integer in degrees /!\ LITTLE ENDIAN VALUE /!\
+   0xFF 0x0C Compass deviation
+      VA = A 8-bit integer in degrees
    0xFF 0x0D Compass magnetic variation
       VA = Variation as signed 8bit integer in degrees
    0xFF 0x0E Wind shift

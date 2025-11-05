@@ -56,6 +56,10 @@
 /*                           Static & Globals                              */
 /***************************************************************************/
 
+const Vec3D NavCompass::Axis[6] = {
+    {1.0, 0.0, 0.0}, {-1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, -1.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, -1.0},
+};
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
@@ -94,12 +98,11 @@ bool NavCompass::Init()
     }
 
     // Compute starboard axis from heading/box axis and down axis
-    headingAxis.x = gConfiguration.headingAxis[0];
-    headingAxis.y = gConfiguration.headingAxis[1];
-    headingAxis.z = gConfiguration.headingAxis[2];
-    downAxis.x    = gConfiguration.downAxis[0];
-    downAxis.y    = gConfiguration.downAxis[1];
-    downAxis.z    = gConfiguration.downAxis[2];
+    headingAxis = Axis[gConfiguration.headingAxis];
+    downAxis    = Axis[gConfiguration.downAxis];
+
+    previousHeadingAxis = gConfiguration.headingAxis;
+    previousDownAxis    = gConfiguration.downAxis;
 
     CrossProduct(&downAxis, &headingAxis, &starBoardAxis);
 
@@ -123,6 +126,18 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     Vec3D mag;
     Vec3D E;
     Vec3D N;
+
+    // Compute starboard axis from heading/box axis and down axis
+    if ((gConfiguration.headingAxis != previousHeadingAxis) || (gConfiguration.downAxis != previousDownAxis))
+    {
+        headingAxis = Axis[gConfiguration.headingAxis];
+        downAxis    = Axis[gConfiguration.downAxis];
+
+        previousHeadingAxis = gConfiguration.headingAxis;
+        previousDownAxis    = gConfiguration.downAxis;
+
+        CrossProduct(&downAxis, &headingAxis, &starBoardAxis);
+    }
 
     // Set heading & roll to default values. These values will only be used if something
     // went wrong in calculations below (i.e. in case of bad measurements from LSM303)
