@@ -28,14 +28,17 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include <Arduino.h>
+
+#include "BoardConfig.h"
+#include "Configuration.h"
 #include "Globals.h"
+#include "MenuConfigSogCog.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
-/***************************************************************************/
-
-/***************************************************************************/
-/*                                Macros                                   */
 /***************************************************************************/
 
 /***************************************************************************/
@@ -46,17 +49,103 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+void PrintSogCogConfig();
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
-RfDriver            gRfReceiver;    // CC1101 Driver object
-MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-Configuration       gConfiguration;
-MenuManager         gMenuManager; // Menu manager object
-NavCompass          gNavCompass;
-BtMultiSPP          gBTSerial;
+static bool     sogCogFilteringEnable;
+static uint32_t sogCogFilterLength;
+static bool     spdEmulation;
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
+
+void MenuConfigSogCog()
+{
+    char c;
+    bool exitLoop = false;
+
+    sogCogFilteringEnable = gConfiguration.eeprom.sogCogFilteringEnable;
+    sogCogFilterLength    = gConfiguration.eeprom.sogCogFilterLength;
+    spdEmulation          = gConfiguration.eeprom.spdEmulation;
+
+    while (!exitLoop)
+    {
+        PrintSogCogConfig();
+
+        do
+        {
+            yield();
+            c = CONSOLE.read();
+        } while (c == 0xff);
+
+        if ((c >= 0x30) && (c <= 0x39))
+        {
+            CONSOLE.println(c);
+            c -= 0x30;
+            switch (c)
+            {
+            case 0:
+                sogCogFilteringEnable = !sogCogFilteringEnable;
+                break;
+            case 1:
+                sogCogFilterLength = (sogCogFilterLength + 1) % SOG_COG_MAX_FILTERING_DEPTH;
+                if (sogCogFilterLength <= 0) {
+                    sogCogFilterLength = 1;
+                }
+                break;
+            case 2:
+                spdEmulation = !spdEmulation;
+                break;
+            case 3:
+                gConfiguration.eeprom.sogCogFilteringEnable = sogCogFilteringEnable;
+                gConfiguration.eeprom.sogCogFilterLength = sogCogFilterLength;
+                gConfiguration.eeprom.spdEmulation = spdEmulation;
+                gConfiguration.SaveToEeprom();
+            case 4:
+                CONSOLE.println("Exiting to upper menu...");
+                return;
+            }
+        }
+        else if (c == 0x1b)
+        {
+            exitLoop = true;
+        }
+    }
+}
+
+void PrintSogCogConfig()
+{
+    CONSOLE.println("");
+    CONSOLE.print("*** ");
+    CONSOLE.print("SOG/COG Configuration");
+    CONSOLE.println(" ***");
+    CONSOLE.println("");
+    CONSOLE.print("0 - SOG/COG Filter : ");
+    if (sogCogFilteringEnable)
+    {
+        CONSOLE.println("ENABLED");
+    }
+    else
+    {
+        CONSOLE.println("DISABLED");
+    }
+    CONSOLE.print("1 - Filter strength : ");
+    CONSOLE.println(sogCogFilterLength);
+    CONSOLE.print("2 - Emulate water speed with SOG : ");
+    if (spdEmulation)
+    {
+        CONSOLE.println("ENABLED");
+    }
+    else
+    {
+        CONSOLE.println("DISABLED");
+    }
+    CONSOLE.println("3 - Save and exit");
+    CONSOLE.println("4 - Exit without saving");
+    CONSOLE.println("");
+    CONSOLE.print("Choice : ");
+}

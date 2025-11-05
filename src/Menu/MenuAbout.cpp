@@ -28,14 +28,18 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include <Arduino.h>
+
+#include "BoardConfig.h"
+#include "Configuration.h"
 #include "Globals.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
+#include "MicronetMessageFifo.h"
+#include "Version.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
-/***************************************************************************/
-
-/***************************************************************************/
-/*                                Macros                                   */
 /***************************************************************************/
 
 /***************************************************************************/
@@ -50,13 +54,81 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-RfDriver            gRfReceiver;    // CC1101 Driver object
-MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-Configuration       gConfiguration;
-MenuManager         gMenuManager; // Menu manager object
-NavCompass          gNavCompass;
-BtMultiSPP          gBTSerial;
-
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
+
+void MenuAbout()
+{
+    CONSOLE.print("MicronetToNMEA, Version ");
+    CONSOLE.print(MNET2NMEA_SW_MAJOR_VERSION, DEC);
+    CONSOLE.print(".");
+    CONSOLE.println(MNET2NMEA_SW_MINOR_VERSION, DEC);
+
+    if (!gConfiguration.magicNumberFound)
+    {
+        CONSOLE.println("Configuration not found in EEPROM");
+    }
+    else
+    {
+        if (gConfiguration.checksumValid)
+        {
+            CONSOLE.println("Valid configuration found in EEPROM");
+        }
+        else
+        {
+            CONSOLE.println("Invalid configuration found in EEPROM");
+        }
+    }
+
+    CONSOLE.print("Device ID : ");
+    CONSOLE.println(gConfiguration.eeprom.deviceId, HEX);
+
+    if (gConfiguration.eeprom.networkId != 0)
+    {
+        CONSOLE.print("Attached to Micronet Network ");
+        CONSOLE.println(gConfiguration.eeprom.networkId, HEX);
+    }
+    else
+    {
+        CONSOLE.println("No Micronet Network attached");
+    }
+
+    CONSOLE.print("RF Frequency offset = ");
+    CONSOLE.print(gConfiguration.eeprom.rfFrequencyOffset_MHz * 1000);
+    CONSOLE.print(" kHz (");
+    CONSOLE.print((int)(1000000.0 * gConfiguration.eeprom.rfFrequencyOffset_MHz / MICRONET_RF_CENTER_FREQUENCY_MHZ));
+    CONSOLE.println(" ppm)");
+    CONSOLE.print("Wind speed factor = ");
+    CONSOLE.println(gConfiguration.eeprom.windSpeedFactor_per);
+    CONSOLE.print("Wind direction offset = ");
+    CONSOLE.println((int)(gConfiguration.eeprom.windDirectionOffset_deg));
+    CONSOLE.print("Water speed factor = ");
+    CONSOLE.println(gConfiguration.eeprom.waterSpeedFactor_per);
+    CONSOLE.print("Water temperature offset = ");
+    CONSOLE.println((int)(gConfiguration.eeprom.waterTemperatureOffset_C));
+    if (gConfiguration.ram.navCompassAvailable == false)
+    {
+        CONSOLE.println("No navigation compass detected, disabling magnetic heading.");
+    }
+    else
+    {
+        CONSOLE.print("Using ");
+        CONSOLE.print(gNavCompass.GetDeviceName().c_str());
+        CONSOLE.println(" for magnetic heading");
+        CONSOLE.print("Magnetometer calibration : ");
+        CONSOLE.print(gConfiguration.eeprom.xMagOffset);
+        CONSOLE.print(" ");
+        CONSOLE.print(gConfiguration.eeprom.yMagOffset);
+        CONSOLE.print(" ");
+        CONSOLE.println(gConfiguration.eeprom.zMagOffset);
+        CONSOLE.print("Heading offset = ");
+        CONSOLE.println((int)(gConfiguration.eeprom.headingOffset_deg));
+        CONSOLE.print("Magnetic variation = ");
+        CONSOLE.println((int)(gConfiguration.eeprom.magneticVariation_deg));
+        CONSOLE.print("Depth offset = ");
+        CONSOLE.println(gConfiguration.eeprom.depthOffset_m);
+        CONSOLE.print("Wind shift = ");
+        CONSOLE.println((int)gConfiguration.eeprom.windShift);
+    }
+}

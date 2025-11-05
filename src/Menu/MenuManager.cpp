@@ -24,26 +24,119 @@
  ***************************************************************************
  */
 
-#pragma once
-
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
+
+#include "MenuManager.h"
+#include "BoardConfig.h"
+
+#include <Arduino.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
-
 /***************************************************************************/
-/*                                Types                                    */
+/*                             Local types                                 */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                           Local prototypes                              */
 /***************************************************************************/
 
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
 
+/***************************************************************************/
+/*                              Functions                                  */
+/***************************************************************************/
+
+MenuManager::MenuManager()
+{
+    menu       = nullptr;
+    menuLength = 0;
+}
+
+MenuManager::~MenuManager()
+{
+}
+
+void MenuManager::SetMenuDescription(MenuEntry_t *menuDesc)
+{
+    if (menuDesc != nullptr)
+    {
+        menu = menuDesc;
+        while (menu[menuLength].description != nullptr)
+        {
+            menuLength++;
+        }
+    }
+}
+
+void MenuManager::PushChar(char c)
+{
+    if ((c > 0x30) && (c <= 0x39))
+    {
+        int entry = c - 0x30;
+        if (entry < menuLength)
+        {
+            if (menu[entry].entryCallback != nullptr)
+            {
+                CONSOLE.println(entry);
+                CONSOLE.println("");
+                menu[entry].entryCallback();
+                PrintPrompt();
+            }
+        }
+    }
+    else if (c == 0x30)
+    {
+        CONSOLE.println("0");
+        PrintMenu();
+        PrintPrompt();
+    }
+}
+
+void MenuManager::PrintMenu()
+{
+    if ((menu == nullptr) || (menuLength < 2))
+    {
+        return;
+    }
+
+    CONSOLE.println("");
+    CONSOLE.print("*** ");
+    CONSOLE.print(menu[0].description);
+    CONSOLE.println(" ***");
+    CONSOLE.println("");
+    CONSOLE.println("0 - Print this menu");
+    for (int i = 1; i < menuLength; i++)
+    {
+        CONSOLE.print(i);
+        CONSOLE.print(" - ");
+        CONSOLE.println(menu[i].description);
+    }
+}
+
+void MenuManager::ActivateMenu(uint32_t entry)
+{
+    if (entry < (uint32_t)menuLength)
+    {
+        if (menu[entry].entryCallback != nullptr)
+        {
+            menu[entry].entryCallback();
+        }
+        else
+        {
+            PrintPrompt();
+        }
+    }
+}
+
+void MenuManager::PrintPrompt()
+{
+    CONSOLE.println("");
+    CONSOLE.print("Choice : ");
+}

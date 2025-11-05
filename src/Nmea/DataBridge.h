@@ -30,17 +30,107 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "Configuration.h"
+#include "MicronetCodec.h"
+#include "NavigationData.h"
+
+#include <stdint.h>
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
+#define NMEA_SENTENCE_MAX_LENGTH   128
+#define NMEA_SENTENCE_HISTORY_SIZE 24
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
+
+typedef enum
+{
+    NMEA_ID_UNKNOWN,
+    NMEA_ID_RMB,
+    NMEA_ID_RMC,
+    NMEA_ID_GGA,
+    NMEA_ID_GLL,
+    NMEA_ID_VTG,
+    NMEA_ID_MWV,
+    NMEA_ID_DPT,
+    NMEA_ID_VHW,
+    NMEA_ID_HDG
+} NmeaId_t;
+
+typedef struct
+{
+    uint32_t vwr;
+    uint32_t vwt;
+    uint32_t dpt;
+    uint32_t mtw;
+    uint32_t vlw;
+    uint32_t vhw;
+    uint32_t hdg;
+    uint32_t vcc;
+    uint32_t roll;
+} NmeaTimeStamps_t;
+
+#define NMEA_SENTENCE_MIN_PERIOD_MS 1000
+
+class DataBridge
+{
+  public:
+    DataBridge(MicronetCodec *micronetCodec);
+    virtual ~DataBridge();
+
+    void PushNmeaChar(char c, LinkId_t sourceLink);
+    void UpdateCompassData(float heading_deg, float heel_deg);
+    void SendUpdatedNMEASentences();
+
+  private:
+    static const uint8_t asciiTable[128];
+    char                 nmeaPlotterBuffer[NMEA_SENTENCE_MAX_LENGTH];
+    char                 nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
+    char                 nmeaAisBuffer[NMEA_SENTENCE_MAX_LENGTH];
+    int                  nmeaPlotterWriteIndex;
+    int                  nmeaGnssWriteIndex;
+    int                  nmeaAisWriteIndex;
+    NmeaTimeStamps_t     nmeaTimeStamps;
+    MicronetCodec       *micronetCodec;
+    uint32_t             sogFilterIndex;
+    uint32_t             sogFilterTimeStamp;
+    float                sogFilterBuffer[SOG_COG_MAX_FILTERING_DEPTH];
+    int                  cogFilterIndex;
+    uint32_t             cogFilterTimeStamp;
+    float                cogFilterBuffer[SOG_COG_MAX_FILTERING_DEPTH];
+
+    float FilteredSOG(float newSog_kt);
+    float FilteredCOG(float newCog_deg);
+
+    bool     IsSentenceValid(char *nmeaBuffer);
+    NmeaId_t SentenceId(char *nmeaBuffer);
+    void     DecodeRMBSentence(char *sentence);
+    void     DecodeRMCSentence(char *sentence);
+    void     DecodeGGASentence(char *sentence);
+    void     DecodeGLLSentence(char *sentence);
+    void     DecodeVTGSentence(char *sentence);
+    void     DecodeMWVSentence(char *sentence);
+    void     DecodeDPTSentence(char *sentence);
+    void     DecodeVHWSentence(char *sentence);
+    void     DecodeHDGSentence(char *sentence);
+    int16_t  NibbleValue(char c);
+
+    void EncodeMWV_R();
+    void EncodeMWV_T();
+    void EncodeDPT();
+    void EncodeMTW();
+    void EncodeVLW();
+    void EncodeVHW();
+    void EncodeHDG();
+    void EncodeBatteryXDR();
+    void EncodeRollXDR();
+
+    uint8_t AddNmeaChecksum(char *sentence);
+};
 
 /***************************************************************************/
 /*                              Prototypes                                 */

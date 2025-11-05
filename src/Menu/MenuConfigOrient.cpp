@@ -28,15 +28,20 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include <Arduino.h>
+
+#include "BoardConfig.h"
+#include "Configuration.h"
 #include "Globals.h"
+#include "MenuConfigOrient.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-/***************************************************************************/
-/*                                Macros                                   */
-/***************************************************************************/
+#define NB_AXIS 6
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -46,17 +51,86 @@
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+void PrintOrientationConfig();
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
-RfDriver            gRfReceiver;    // CC1101 Driver object
-MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
-Configuration       gConfiguration;
-MenuManager         gMenuManager; // Menu manager object
-NavCompass          gNavCompass;
-BtMultiSPP          gBTSerial;
+static uint32_t headingAxis;
+static uint32_t downAxis;
+
+static const char *axisName[NB_AXIS] = {"+X", "-X", "+Y", "-Y", "+Z", "-Z"};
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
+
+void MenuConfigOrientation()
+{
+    char c;
+    bool exitLoop = false;
+
+    headingAxis = gConfiguration.eeprom.headingAxis;
+    downAxis    = gConfiguration.eeprom.downAxis;
+
+    while (!exitLoop)
+    {
+        PrintOrientationConfig();
+
+        do
+        {
+            yield();
+            c = CONSOLE.read();
+        } while (c == 0xff);
+
+        if ((c >= 0x30) && (c <= 0x39))
+        {
+            CONSOLE.println(c);
+            c -= 0x30;
+            switch (c)
+            {
+            case 0:
+                do
+                {
+                    headingAxis = (headingAxis + 1) % NB_AXIS;
+                } while (headingAxis == downAxis);
+                break;
+            case 1:
+                do
+                {
+                    downAxis = (downAxis + 1) % NB_AXIS;
+                } while (downAxis == headingAxis);
+                break;
+            case 2:
+                gConfiguration.eeprom.headingAxis = (Axis_t)headingAxis;
+                gConfiguration.eeprom.downAxis    = (Axis_t)downAxis;
+                gConfiguration.SaveToEeprom();
+            case 3:
+                CONSOLE.println("Exiting to upper menu...");
+                return;
+            }
+        }
+        else if (c == 0x1b)
+        {
+            exitLoop = true;
+        }
+    }
+}
+
+void PrintOrientationConfig()
+{
+    CONSOLE.println("");
+    CONSOLE.print("*** ");
+    CONSOLE.print("Compass orientation");
+    CONSOLE.println(" ***");
+    CONSOLE.println("");
+    CONSOLE.print("0 - Heading/bow axis : ");
+    CONSOLE.println(axisName[headingAxis]);
+    CONSOLE.print("1 - Bottom/down axis : ");
+    CONSOLE.println(axisName[downAxis]);
+    CONSOLE.println("2 - Save and exit");
+    CONSOLE.println("3 - Exit without saving");
+    CONSOLE.println("");
+    CONSOLE.print("Choice : ");
+}

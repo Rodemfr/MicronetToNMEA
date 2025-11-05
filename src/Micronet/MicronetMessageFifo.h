@@ -1,7 +1,7 @@
 /***************************************************************************
  *                                                                         *
- * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Project:  MicroNav                                                      *
+ * Purpose:  FIFO to store Micronet messages                               *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
  ***************************************************************************
@@ -30,17 +30,42 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "Micronet.h"
+#include <Arduino.h>
+#include <stdint.h>
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
+#define MESSAGE_STORE_SIZE 16
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
+
+class MicronetMessageFifo
+{
+  public:
+    MicronetMessageFifo();
+    virtual ~MicronetMessageFifo();
+
+    bool               Push(MicronetMessage_t const &message);
+    bool               PushIsr(MicronetMessage_t const &message);
+    bool               Pop(MicronetMessage_t *message);
+    MicronetMessage_t *Peek(int index);
+    MicronetMessage_t *Peek();
+    void               DeleteMessage();
+    void               ResetFifo();
+    int                GetNbMessages();
+
+  private:
+    volatile int      writeIndex;
+    volatile int      readIndex;
+    volatile int      nbMessages;
+    MicronetMessage_t store[MESSAGE_STORE_SIZE];
+    portMUX_TYPE      fifoMutex;
+};
 
 /***************************************************************************/
 /*                              Prototypes                                 */

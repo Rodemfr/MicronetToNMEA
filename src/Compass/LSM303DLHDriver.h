@@ -1,8 +1,8 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
- * Author:   Ronan Demoment                                                *
+ * Purpose:  Driver for LSM303DLH                                          *
+ * Author:   Ronan Demoment, Dietmar Warning                               *
  *                                                                         *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
@@ -30,20 +30,41 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "NavCompassDriver.h"
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
-
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
+using string = std::string;
+
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                               Classes                                   */
 /***************************************************************************/
 
+class LSM303DLHDriver : public NavCompassDriver
+{
+  public:
+    LSM303DLHDriver();
+    virtual ~LSM303DLHDriver();
+
+    virtual bool   Init() override;
+    virtual string GetDeviceName() override;
+    virtual void   GetMagneticField(Vec3D *mag) override;
+    virtual void   GetAcceleration(Vec3D *acc) override;
+
+  private:
+    uint8_t accAddr, magAddr;
+    float   LsbPerGaussXY;
+    float   LsbPerGaussZ;
+    float   GPerLsb;
+
+    bool I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data);
+    bool I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length);
+    bool I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address);
+};
 

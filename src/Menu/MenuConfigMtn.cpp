@@ -24,26 +24,86 @@
  ***************************************************************************
  */
 
-#pragma once
-
 /***************************************************************************/
 /*                              Includes                                   */
 /***************************************************************************/
+
+#include <Arduino.h>
+
+#include "BoardConfig.h"
+#include "Configuration.h"
+#include "Globals.h"
+#include "MenuConfigLink.h"
+#include "MenuConfigSogCog.h"
+#include "MenuConfigOrient.h"
+#include "MenuConfigMtn.h"
+#include "Micronet.h"
+#include "MicronetCodec.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
-
 /***************************************************************************/
-/*                                Types                                    */
+/*                             Local types                                 */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                           Local prototypes                              */
 /***************************************************************************/
 
+void ConfigExit();
 
+/***************************************************************************/
+/*                               Globals                                   */
+/***************************************************************************/
+
+bool        exitConfig;
+MenuEntry_t configMenuDesc[] = {{"Configuration", nullptr},
+                                {"Configure data sources", MenuConfigLink},
+                                {"Configure SOG/COG", MenuConfigSogCog},
+                                {"Configure orientation", MenuConfigOrientation},
+                                {"Return to main menu", ConfigExit},
+                                {nullptr, nullptr}};
+
+/***************************************************************************/
+/*                              Functions                                  */
+/***************************************************************************/
+
+void MenuConfigMtn()
+{
+    MenuManager configMenuManager;
+
+    configMenuManager.SetMenuDescription(configMenuDesc);
+    configMenuManager.PrintMenu();
+    configMenuManager.PrintPrompt();
+    exitConfig = false;
+
+    while (!exitConfig)
+    {
+        // Process console input
+        while (CONSOLE.available() > 0)
+        {
+            configMenuManager.PushChar(CONSOLE.read());
+        }
+
+        yield();
+    }
+}
+
+void ConfigLink()
+{
+}
+
+void ConfigSogCog()
+{
+}
+
+void ConfigOrientation()
+{
+}
+
+void ConfigExit()
+{
+    exitConfig = true;
+}

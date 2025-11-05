@@ -30,20 +30,43 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include <Arduino.h>
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
-
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
+typedef struct MenuEntry_t
+{
+    const char *description;
+    void (*entryCallback)(void);
+} MenuEntry_t;
+
+#define MAX_MENU_DEPTH 4
+
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                               Classes                                   */
 /***************************************************************************/
+
+class MenuManager
+{
+  public:
+    MenuManager();
+    virtual ~MenuManager();
+
+    void SetMenuDescription(MenuEntry_t *menuDesc);
+    void PushChar(char c);
+    void PrintMenu();
+    void PrintPrompt();
+    void ActivateMenu(uint32_t entry);
+
+  private:
+    MenuEntry_t *menu;
+    int          menuLength;
+};
 
 

@@ -34,9 +34,38 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
+// Select 868MHz or 915MHz Micronet frequency
+// 0 -> 868Mhz
+// 1 -> 915Mhz
+#define FREQUENCY_SYSTEM 0
+
+// CC1101/SPI pins
+#define CS0_PIN  5
+#define MOSI_PIN 23
+#define MISO_PIN 19
+#define SCK_PIN  18
+#define GDO0_PIN 35
+
+// Selects on which I2C bus is connected compass as per Wiring library definition
+#define COMPASS_I2C Wire
+
+// Console UART params
+#define CONSOLE          Serial
+#define CONSOLE_BAUDRATE 115200
+
+// UBlox GNSS UART pins
+#define GNSS          Serial1
+#define GNSS_BAUDRATE 9600
+#define GNSS_RX_PIN   16
+#define GNSS_TX_PIN   17
+
+// AIS UART pins
+#define AIS          Serial2
+#define AIS_BAUDRATE 38400
+#define AIS_RX_PIN   34
+
+// Plotter/Nav Computer UART params
+#define PLOTTER gBTSerial
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -45,5 +74,4 @@
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
-
 

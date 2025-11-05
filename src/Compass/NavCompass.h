@@ -1,8 +1,10 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
- * Author:   Ronan Demoment                                                *
+ * Purpose:  Compass handler                                               *
+ * Author:   Ronan Demoment, Dietmar Warning                               *
+ *           Heading algorithm heavily based on pololu's code :            *
+ *           https://github.com/pololu/lsm303-arduino                      *
  *                                                                         *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
@@ -30,20 +32,58 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "NavCompassDriver.h"
+#include "Configuration.h"
+
+#include <stdint.h>
+#include <string>
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
 
-// MicronetToNMEA SW version
-#define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 9
+#define HEADING_HISTORY_LENGTH 15
+#define ROLL_HISTORY_LENGTH    15
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
+using string = std::string;
+
 /***************************************************************************/
-/*                              Prototypes                                 */
+/*                               Classes                                   */
 /***************************************************************************/
 
+class NavCompass
+{
+  public:
+    NavCompass();
+    virtual ~NavCompass();
+
+    bool   Init();
+    string GetDeviceName();
+    void   GetHeadingAndRoll(float *heading_deg, float *roll_deg);
+    void   GetMagneticField(float *magX, float *magY, float *magZ);
+    void   GetAcceleration(float *accX, float *accY, float *accZ);
+
+  private:
+    float              headingHistory[HEADING_HISTORY_LENGTH];
+    uint32_t           headingIndex;
+    float              rollHistory[ROLL_HISTORY_LENGTH];
+    uint32_t           rollIndex;
+    bool               navCompassDetected;
+    NavCompassDriver  *navCompassDriver;
+    Vec3D              headingAxis;
+    Vec3D              downAxis;
+    Vec3D              starBoardAxis;
+    static const Vec3D Axis[6];
+    Axis_t             previousHeadingAxis;
+    Axis_t             previousDownAxis;
+
+    bool  isZero(Vec3D *a);
+    void  Normalize(Vec3D *a);
+    void  CrossProduct(Vec3D *a, Vec3D *b, Vec3D *out);
+    float VectorDot(Vec3D *a, Vec3D *b);
+};
 
