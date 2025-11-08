@@ -171,9 +171,9 @@ void Configuration::LoadFromEeprom()
             eeprom.compassSource            = (LinkId_t)configBlock.config.compassSource;
             eeprom.sogCogFilteringEnable    = configBlock.config.sogCogFilteringEnable;
             eeprom.sogCogFilterLength       = configBlock.config.sogCogFilterLength;
-            if (eeprom.sogCogFilterLength > SOG_COG_MAX_FILTERING_DEPTH)
+            if (eeprom.sogCogFilterLength >= SOG_COG_MAX_FILTERING_DEPTH)
             {
-                eeprom.sogCogFilterLength = SOG_COG_MAX_FILTERING_DEPTH;
+                eeprom.sogCogFilterLength = SOG_COG_MAX_FILTERING_DEPTH - 1;
             }
             eeprom.spdEmulation = configBlock.config.spdEmulation;
             eeprom.headingAxis  = (Axis_t)configBlock.config.headingAxis;
@@ -239,7 +239,6 @@ void Configuration::SaveToEeprom()
         {
             EEPROM.put(0, configBlock);
             EEPROM.commit();
-            CONSOLE.println("Conf written");
             break;
         }
     }
