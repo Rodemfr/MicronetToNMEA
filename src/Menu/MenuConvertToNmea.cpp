@@ -114,41 +114,41 @@ void MenuConvertToNmea()
             gRxMessageFifo.DeleteMessage();
         }
 
-        // while (GNSS.available() > 0)
-        // {
-        //     dataBridge.PushNmeaChar(GNSS.read(), LINK_GNSS);
-        // }
+        while (GNSS.available() > 0)
+        {
+            dataBridge.PushNmeaChar(GNSS.read(), LINK_GNSS);
+        }
 
-        // while (AIS.available() > 0)
-        // {
-        //     dataBridge.PushNmeaChar(AIS.read(), LINK_AIS);
-        // }
+        while (AIS.available() > 0)
+        {
+            dataBridge.PushNmeaChar(AIS.read(), LINK_AIS);
+        }
 
-        // char c;
-        // while (PLOTTER.available() > 0)
-        // {
-        //     c = PLOTTER.read();
-        //     if (((void *)(&CONSOLE) == (void *)(&PLOTTER)) && (c == 0x1b))
-        //     {
-        //         CONSOLE.println("ESC key pressed, stopping conversion.");
-        //         exitNmeaLoop = true;
-        //     }
-        //     dataBridge.PushNmeaChar(c, LINK_PLOTTER);
-        // }
+        char c;
+        while (PLOTTER.available() > 0)
+        {
+            c = PLOTTER.read();
+            if (((void *)(&CONSOLE) == (void *)(&PLOTTER)) && (c == 0x1b))
+            {
+                CONSOLE.println("ESC key pressed, stopping conversion.");
+                exitNmeaLoop = true;
+            }
+            dataBridge.PushNmeaChar(c, LINK_PLOTTER);
+        }
 
         // // Only execute magnetic heading code if navigation compass is available
-        // if (gConfiguration.ram.navCompassAvailable == true)
-        // {
-        //     // Handle magnetic compass
-        //     // Only request new reading if previous is at least 100ms old
-        //     if ((millis() - lastHeadingTime) > 100)
-        //     {
-        //         lastHeadingTime = millis();
-        //         float heading_deg, roll_deg;
-        //         gNavCompass.GetHeadingAndRoll(&heading_deg, &roll_deg);
-        //         dataBridge.UpdateCompassData(heading_deg + micronetCodec.navData.headingOffset_deg, roll_deg);
-        //     }
-        // }
+        if (gConfiguration.ram.navCompassAvailable == true)
+        {
+            // Handle magnetic compass
+            // Only request new reading if previous is at least 100ms old
+            if ((millis() - lastHeadingTime) > 100)
+            {
+                lastHeadingTime = millis();
+                float heading_deg, roll_deg;
+                gNavCompass.GetHeadingAndRoll(&heading_deg, &roll_deg);
+                dataBridge.UpdateCompassData(heading_deg + micronetCodec.navData.headingOffset_deg, roll_deg);
+            }
+        }
 
         if ((void *)(&CONSOLE) != (void *)(&PLOTTER))
         {

@@ -26,16 +26,30 @@ MenuEntry_t mainMenuDesc[] = {{"MicronetToNMEA", nullptr},
                               {nullptr, nullptr}};
 
 void RfIsr();
+void FatalError();
 
 void setup()
 {
-    // Initialize BLE link
-    gBTSerial.begin("MicronetToNMEAv3");
-
-    // Initialize console link
+    // Initialize console link first
     CONSOLE.begin(CONSOLE_BAUDRATE);
-    while (!Serial)
+    // If console is not mapped to bluetooth, wait for serial connection
+    if ((void *)&CONSOLE != (void *)&gBTSerial)
     {
+        while (!CONSOLE)
+        {
+            delay(10);
+        }
+    }
+
+    // Initialize BLE link with a more distinctive name
+    if (!gBTSerial.begin("MicronetToNMEA"))
+    {
+        CONSOLE.println("Bluetooth initialization failed");
+        FatalError();
+    }
+    else
+    {
+        CONSOLE.println("Bluetooth initialized successfully");
     }
 
     // Load configuration from EEPROM
@@ -45,18 +59,8 @@ void setup()
     // Check connection to CC1101
     if (!gRfReceiver.Init(&gRxMessageFifo, gConfiguration.eeprom.rfFrequencyOffset_MHz))
     {
-        CONSOLE.println("Failed");
-        CONSOLE.println("Aborting execution : Verify connection to CC1101 board");
-        CONSOLE.println("Halted");
-
-        pinMode(LED_BUILTIN, OUTPUT);
-        while (1)
-        {
-            digitalWrite(LED_BUILTIN, HIGH);
-            delay(500);
-            digitalWrite(LED_BUILTIN, LOW);
-            delay(500);
-        }
+        CONSOLE.println("Failed, verify connection to CC1101 board");
+        FatalError();
     }
     CONSOLE.println("OK");
 
@@ -85,4 +89,17 @@ void loop()
 void RfIsr()
 {
     gRfReceiver.RfIsr();
+}
+
+void FatalError()
+{
+    CONSOLE.println("FATAL ERROR : System halted.");
+    pinMode(LED_BUILTIN, OUTPUT);
+    while (1)
+    {
+        digitalWrite(LED_BUILTIN, HIGH);
+        delay(500);
+        digitalWrite(LED_BUILTIN, LOW);
+        delay(500);
+    }
 }

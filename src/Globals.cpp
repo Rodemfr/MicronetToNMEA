@@ -55,7 +55,7 @@ MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for com
 Configuration       gConfiguration;
 MenuManager         gMenuManager; // Menu manager object
 NavCompass          gNavCompass;
-BtMultiSPP          gBTSerial;
+BluetoothSerial     gBTSerial;
 
 /***************************************************************************/
 /*                              Functions                                  */

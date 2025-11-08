@@ -38,7 +38,8 @@
 #include "NavCompass.h"
 #include "NavigationData.h"
 #include "RfDriver.h"
-#include "BtMultiSPP.h"
+
+#include <BluetoothSerial.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -57,9 +58,8 @@ extern MicronetMessageFifo gRxMessageFifo;
 extern Configuration       gConfiguration;
 extern MenuManager         gMenuManager;
 extern NavCompass          gNavCompass;
-extern BtMultiSPP          gBTSerial;
+extern BluetoothSerial     gBTSerial;
 
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
-

@@ -29,6 +29,7 @@
 /***************************************************************************/
 
 #include "MenuManager.h"
+#include "Globals.h"
 #include "BoardConfig.h"
 
 #include <Arduino.h>
