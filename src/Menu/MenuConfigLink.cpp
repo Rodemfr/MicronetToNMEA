@@ -57,19 +57,17 @@ uint32_t FindLinkIndex(uint8_t *configTable, uint32_t tableLength, uint32_t link
 /*                               Globals                                   */
 /***************************************************************************/
 
-const char *linkName[] = {
-    "Plotter", "Internal GNSS", "Micronet", "Internal compass", "External NMEA0183",
-};
+const char *linkName[] = {"Plotter", "NMEA0183 Input", "Micronet", "Internal compass"};
 
-uint8_t  gnssConfigTable[]    = {LINK_GNSS, LINK_AIS, LINK_PLOTTER};
+uint8_t  gnssConfigTable[]    = {LINK_NMEA0183_IN, LINK_PLOTTER};
 uint32_t gnssConfigIndex      = 0;
-uint8_t  windConfigTable[]    = {LINK_MICRONET, LINK_PLOTTER, LINK_AIS};
+uint8_t  windConfigTable[]    = {LINK_MICRONET, LINK_PLOTTER, LINK_NMEA0183_IN};
 uint32_t windConfigIndex      = 0;
-uint8_t  depthConfigTable[]   = {LINK_MICRONET, LINK_PLOTTER, LINK_AIS};
+uint8_t  depthConfigTable[]   = {LINK_MICRONET, LINK_PLOTTER, LINK_NMEA0183_IN};
 uint32_t depthConfigIndex     = 0;
-uint8_t  speedConfigTable[]   = {LINK_MICRONET, LINK_PLOTTER, LINK_AIS};
+uint8_t  speedConfigTable[]   = {LINK_MICRONET, LINK_PLOTTER, LINK_NMEA0183_IN};
 uint32_t speedConfigIndex     = 0;
-uint8_t  compassConfigTable[] = {LINK_COMPASS, LINK_PLOTTER, LINK_MICRONET, LINK_AIS};
+uint8_t  compassConfigTable[] = {LINK_COMPASS, LINK_PLOTTER, LINK_MICRONET, LINK_NMEA0183_IN};
 uint32_t compassConfigIndex   = 0;
 
 /***************************************************************************/
@@ -119,10 +117,10 @@ void MenuConfigLink()
                 compassConfigIndex = (compassConfigIndex + 1) % sizeof(compassConfigTable);
                 break;
             case 5:
-                gConfiguration.eeprom.gnssSource = (LinkId_t)gnssConfigTable[gnssConfigIndex];
-                gConfiguration.eeprom.windSource = (LinkId_t)windConfigTable[windConfigIndex];
-                gConfiguration.eeprom.depthSource = (LinkId_t)depthConfigTable[depthConfigIndex];
-                gConfiguration.eeprom.speedSource = (LinkId_t)speedConfigTable[speedConfigIndex];
+                gConfiguration.eeprom.gnssSource    = (LinkId_t)gnssConfigTable[gnssConfigIndex];
+                gConfiguration.eeprom.windSource    = (LinkId_t)windConfigTable[windConfigIndex];
+                gConfiguration.eeprom.depthSource   = (LinkId_t)depthConfigTable[depthConfigIndex];
+                gConfiguration.eeprom.speedSource   = (LinkId_t)speedConfigTable[speedConfigIndex];
                 gConfiguration.eeprom.compassSource = (LinkId_t)compassConfigTable[compassConfigIndex];
                 gConfiguration.SaveToEeprom();
             case 6:

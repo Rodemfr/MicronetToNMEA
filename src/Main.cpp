@@ -32,17 +32,26 @@ void setup()
 {
     // Initialize console link first
     CONSOLE.begin(CONSOLE_BAUDRATE);
-    // If console is not mapped to bluetooth, wait for serial connection
-    if ((void *)&CONSOLE != (void *)&gBTSerial)
+    while (!CONSOLE)
     {
-        while (!CONSOLE)
-        {
-            delay(10);
-        }
+        delay(10);
     }
 
-    // Initialize BLE link with a more distinctive name
-    if (!gBTSerial.begin("MicronetToNMEA"))
+    // Init NMEA0183 input serial link
+    NMEA0183_IN.begin(NMEA0183_IN_BAUDRATE);
+    while (!NMEA0183_IN)
+    {
+        delay(10);
+    }
+
+    // Initialize UBlox M6N/M8N GNSS module
+#if (NMEA0183_IN_IS_UBLOXM8N == 1)
+    CONSOLE.println("Configuring UBlox M6N/M8N GNSS");
+    gM8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
+#endif
+
+    // Initialize BLE link with a distinctive name
+    if (!gBTSerial.begin(BLUETOOTH_DEVICE_NAME))
     {
         CONSOLE.println("Bluetooth initialization failed");
         FatalError();
@@ -63,6 +72,19 @@ void setup()
         FatalError();
     }
     CONSOLE.println("OK");
+
+    CONSOLE.print("Initializing navigation compass ... ");
+    if (!gNavCompass.Init())
+    {
+        CONSOLE.println("NOT DETECTED");
+        gConfiguration.ram.navCompassAvailable = false;
+    }
+    else
+    {
+        CONSOLE.print(gNavCompass.GetDeviceName().c_str());
+        CONSOLE.println(" Found");
+        gConfiguration.ram.navCompassAvailable = true;
+    }
 
     // Start listening
     gRfReceiver.RestartReception();

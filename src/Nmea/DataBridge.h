@@ -89,11 +89,9 @@ class DataBridge
   private:
     static const uint8_t asciiTable[128];
     char                 nmeaPlotterBuffer[NMEA_SENTENCE_MAX_LENGTH];
-    char                 nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
-    char                 nmeaAisBuffer[NMEA_SENTENCE_MAX_LENGTH];
+    char                 nmeaNmeaInBuffer[NMEA_SENTENCE_MAX_LENGTH];
     int                  nmeaPlotterWriteIndex;
-    int                  nmeaGnssWriteIndex;
-    int                  nmeaAisWriteIndex;
+    int                  nmeaNmeaInWriteIndex;
     NmeaTimeStamps_t     nmeaTimeStamps;
     MicronetCodec       *micronetCodec;
     uint32_t             sogFilterIndex;

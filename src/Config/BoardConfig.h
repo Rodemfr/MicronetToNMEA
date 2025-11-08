@@ -49,20 +49,17 @@
 // Selects on which I2C bus is connected compass as per Wiring library definition
 #define COMPASS_I2C Wire
 
+// Bluetooth device name as it will be seen by other devices
+#define BLUETOOTH_DEVICE_NAME "MicronetToNMEA"
+
 // Console UART params
 #define CONSOLE          Serial
 #define CONSOLE_BAUDRATE 115200
 
-// UBlox GNSS UART pins
-#define GNSS          Serial1
-#define GNSS_BAUDRATE 9600
-#define GNSS_RX_PIN   16
-#define GNSS_TX_PIN   17
-
-// AIS UART pins
-#define AIS          Serial2
-#define AIS_BAUDRATE 38400
-#define AIS_RX_PIN   34
+// NMEA0183 input configuration
+#define NMEA0183_IN_IS_UBLOXM8N 1 // Set to 1 to enable UBlox M6N/M8N configuration
+#define NMEA0183_IN             Serial2
+#define NMEA0183_IN_BAUDRATE    38400
 
 // Plotter/Nav Computer UART params
 #define PLOTTER gBTSerial
@@ -74,4 +71,3 @@
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
-

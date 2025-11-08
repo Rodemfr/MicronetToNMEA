@@ -65,10 +65,9 @@ typedef enum
 typedef enum
 {
     LINK_PLOTTER = 0,
-    LINK_GNSS,
+    LINK_NMEA0183_IN,
     LINK_MICRONET,
-    LINK_COMPASS,
-    LINK_AIS
+    LINK_COMPASS
 } LinkId_t;
 
 /**

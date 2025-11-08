@@ -50,12 +50,13 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-RfDriver            gRfReceiver;    // CC1101 Driver object
+RfDriver            gRfReceiver;
 MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 Configuration       gConfiguration;
-MenuManager         gMenuManager; // Menu manager object
+MenuManager         gMenuManager;
 NavCompass          gNavCompass;
 BluetoothSerial     gBTSerial;
+M8NDriver           gM8nDriver;
 
 /***************************************************************************/
 /*                              Functions                                  */

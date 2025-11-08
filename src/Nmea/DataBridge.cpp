@@ -77,10 +77,8 @@ DataBridge::DataBridge(MicronetCodec *micronetCodec)
 {
     nmeaPlotterWriteIndex = 0;
     nmeaPlotterBuffer[0]  = 0;
-    nmeaGnssWriteIndex    = 0;
-    nmeaGnssBuffer[0]     = 0;
-    nmeaAisWriteIndex     = 0;
-    nmeaAisBuffer[0]      = 0;
+    nmeaNmeaInWriteIndex    = 0;
+    nmeaNmeaInBuffer[0]     = 0;
     memset(&nmeaTimeStamps, 0, sizeof(nmeaTimeStamps));
     this->micronetCodec = micronetCodec;
 
@@ -119,13 +117,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
         nmeaBuffer     = nmeaPlotterBuffer;
         nmeaWriteIndex = &nmeaPlotterWriteIndex;
         break;
-    case LINK_GNSS:
-        nmeaBuffer     = nmeaGnssBuffer;
-        nmeaWriteIndex = &nmeaGnssWriteIndex;
-        break;
-    case LINK_AIS:
-        nmeaBuffer     = nmeaAisBuffer;
-        nmeaWriteIndex = &nmeaAisWriteIndex;
+    case LINK_NMEA0183_IN:
+        nmeaBuffer     = nmeaNmeaInBuffer;
+        nmeaWriteIndex = &nmeaNmeaInWriteIndex;
         break;
     default:
         return;
@@ -239,9 +233,9 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 default:
-                    // If an unknown sentence is received from AIS link, forward it to the chart plotter.
+                    // If an unknown sentence is received from NMEA0183 IN link, forward it to the chart plotter.
                     // It is especially useful to provide AIVDM/AIVDO and alert sentences.
-                    if (sourceLink == LINK_AIS)
+                    if (sourceLink == LINK_NMEA0183_IN)
                     {
                         PLOTTER.println(nmeaBuffer);
                     }

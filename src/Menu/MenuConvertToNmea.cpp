@@ -114,14 +114,9 @@ void MenuConvertToNmea()
             gRxMessageFifo.DeleteMessage();
         }
 
-        while (GNSS.available() > 0)
+        while (NMEA0183_IN.available() > 0)
         {
-            dataBridge.PushNmeaChar(GNSS.read(), LINK_GNSS);
-        }
-
-        while (AIS.available() > 0)
-        {
-            dataBridge.PushNmeaChar(AIS.read(), LINK_AIS);
+            dataBridge.PushNmeaChar(NMEA0183_IN.read(), LINK_NMEA0183_IN);
         }
 
         char c;

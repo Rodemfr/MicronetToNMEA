@@ -38,6 +38,7 @@
 #include "NavCompass.h"
 #include "NavigationData.h"
 #include "RfDriver.h"
+#include "M8NDriver.h"
 
 #include <BluetoothSerial.h>
 
@@ -59,6 +60,7 @@ extern Configuration       gConfiguration;
 extern MenuManager         gMenuManager;
 extern NavCompass          gNavCompass;
 extern BluetoothSerial     gBTSerial;
+extern M8NDriver           gM8nDriver;
 
 /***************************************************************************/
 /*                              Prototypes                                 */

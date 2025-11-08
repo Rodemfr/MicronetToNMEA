@@ -90,13 +90,13 @@ Configuration::Configuration() : magicNumberFound(false), checksumValid(false), 
     eeprom.headingOffset_deg        = 0;
     eeprom.magneticVariation_deg    = 0;
     eeprom.windShift                = 10;
-    eeprom.deviceId                 = 0x03123456;
+    eeprom.deviceId                 = (0x03100000 | (esp_random() & 0x000ffff8));
     eeprom.xMagOffset               = 0;
     eeprom.yMagOffset               = 0;
     eeprom.zMagOffset               = 0;
     eeprom.rfFrequencyOffset_MHz    = 0;
 
-    eeprom.gnssSource    = LINK_GNSS;
+    eeprom.gnssSource    = LINK_NMEA0183_IN;
     eeprom.windSource    = LINK_MICRONET;
     eeprom.depthSource   = LINK_MICRONET;
     eeprom.speedSource   = LINK_MICRONET;
