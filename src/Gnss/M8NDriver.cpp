@@ -84,8 +84,12 @@ void M8NDriver::Start(uint32_t nmeaSentences)
     GPS_SendConfig(ClearConfig, 21);
     delay(500);
     GPS_SendConfig(UART1_38400, 28);
+    NMEA0183_IN.end();
     NMEA0183_IN.begin(38400);
-    delay(100);
+    while (!NMEA0183_IN)
+    {
+        delay(10);
+    }
     NMEA0183_IN.println("");
     GPS_SendConfig(GNSSSetup, 68);
     delay(200);
