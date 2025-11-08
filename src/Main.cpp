@@ -44,9 +44,9 @@ void setup()
         delay(10);
     }
 
-    // Initialize UBlox M6N/M8N GNSS module
+    // Initialize UBlox M6N/M8N GNSS module if applicable
 #if (NMEA0183_IN_IS_UBLOXM8N == 1)
-    CONSOLE.println("Configuring UBlox M6N/M8N GNSS");
+    NMEA0183_IN.println("Configuring UBlox M6N/M8N GNSS");
     gM8nDriver.Start(M8N_GGA_ENABLE | M8N_VTG_ENABLE | M8N_RMC_ENABLE);
 #endif
 

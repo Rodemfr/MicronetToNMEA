@@ -59,10 +59,10 @@
 // NMEA0183 input configuration
 #define NMEA0183_IN_IS_UBLOXM8N 1 // Set to 1 to enable UBlox M6N/M8N configuration
 #define NMEA0183_IN             Serial2
-#define NMEA0183_IN_BAUDRATE    38400
+#define NMEA0183_IN_BAUDRATE    9600
 
 // Plotter/Nav Computer UART params
-#define PLOTTER gBTSerial
+#define PLOTTER Serial
 
 /***************************************************************************/
 /*                                Types                                    */
