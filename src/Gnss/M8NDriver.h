@@ -7,8 +7,7 @@
  *
  */
 
-#ifndef M8NDRIVER_H_
-#define M8NDRIVER_H_
+#pragma once
 
 #include <Arduino.h>
 
@@ -34,5 +33,3 @@ class M8NDriver
     void GPS_SendConfig(const uint8_t *progmemPtr, uint8_t arraySize);
     void GPS_SendPUBX(const char pubxMsg[]);
 };
-
-#endif /* M8NDRIVER_H_ */
