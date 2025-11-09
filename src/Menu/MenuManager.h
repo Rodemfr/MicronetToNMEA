@@ -1,11 +1,22 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Console-based menu system manager                             *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements a simple menu manager that:                      *
+ * - Displays numbered menu entries on the console                         *
+ * - Processes numeric input to select entries                             *
+ * - Executes associated callback functions                               *
+ * - Maintains menu state and handles reprinting                          *
+ *                                                                         *
+ * The implementation is designed to be:                                   *
+ * - Memory efficient (uses const char* for strings)                       *
+ * - Non-blocking (processes one character at a time)                      *
+ * - Reusable across different menu hierarchies                           *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -21,8 +32,7 @@
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 #pragma once
 
@@ -36,22 +46,39 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/**
+ * Maximum depth of menu nesting supported
+ */
+#define MAX_MENU_DEPTH 4
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
+/**
+ * Menu entry structure
+ * 
+ * @param description Text to display for this menu entry
+ * @param entryCallback Function to call when entry is selected
+ *                     nullptr for title or end of menu marker
+ */
 typedef struct MenuEntry_t
 {
     const char *description;
     void (*entryCallback)(void);
 } MenuEntry_t;
 
-#define MAX_MENU_DEPTH 4
-
 /***************************************************************************/
 /*                               Classes                                   */
 /***************************************************************************/
 
+/**
+ * MenuManager
+ * 
+ * This class implements a simple console-based menu system.
+ * It displays numbered entries, processes numeric input and
+ * executes associated callbacks.
+ */
 class MenuManager
 {
   public:

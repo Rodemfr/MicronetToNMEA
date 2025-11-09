@@ -1,8 +1,16 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Decode data from Micronet devices and forward it on an NMEA   *
+ *           0183 network                                                   *
  * Author:   Ronan Demoment                                                *
+ *                                                                         *
+ * This module implements the "Convert to NMEA" menu action. It performs:  *
+ * - Initialization of conversion pipeline (Micronet codec, DataBridge)    *
+ * - Loading and saving of sensor calibration data                          *
+ * - Configuration of Micronet slave device parameters                      *
+ * - Main loop forwarding received Micronet messages to NMEA outputs and    *
+ *   handling incoming NMEA input (from plotter / NMEA IN)                  *
  *                                                                         *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
@@ -12,21 +20,11 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
-/***************************************************************************/
-/*                              Includes                                   */
-/***************************************************************************/
+ /***************************************************************************/
+ /*                              Includes                                   */
+ /***************************************************************************/
 
 #include <Arduino.h>
 
@@ -41,27 +39,72 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* (No local constants defined) */
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
+
+/* (No local types defined) */
 
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/**
+ * Entry point for the "Convert to NMEA" menu.
+ * This function starts the conversion loop and returns when the user exits.
+ */
 void MenuConvertToNmea();
+
+/**
+ * Save calibration data from MicronetCodec into persistent configuration (EEPROM).
+ *
+ * @param micronetCodec Reference to configured MicronetCodec containing calibration values.
+ */
 void SaveCalibration(MicronetCodec &micronetCodec);
+
+/**
+ * Load calibration data from EEPROM into the MicronetCodec instance.
+ *
+ * @param micronetCodec Reference to MicronetCodec to populate with stored calibration values.
+ */
 void LoadCalibration(MicronetCodec &micronetCodec);
+
+/**
+ * Configure Micronet slave device fields according to board configuration and user settings.
+ *
+ * @param micronetDevice Reference to MicronetSlaveDevice to configure (network id, data fields, etc.).
+ */
 void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice);
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
+/* (No file-local globals) */
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * MenuConvertToNmea
+ *
+ * Main routine executed when the user selects "Start NMEA conversion".
+ * Responsibilities:
+ * - Verify that the converter is attached to a Micronet network
+ * - Instantiate MicronetCodec, DataBridge and MicronetSlaveDevice objects
+ * - Load saved calibration and apply board-specific configuration
+ * - Enter the main processing loop which:
+ *     * Processes incoming Micronet messages and transmits responses
+ *     * Converts updated Micronet navigation data into NMEA sentences
+ *     * Forwards incoming NMEA characters from external sources to the DataBridge
+ *     * Periodically samples the onboard compass if available
+ *     * Saves calibration updates when notified by the codec
+ *
+ * The loop exits when the user presses ESC (handled via console/plotter input).
+ */
 void MenuConvertToNmea()
 {
     bool                exitNmeaLoop = false;
@@ -166,6 +209,14 @@ void MenuConvertToNmea()
     gRfReceiver.DisableFrequencyTracking();
 }
 
+/**
+ * SaveCalibration
+ *
+ * Copies calibration-related fields from the MicronetCodec navigation data into
+ * the persistent configuration structure and triggers an EEPROM write.
+ *
+ * @param micronetCodec Reference to the MicronetCodec instance containing the up-to-date calibration.
+ */
 void SaveCalibration(MicronetCodec &micronetCodec)
 {
     gConfiguration.eeprom.waterSpeedFactor_per     = micronetCodec.navData.waterSpeedFactor_per;
@@ -180,6 +231,14 @@ void SaveCalibration(MicronetCodec &micronetCodec)
     gConfiguration.SaveToEeprom();
 }
 
+/**
+ * LoadCalibration
+ *
+ * Restores calibration values from persistent configuration (EEPROM) into the
+ * MicronetCodec navigation data structure so they are applied during conversion.
+ *
+ * @param micronetCodec Reference to the MicronetCodec instance to populate.
+ */
 void LoadCalibration(MicronetCodec &micronetCodec)
 {
     micronetCodec.navData.waterSpeedFactor_per        = gConfiguration.eeprom.waterSpeedFactor_per;
@@ -192,8 +251,18 @@ void LoadCalibration(MicronetCodec &micronetCodec)
     micronetCodec.navData.windShift_min               = gConfiguration.eeprom.windShift;
 }
 
-// Defines slave device parameters depending on its configuration
-// @param micronetDevice MicronetSlaveDevice instance
+/**
+ * ConfigureSlaveDevice
+ *
+ * Prepare the MicronetSlaveDevice structure according to saved user preferences
+ * and board-specific behavior. This sets:
+ * - Network and device identifiers
+ * - Default set of data fields to be sent to the Micronet master
+ * - Conditional inclusion of heading, depth, speed and wind fields depending on
+ *   whether those sources are provided by Micronet or external inputs
+ *
+ * @param micronetDevice Reference to the MicronetSlaveDevice to configure.
+ */
 void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice)
 {
     // Configure Micronet's slave devices

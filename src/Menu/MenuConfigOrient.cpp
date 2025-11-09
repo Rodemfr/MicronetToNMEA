@@ -1,28 +1,28 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Configure compass orientation and mounting position            *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements an interactive menu to configure how the         *
+ * compass/magnetometer is mounted in the device. It allows users to       *
+ * specify which axes represent:                                          *
+ * - The heading/bow direction (forward direction of the boat)            *
+ * - The down direction (vertical alignment)                              *
+ *                                                                         *
+ * The implementation handles axis selection, validates that heading and   *
+ * down axes are different, and persists settings to EEPROM when          *
+ * requested by the user.                                                 *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -41,31 +41,61 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/**
+ * Number of possible axes orientations (+X, -X, +Y, -Y, +Z, -Z)
+ */
 #define NB_AXIS 6
 
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
 
+/* No local types required */
+
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/**
+ * PrintOrientationConfig
+ * 
+ * Display the current orientation configuration and menu options
+ * to the console.
+ */
 void PrintOrientationConfig();
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
+/**
+ * Working copies of axis configuration during menu interaction
+ */
 static uint32_t headingAxis;
 static uint32_t downAxis;
 
+/**
+ * Human readable names for the 6 possible axis orientations
+ */
 static const char *axisName[NB_AXIS] = {"+X", "-X", "+Y", "-Y", "+Z", "-Z"};
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * MenuConfigOrientation
+ *
+ * Interactive menu to configure compass mounting orientation.
+ * 
+ * Allows users to:
+ * - Select which axis represents the heading/bow direction
+ * - Select which axis represents the down direction
+ * - Save configuration to EEPROM
+ * 
+ * The function ensures heading and down axes remain different
+ * while cycling through options. Returns when user saves or exits.
+ */
 void MenuConfigOrientation()
 {
     char c;
@@ -118,6 +148,15 @@ void MenuConfigOrientation()
     }
 }
 
+/**
+ * PrintOrientationConfig
+ * 
+ * Display the current orientation settings and menu options.
+ * Shows:
+ * - Current heading/bow axis selection
+ * - Current bottom/down axis selection  
+ * - Save and exit options
+ */
 void PrintOrientationConfig()
 {
     CONSOLE.println("");

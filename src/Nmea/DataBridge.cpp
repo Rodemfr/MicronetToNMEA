@@ -1,9 +1,15 @@
 /***************************************************************************
- *                                                                         *
- * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
- * Author:   Ronan Demoment                                                *
- *                                                                         *
+ *                                                                         
+ * DataBridge.cpp                                                           
+ *                                                                         
+ * This module provides bidirectional conversion between Micronet and NMEA0183
+ * protocols. It handles:
+ * - Decoding of NMEA0183 sentences from external devices (GPS, plotters...)
+ * - Encoding of NMEA0183 sentences from Micronet data
+ * - Data filtering (SOG, COG smoothing)
+ * - ASCII character conversion for proper display on Micronet devices
+ * - Navigation data timestamping and validation
+ *                                                                         
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
  *                                                                         *
@@ -25,7 +31,7 @@
  */
 
 /***************************************************************************/
-/*                              Includes                                   */
+/*                              Includes                                     */
 /***************************************************************************/
 
 #include "DataBridge.h"
@@ -36,10 +42,15 @@
 #include <string.h>
 
 /***************************************************************************/
-/*                              Constants                                  */
+/*                              Constants                                    */
 /***************************************************************************/
 
-// TODO : ASCII conversion for Micronet should be done in Micronet code
+/**
+ * ASCII conversion table for Micronet display
+ * Maps ASCII characters to their closest display-compatible equivalent
+ * Non-displayable characters are mapped to space
+ * Special characters are mapped to their closest ASCII equivalent
+ */
 const uint8_t DataBridge::asciiTable[128] = {
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',  ' ', ' ', ' ', ' ', ' ',  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\"', ' ', ' ', '%', '&', '\'', ' ', ' ', ' ', '+', ' ', '-', '.', '/', '0', '1', '2', '3',
@@ -48,37 +59,38 @@ const uint8_t DataBridge::asciiTable[128] = {
     'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',  'Q', 'R', 'S', 'T', 'U',  'V', 'W', 'X', 'Y', 'Z', ' ', ' ', ' ', ' ', ' '};
 
 /***************************************************************************/
-/*                                Macros                                   */
+/*                                Macros                                     */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                             Local types                                 */
+/*                             Local types                                   */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                           Local prototypes                              */
+/*                           Local prototypes                                */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                               Globals                                   */
+/*                               Globals                                     */
 /***************************************************************************/
 
 /***************************************************************************/
-/*                              Functions                                  */
+/*                              Functions                                    */
 /***************************************************************************/
 
-/*
- * @brief Constructor of the class
+/**
+ * Class constructor
+ * Initializes internal buffers and filters
  *
- * @param micronetCodec Pointer to the MicronetCodec class that will be used by
- * the data bridge to handle Micronetdata
+ * @param micronetCodec Pointer to the MicronetCodec instance that handles
+ *                     Micronet protocol encoding/decoding
  */
 DataBridge::DataBridge(MicronetCodec *micronetCodec)
 {
     nmeaPlotterWriteIndex = 0;
     nmeaPlotterBuffer[0]  = 0;
-    nmeaNmeaInWriteIndex    = 0;
-    nmeaNmeaInBuffer[0]     = 0;
+    nmeaNmeaInWriteIndex  = 0;
+    nmeaNmeaInBuffer[0]   = 0;
     memset(&nmeaTimeStamps, 0, sizeof(nmeaTimeStamps));
     this->micronetCodec = micronetCodec;
 
@@ -90,22 +102,20 @@ DataBridge::DataBridge(MicronetCodec *micronetCodec)
     memset(cogFilterBuffer, 0, SOG_COG_MAX_FILTERING_DEPTH * sizeof(float));
 }
 
-/*
+/**
  * @brief Desstructor of the class. Does nothing.
  */
 DataBridge::~DataBridge()
 {
 }
 
-/*
- * @brief Push a character in one of the NMEA queue of the bridge. This
- * function must be called each time a character is received from one of
- * the NMEA link.
+/**
+ * Push a character received from a NMEA source into the processing queue
  *
- * @param c Character received
- * @param sourceLink Id of the link the character was received from
+ * @param c Character to be processed
+ * @param sourceLink Source of the NMEA data (LINK_PLOTTER or LINK_NMEA0183_IN)
  */
-void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
+void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink) 
 {
     char *nmeaBuffer     = nullptr;
     int  *nmeaWriteIndex = 0;
@@ -262,7 +272,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
     }
 }
 
-/*
+/**
  * @brief Update heading & roll angle from LSM303 electronic compass. This
  * function will ignore the updated values if MicronetToNMEA has not been
  * configured to use LSM303.
@@ -292,7 +302,7 @@ void DataBridge::UpdateCompassData(float heading_deg, float roll_deg)
     }
 }
 
-/*
+/**
  * @brief Send NMEA sentences generated from updated micronet data. This
  * function checks which micronet data has been updated since last call and
  * sends the associated NMEA sentence to the concerned device.
@@ -309,7 +319,7 @@ void DataBridge::SendUpdatedNMEASentences()
     EncodeBatteryXDR();
 }
 
-/*
+/**
  * @brief Updates the SOG filter with the lastest SOG raw value and returns
  * the updated filtered SOG value.
  *
@@ -345,7 +355,7 @@ float DataBridge::FilteredSOG(float newSog_kt)
     }
 }
 
-/*
+/**
  * @brief Updates the COG filter with the lastest COG raw value and returns
  * the updated filtered COG value.
  *
@@ -405,7 +415,7 @@ float DataBridge::FilteredCOG(float newCog_deg)
     }
 }
 
-/*
+/**
  * @brief Checks if a NMEA sentence is valid (CRC & syntax).
  *
  * @param nmeaBuffer Pointer to the null terminated NMEA sentence
@@ -435,7 +445,7 @@ bool DataBridge::IsSentenceValid(char *nmeaBuffer)
     return true;
 }
 
-/*
+/**
  * @brief Retreives the ID of an NMEA sentence.
  *
  * @param nmeaBuffer Pointer to the null terminated NMEA sentence
@@ -492,6 +502,17 @@ NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
     return nmeaSentence;
 }
 
+/**
+ * Decodes RMB (Recommended Minimum Navigation Information) sentence
+ * Updates Micronet data with:
+ * - Cross Track Error (XTE)
+ * - Waypoint name
+ * - Distance To Waypoint (DTW)
+ * - Bearing To Waypoint (BTW)
+ * - Velocity Made Good to waypoint (VMG)
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeRMBSentence(char *sentence)
 {
     float value;
@@ -584,6 +605,17 @@ void DataBridge::DecodeRMBSentence(char *sentence)
     }
 }
 
+/**
+ * Decodes RMC (Recommended Minimum Navigation Information) sentence
+ * Updates Micronet data with:
+ * - Time
+ * - Date
+ * - Latitude/Longitude
+ * - Speed Over Ground (SOG)
+ * - Course Over Ground (COG)
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeRMCSentence(char *sentence)
 {
     float degs, mins;
@@ -679,6 +711,12 @@ void DataBridge::DecodeRMCSentence(char *sentence)
     }
 }
 
+/**
+ * Decodes GGA (Global Positioning System Fix Data) sentence
+ * Updates Micronet data with position (latitude/longitude)
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeGGASentence(char *sentence)
 {
     float degs, mins;
@@ -720,6 +758,12 @@ void DataBridge::DecodeGGASentence(char *sentence)
     }
 }
 
+/**
+ * Decodes GLL (Geographic Position - Latitude/Longitude) sentence
+ * Updates Micronet data with position coordinates
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeGLLSentence(char *sentence)
 {
     float degs, mins;
@@ -757,6 +801,15 @@ void DataBridge::DecodeGLLSentence(char *sentence)
     }
 }
 
+/**
+ * Decodes VTG (Track Made Good and Ground Speed) sentence
+ * Updates Micronet data with:
+ * - Course Over Ground (COG)
+ * - Speed Over Ground (SOG)
+ * Supports both old and new VTG format
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeVTGSentence(char *sentence)
 {
     float value;
@@ -814,6 +867,15 @@ void DataBridge::DecodeVTGSentence(char *sentence)
     }
 }
 
+/**
+ * Decodes MWV (Wind Speed and Angle) sentence
+ * Updates Micronet data with:
+ * - Apparent Wind Angle (AWA)
+ * - Apparent Wind Speed (AWS)
+ * Also triggers true wind calculation
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeMWVSentence(char *sentence)
 {
     float value;
@@ -873,6 +935,13 @@ void DataBridge::DecodeMWVSentence(char *sentence)
     micronetCodec->CalculateTrueWind();
 }
 
+/**
+ * Decodes DPT (Depth) sentence
+ * Updates Micronet data with water depth
+ * Adds configured offset to raw depth value
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeDPTSentence(char *sentence)
 {
     float value;
@@ -897,6 +966,14 @@ void DataBridge::DecodeDPTSentence(char *sentence)
     }
 }
 
+/**
+ * Decodes VHW (Water Speed and Heading) sentence
+ * Updates Micronet data with:
+ * - Magnetic heading
+ * - Water speed
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeVHWSentence(char *sentence)
 {
     float value;
@@ -938,6 +1015,13 @@ void DataBridge::DecodeVHWSentence(char *sentence)
     }
 }
 
+/**
+ * Decodes HDG (Heading, Deviation and Variation) sentence
+ * Updates Micronet data with magnetic heading
+ * Normalizes heading to [0..360[ range
+ * 
+ * @param sentence Pointer to NMEA sentence (null terminated)
+ */
 void DataBridge::DecodeHDGSentence(char *sentence)
 {
     float value;
@@ -955,6 +1039,12 @@ void DataBridge::DecodeHDGSentence(char *sentence)
     micronetCodec->navData.magHdg_deg.timeStamp = millis();
 }
 
+/**
+ * Converts hexadecimal character to its numeric value
+ * 
+ * @param c Character to convert ('0'-'9','A'-'F','a'-'f')
+ * @return Numeric value [0-15] or -1 if invalid character
+ */
 int16_t DataBridge::NibbleValue(char c)
 {
     if ((c >= '0') && (c <= '9'))
@@ -973,6 +1063,13 @@ int16_t DataBridge::NibbleValue(char c)
     return -1;
 }
 
+/**
+ * Encodes and sends MWV sentence for Apparent Wind (Relative)
+ * Sends data only if:
+ * - Wind source is configured as MICRONET
+ * - Both AWA and AWS are valid and recently updated
+ * - Minimum update period has elapsed
+ */
 void DataBridge::EncodeMWV_R()
 {
     if (gConfiguration.eeprom.windSource == LINK_MICRONET)
@@ -997,6 +1094,13 @@ void DataBridge::EncodeMWV_R()
     }
 }
 
+/**
+ * Encodes and sends MWV sentence for True Wind
+ * Sends data only if:
+ * - Wind source is configured as MICRONET
+ * - Both TWA and TWS are valid and recently updated
+ * - Minimum update period has elapsed
+ */
 void DataBridge::EncodeMWV_T()
 {
     if (gConfiguration.eeprom.windSource == LINK_MICRONET)
@@ -1021,6 +1125,13 @@ void DataBridge::EncodeMWV_T()
     }
 }
 
+/**
+ * Encodes and sends DPT (Depth) sentence
+ * Sends data only if:
+ * - Depth source is configured as MICRONET
+ * - Depth data is valid and recently updated
+ * - Minimum update period has elapsed
+ */
 void DataBridge::EncodeDPT()
 {
     if (gConfiguration.eeprom.depthSource == LINK_MICRONET)
@@ -1033,7 +1144,8 @@ void DataBridge::EncodeDPT()
         if (update)
         {
             char sentence[NMEA_SENTENCE_MAX_LENGTH];
-            sprintf(sentence, "$INDPT,%.1f,%.1f,", micronetCodec->navData.dpt_m.value - micronetCodec->navData.depthOffset_m, micronetCodec->navData.depthOffset_m);
+            sprintf(sentence, "$INDPT,%.1f,%.1f,", micronetCodec->navData.dpt_m.value - micronetCodec->navData.depthOffset_m,
+                    micronetCodec->navData.depthOffset_m);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.dpt = millis();
             PLOTTER.println(sentence);
@@ -1041,6 +1153,13 @@ void DataBridge::EncodeDPT()
     }
 }
 
+/**
+ * Encodes and sends MTW (Water Temperature) sentence
+ * Sends data only if:
+ * - Depth source is configured as MICRONET (temp sensor usually bundled with depth)
+ * - Temperature data is valid and recently updated
+ * - Minimum update period has elapsed
+ */
 void DataBridge::EncodeMTW()
 {
     if (gConfiguration.eeprom.depthSource == LINK_MICRONET)
@@ -1061,6 +1180,13 @@ void DataBridge::EncodeMTW()
     }
 }
 
+/**
+ * Encodes and sends VLW (Distance Traveled) sentence
+ * Sends data only if:
+ * - Speed source is configured as MICRONET
+ * - Both LOG and TRIP data are valid and recently updated
+ * - Minimum update period has elapsed
+ */
 void DataBridge::EncodeVLW()
 {
     if (gConfiguration.eeprom.speedSource == LINK_MICRONET)
@@ -1082,6 +1208,14 @@ void DataBridge::EncodeVLW()
     }
 }
 
+/**
+ * Encodes and sends VHW (Water Speed and Heading) sentence
+ * Sends data only if:
+ * - Speed source is configured as MICRONET
+ * - Speed data is valid and recently updated
+ * - Minimum update period has elapsed
+ * If magnetic heading is valid, includes both true and magnetic heading
+ */
 void DataBridge::EncodeVHW()
 {
     if (gConfiguration.eeprom.speedSource == LINK_MICRONET)
@@ -1117,6 +1251,14 @@ void DataBridge::EncodeVHW()
     }
 }
 
+/**
+ * Encodes and sends HDG (Heading) sentence
+ * Sends data only if:
+ * - Compass source is configured as MICRONET or COMPASS
+ * - Heading data is valid and recently updated
+ * - Minimum update period has elapsed
+ * Includes magnetic variation if available
+ */
 void DataBridge::EncodeHDG()
 {
     if ((gConfiguration.eeprom.compassSource == LINK_MICRONET) || (gConfiguration.eeprom.compassSource == LINK_COMPASS))
@@ -1138,6 +1280,12 @@ void DataBridge::EncodeHDG()
     }
 }
 
+/**
+ * Encodes and sends XDR sentence for battery voltage
+ * Sends data only if:
+ * - Battery voltage is valid and recently updated
+ * - Minimum update period has elapsed
+ */
 void DataBridge::EncodeBatteryXDR()
 {
     bool update;
@@ -1155,6 +1303,12 @@ void DataBridge::EncodeBatteryXDR()
     }
 }
 
+/**
+ * Encodes and sends XDR sentence for roll angle
+ * Sends data only if:
+ * - Roll data is valid and recently updated
+ * - Minimum update period has elapsed
+ */
 void DataBridge::EncodeRollXDR()
 {
     bool update;
@@ -1172,6 +1326,12 @@ void DataBridge::EncodeRollXDR()
     }
 }
 
+/**
+ * Calculates and appends NMEA checksum to a sentence
+ * 
+ * @param sentence Pointer to null-terminated NMEA sentence (without checksum)
+ * @return Calculated checksum value
+ */
 uint8_t DataBridge::AddNmeaChecksum(char *sentence)
 {
     uint8_t crc = 0;

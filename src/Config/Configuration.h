@@ -1,28 +1,30 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Manage persistent and runtime configuration                    *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module provides centralized configuration management:               *
+ * - EEPROM-based persistent storage                                       *
+ * - Runtime configuration access                                          *
+ * - Type-safe configuration structures                                    *
+ * - Automatic validation (magic word, checksum)                           *
+ *                                                                         *
+ * Configuration includes:                                                 *
+ * - Network and device identifiers                                        *
+ * - Sensor calibration values                                            *
+ * - Data routing preferences                                             *
+ * - Navigation parameters                                                 *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 #pragma once
 
@@ -36,7 +38,10 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
-// Maximum depth of COG/SOG filter
+/**
+ * Maximum depth for SOG/COG filtering
+ * Larger values provide more smoothing but increase latency
+ */
 #define SOG_COG_MAX_FILTERING_DEPTH 16
 
 /***************************************************************************/
@@ -44,124 +49,131 @@
 /***************************************************************************/
 
 /**
- * @brief Radio frequency system selection used for RF configuration.
- *
- * Indicates which regional RF frequency plan the device should use (e.g. 868 MHz
- * or 915 MHz).
+ * Radio frequency system selection
+ * Used to configure RF hardware for regional frequency plans
  */
 typedef enum
 {
-    RF_FREQ_SYSTEM_868 = 0,
-    RF_FREQ_SYSTEM_915
+    RF_FREQ_SYSTEM_868 = 0,  ///< European 868 MHz band
+    RF_FREQ_SYSTEM_915       ///< North American 915 MHz band
 } FreqSystem_t;
 
 /**
- * @brief Identifiers for logical data links/sources.
- *
- * Used to select or identify the source or destination of navigation and
- * sensor data within the application (plotter, GNSS, Micronet devices,
- * compass, or the legacy AIS/NMEA link).
+ * Data link identifiers
+ * Used to route data between different physical and logical sources
  */
 typedef enum
 {
-    LINK_PLOTTER = 0,
-    LINK_NMEA0183_IN,
-    LINK_MICRONET,
-    LINK_COMPASS
+    LINK_PLOTTER = 0,     ///< External chart plotter
+    LINK_NMEA0183_IN,     ///< NMEA0183 input port
+    LINK_MICRONET,        ///< Micronet wireless network
+    LINK_COMPASS          ///< Internal compass sensor
 } LinkId_t;
 
 /**
- * @brief Axis identifiers for sensor mounting orientation.
- *
- * Enumerates the possible axes (positive and negative directions) that can be
- * used to describe magnetic sensor orientation relative to the device chassis.
+ * Axis identifiers for sensor orientation
+ * Defines possible mounting orientations for magnetic sensors
  */
 typedef enum
 {
-    AXIS_X = 0,
-    AXIS_MINUS_X,
-    AXIS_Y,
-    AXIS_MINUS_Y,
-    AXIS_Z,
-    AXIS_MINUS_Z
+    AXIS_X = 0,           ///< Positive X axis
+    AXIS_MINUS_X,         ///< Negative X axis  
+    AXIS_Y,              ///< Positive Y axis
+    AXIS_MINUS_Y,         ///< Negative Y axis
+    AXIS_Z,              ///< Positive Z axis
+    AXIS_MINUS_Z          ///< Negative Z axis
 } Axis_t;
 
 /**
- * @brief Persistent configuration stored in EEPROM.
- *
- * This structure contains all configuration values that are saved to and
- * restored from EEPROM, including identifiers, scaling/calibration factors,
- * data source selections, filtering options and axis mappings.
+ * EEPROM-stored configuration
+ * All fields persisted across power cycles
  */
 typedef struct
 {
-    uint32_t networkId;
-    uint32_t deviceId;
-    float    waterSpeedFactor_per;
-    float    waterTemperatureOffset_C;
-    float    depthOffset_m;
-    float    windSpeedFactor_per;
-    float    windDirectionOffset_deg;
-    float    headingOffset_deg;
-    float    magneticVariation_deg;
-    float    windShift;
-    float    xMagOffset;
-    float    yMagOffset;
-    float    zMagOffset;
-    float    rfFrequencyOffset_MHz;
-    uint8_t  gnssSource;
-    uint8_t  windSource;
-    uint8_t  depthSource;
-    uint8_t  speedSource;
-    uint8_t  compassSource;
-    uint8_t  sogCogFilteringEnable;
-    uint8_t  sogCogFilterLength;
-    uint8_t  spdEmulation;
-    Axis_t   headingAxis;
-    Axis_t   downAxis;
+    uint32_t networkId;                  ///< Micronet network identifier
+    uint32_t deviceId;                   ///< Device unique identifier
+    float    waterSpeedFactor_per;       ///< Water speed calibration factor
+    float    waterTemperatureOffset_C;   ///< Water temp sensor offset
+    float    depthOffset_m;              ///< Depth sensor offset
+    float    windSpeedFactor_per;        ///< Wind speed calibration factor
+    float    windDirectionOffset_deg;    ///< Wind direction offset
+    float    headingOffset_deg;          ///< Magnetic heading offset
+    float    magneticVariation_deg;      ///< Local magnetic variation
+    float    windShift;                  ///< Wind shift angle
+    float    xMagOffset;                 ///< X-axis magnetometer offset
+    float    yMagOffset;                 ///< Y-axis magnetometer offset
+    float    zMagOffset;                 ///< Z-axis magnetometer offset
+    float    rfFrequencyOffset_MHz;      ///< RF crystal frequency trim
+    uint8_t  gnssSource;                 ///< GNSS data source selection
+    uint8_t  windSource;                 ///< Wind data source selection
+    uint8_t  depthSource;                ///< Depth data source selection
+    uint8_t  speedSource;                ///< Speed data source selection
+    uint8_t  compassSource;              ///< Compass data source selection
+    uint8_t  sogCogFilteringEnable;      ///< SOG/COG filter enable flag
+    uint8_t  sogCogFilterLength;         ///< SOG/COG filter depth
+    uint8_t  spdEmulation;               ///< Speed emulation enable
+    Axis_t   headingAxis;                ///< Heading reference axis
+    Axis_t   downAxis;                   ///< Vertical reference axis
 } EEPROMConfig_t;
 
 /**
- * @brief Runtime-only (non-persistent) configuration.
- *
- * Contains flags and state used at runtime that are not saved to EEPROM.
+ * Runtime-only configuration
+ * Values not persisted to EEPROM
  */
 typedef struct
 {
-    bool navCompassAvailable;
+    bool navCompassAvailable;            ///< Compass hardware detected flag
 } RAMConfig_t;
 
+/***************************************************************************/
+/*                              Classes                                    */
+/***************************************************************************/
+
 /**
- * @class Configuration
- * @brief Central access point for application configuration and persistence.
+ * Configuration
  *
- * The Configuration class provides simple access to the application's
- * configuration data. It exposes methods to initialize EEPROM access,
- * load persisted settings into RAM, and save current settings back to EEPROM.
- * Public members include status flags (magicNumberFound, checksumValid,
- * eepromInit) and the eeprom/ram structures representing persistent and
- * runtime configuration respectively.
+ * Central configuration management class providing:
+ * - EEPROM initialization and access
+ * - Configuration load/save operations
+ * - Status tracking (magic number, checksum, init state)
+ * - Access to both persistent and runtime configuration
  */
 class Configuration
 {
   public:
+    /**
+     * Constructor
+     * Initializes configuration with default values
+     */
     Configuration();
+
+    /**
+     * Virtual destructor
+     */
     virtual ~Configuration();
 
+    /**
+     * Load configuration from EEPROM
+     * Verifies magic number and checksum before accepting
+     */
     void LoadFromEeprom();
+
+    /**
+     * Save current configuration to EEPROM
+     * Only writes if different from stored values
+     */
     void SaveToEeprom();
+
+    /**
+     * Initialize EEPROM subsystem
+     * Safe to call multiple times
+     */
     void InitEeprom();
 
-    bool magicNumberFound;
-    bool checksumValid;
-    bool eepromInit;
+    bool magicNumberFound;              ///< Valid config block found flag
+    bool checksumValid;                 ///< Config checksum valid flag
+    bool eepromInit;                    ///< EEPROM initialized flag
 
-    // The following parameters are loaded/saved from/to EEPROM
-    EEPROMConfig_t eeprom;
-    // The following parameters are NOT loaded/saved from/to EEPROM
-    RAMConfig_t ram;
+    EEPROMConfig_t eeprom;             ///< Persistent configuration
+    RAMConfig_t    ram;                ///< Runtime configuration
 };
-
-/***************************************************************************/
-/*                              Prototypes                                 */
-/***************************************************************************/

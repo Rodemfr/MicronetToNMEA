@@ -1,28 +1,29 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Console menu system implementation                            *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements a simple console-based menu manager that:        *
+ * - Displays numbered menu entries                                        *
+ * - Processes numeric input to select entries                            *
+ * - Executes associated callback functions                               *
+ * - Maintains menu state and handles reprinting                          *
+ *                                                                         *
+ * The implementation is designed to be:                                   *
+ * - Memory efficient (uses const char* for strings)                       *
+ * - Non-blocking (processes one character at a time)                      *
+ * - Reusable across different menu hierarchies                           *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -38,32 +39,53 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* No file-local constants required */
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
+
+/* No local types required */
 
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/* No local prototypes required */
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
+
+/* No file-local globals required */
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * Default constructor
+ * 
+ * Initializes menu pointer and length to safe values
+ */
 MenuManager::MenuManager()
 {
     menu       = nullptr;
     menuLength = 0;
 }
 
+/**
+ * Default destructor
+ */
 MenuManager::~MenuManager()
 {
 }
 
+/**
+ * Configure the menu structure to be managed
+ * 
+ * @param menuDesc Pointer to array of MenuEntry_t, nullptr terminated
+ */
 void MenuManager::SetMenuDescription(MenuEntry_t *menuDesc)
 {
     if (menuDesc != nullptr)
@@ -76,6 +98,16 @@ void MenuManager::SetMenuDescription(MenuEntry_t *menuDesc)
     }
 }
 
+/**
+ * Process a character received from the console
+ * 
+ * Handles:
+ * - Numeric input (1-9) to select menu entries
+ * - 0 to reprint the menu
+ * - Executes associated callback if entry is valid
+ * 
+ * @param c Character to process
+ */
 void MenuManager::PushChar(char c)
 {
     if ((c > 0x30) && (c <= 0x39))
@@ -100,6 +132,16 @@ void MenuManager::PushChar(char c)
     }
 }
 
+/**
+ * Print the complete menu to the console
+ * 
+ * Format:
+ * *** Title ***
+ * 0 - Print this menu
+ * 1 - First entry
+ * 2 - Second entry
+ * etc.
+ */
 void MenuManager::PrintMenu()
 {
     if ((menu == nullptr) || (menuLength < 2))
@@ -121,6 +163,11 @@ void MenuManager::PrintMenu()
     }
 }
 
+/**
+ * Activate a specific menu entry by index
+ * 
+ * @param entry Index of the menu entry to activate
+ */
 void MenuManager::ActivateMenu(uint32_t entry)
 {
     if (entry < (uint32_t)menuLength)
@@ -136,6 +183,11 @@ void MenuManager::ActivateMenu(uint32_t entry)
     }
 }
 
+/**
+ * Print the menu prompt
+ * 
+ * Displays "Choice : " and waits for user input
+ */
 void MenuManager::PrintPrompt()
 {
     CONSOLE.println("");

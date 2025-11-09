@@ -1,32 +1,30 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  RF frequency tuning utility for Micronet receiver             *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements an interactive console routine used to tune the  *
+ * RF oscillator of the CC1101-based receiver so the device aligns with   *
+ * the Micronet master transmitter frequency. The procedure performs a     *
+ * frequency sweep around the nominal center frequency, counts received    *
+ * master requests and derives the working frequency range. If a valid    *
+ * range is found, the user may save the computed frequency offset into    *
+ * persistent configuration (EEPROM).                                      *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
-/*                              Includes                                   */
-/***************************************************************************/
+ /*                              Includes                                   */
+ /***************************************************************************/
 
 #include <Arduino.h>
 
@@ -41,6 +39,7 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* Sweep parameters: total range in kHz and step in kHz */
 #define FREQUENCY_SWEEP_RANGE_KHZ 300
 #define FREQUENCY_SWEEP_STEP_KHZ  3
 
@@ -48,18 +47,42 @@
 /*                             Local types                                 */
 /***************************************************************************/
 
+/* No file-local types required */
+
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
+
+/* No local prototypes required */
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
+/* No file-local globals required */
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * MenuCalibrateXtal
+ *
+ * Interactive RF calibration routine.
+ *
+ * Steps:
+ *  - Prompt the user and wait for confirmation to start tuning
+ *  - Disable automatic frequency tracking and set a narrow bandwidth for the sweep
+ *  - Sweep the receiver frequency from center - range/2 to center + range/2
+ *    using small steps and count received master request messages at each step
+ *  - Track the first and last frequency where master requests are detected
+ *  - If a valid working range is detected, compute center frequency and range,
+ *    display results and offer to save the computed offset to EEPROM
+ *  - Restore RF driver settings (bandwidth, frequency offset) on exit
+ *
+ * The function performs blocking console IO and returns when tuning completes
+ * or when the user presses ESC.
+ */
 void MenuCalibrateXtal()
 {
     bool          exitTuneLoop;

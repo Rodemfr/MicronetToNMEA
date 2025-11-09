@@ -1,28 +1,25 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Manage persistent configuration storage                        *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements persistent configuration storage using EEPROM.    *
+ * It manages:                                                             *
+ * - Default configuration values                                          *
+ * - Loading/saving configuration blocks                                   *
+ * - Configuration validation (magic word, checksum)                       *
+ * - Type-safe configuration access                                        *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -40,20 +37,29 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/**
+ * Configuration storage constants
+ * CONFIGURATION_EEPROM_SIZE: Total EEPROM space reserved
+ * EEPROM_CONFIG_OFFSET: Start offset in EEPROM
+ * CONFIG_MAGIC_NUMBER: Identifier for valid config blocks
+ */
 #define CONFIGURATION_EEPROM_SIZE 128
 #define EEPROM_CONFIG_OFFSET      0
-#define CONFIG_MAGIC_NUMBER       0x4D544E4D
+#define CONFIG_MAGIC_NUMBER       0x4D544E4D  // 'MTNM'
 
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
 
+/**
+ * Configuration block structure
+ * Packed to ensure consistent EEPROM layout
+ */
 #pragma pack(1)
-typedef struct
-{
-    uint32_t       magicWord;
-    EEPROMConfig_t config;
-    uint8_t        checksum;
+typedef struct {
+    uint32_t       magicWord;  // Config block identifier 
+    EEPROMConfig_t config;     // User configuration data
+    uint8_t        checksum;   // Simple checksum for validation
 } ConfigBlock_t;
 #pragma pack()
 
@@ -70,11 +76,15 @@ typedef struct
 /***************************************************************************/
 
 /**
- * @brief Construct a new Configuration object.
- *
- * Initialize in-memory and default EEPROM-backed configuration values so the
- * rest of the application can read sensible defaults before any persisted
- * configuration is loaded from EEPROM.
+ * Configuration class constructor
+ * 
+ * Initializes:
+ * - Configuration validation flags
+ * - Default values for all settings
+ * - Device unique identifier
+ * - Sensor calibration values
+ * - Data source routing
+ * - Navigation parameters
  */
 Configuration::Configuration() : magicNumberFound(false), checksumValid(false), eepromInit(false)
 {

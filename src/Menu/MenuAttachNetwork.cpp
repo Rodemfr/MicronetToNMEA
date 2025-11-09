@@ -1,9 +1,26 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Scan for nearby Micronet networks and allow the user to       *
+ *           attach the converter to the closest one.                      *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements the "Attach to network" menu action. It scans    *
+ * the air for Micronet packets for a short period, collects distinct      *
+ * network identifiers (NID) ordered by RSSI, displays the results to the  *
+ * user and optionally writes the selected NID into persistent EEPROM.     *
+ *                                                                         *
+ * Responsibilities:
+ *  - Listen for incoming Micronet messages during a short scan window
+ *  - Verify message CRC before using the message for network discovery
+ *  - Maintain a small sorted list of discovered networks by RSSI
+ *  - Present scan results to the user and prompt for confirmation
+ *  - Persist the chosen network id into configuration EEPROM
+ *
+ * The implementation is intentionally simple and blocking (console-driven).
+ * It is suitable for an interactive configuration menu where the user
+ * expects immediate feedback.
+ *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
  *                                                                         *
@@ -12,21 +29,11 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
-/***************************************************************************/
-/*                              Includes                                   */
-/***************************************************************************/
+ /***************************************************************************/
+ /*                              Includes                                   */
+ /***************************************************************************/
 
 #include <Arduino.h>
 
@@ -41,19 +48,38 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* Maximum number of distinct networks to keep during the scan window. */
 #define MAX_SCANNED_NETWORKS 8
 
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
 
+/* (No file-local types required) */
+
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/**
+ * MenuAttachNetwork
+ *
+ * Scan the radio for Micronet networks during a fixed time window,
+ * collect unique network identifiers (NID) ordered by signal strength (RSSI),
+ * display the list to the user and offer to attach the converter to the
+ * strongest/closest network.
+ *
+ * This function is synchronous and returns after the scan and optional
+ * user confirmation. It updates gConfiguration.eeprom.networkId and
+ * persists the change when the user confirms.
+ */
+void MenuAttachNetwork(void);
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
+
+/* (No file-local globals required) */
 
 /***************************************************************************/
 /*                              Functions                                  */
@@ -107,7 +133,7 @@ void MenuAttachNetwork()
                         // New network to be inserted in the list : shift the list down
                         if (rssi > rssiArray[i])
                         {
-                            for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j++)
+                            for (int j = (MAX_SCANNED_NETWORKS - 1); j > i; j--)
                             {
                                 nidArray[j]  = nidArray[j - 1];
                                 rssiArray[j] = rssiArray[j - 1];

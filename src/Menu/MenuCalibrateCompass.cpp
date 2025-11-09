@@ -1,28 +1,31 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Magnetometer calibration menu                                  *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements an interactive console menu to calibrate the     *
+ * onboard/navigation magnetometer. The user is prompted to slowly rotate  *
+ * the device so that the full magnetic field envelope is observed. The    *
+ * code samples the raw XYZ magnetometer values, computes min/max ranges   *
+ * and proposes center offsets to be saved into persistent configuration.  *
+ *                                                                         *
+ * Behaviour:
+ *  - Samples magnetic field at regular intervals
+ *  - Tracks min/max for X, Y and Z axes
+ *  - Displays current sample and computed ranges on the console
+ *  - Stops when the user presses ESC
+ *  - Offers to save computed offsets (center of min/max) into EEPROM
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -41,22 +44,50 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* No file-local constants required */
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
+
+/* No file-local types required */
 
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/* No local prototypes required */
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
+
+/* No file-local globals required */
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * MenuCalibrateCompass
+ *
+ * Interactive magnetometer calibration routine.
+ *
+ * Behaviour and steps:
+ *  - Verify that a navigation compass is available (gConfiguration.ram.navCompassAvailable)
+ *  - Sample magnetometer values periodically (sample interval ~100 ms)
+ *  - Update per-axis minimum and maximum observed values
+ *  - Periodically print current sample and computed min/max ranges to console
+ *  - Exit when user presses ESC
+ *  - Prompt the user to save the computed offsets (center of min/max) to EEPROM
+ *
+ * The computed offsets are stored in:
+ *   gConfiguration.eeprom.xMagOffset
+ *   gConfiguration.eeprom.yMagOffset
+ *   gConfiguration.eeprom.zMagOffset
+ *
+ * The function writes the configuration to EEPROM only if the user confirms.
+ */
 void MenuCalibrateCompass()
 {
     bool     exitLoop     = false;

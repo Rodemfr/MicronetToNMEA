@@ -1,10 +1,33 @@
-/*
- * M8NDriver.h
- *
- *  Created on: 13 mai 2022
- *      Author: Ronan
- *  Update on 20 july 2022
- *
+/***************************************************************************
+ *                                                                         
+ * M8NDriver.h                                                           
+ *                                                                         
+ * This module implements a driver for UBlox M6N/M8N GNSS receivers.
+ * It configures the receiver through UBX binary protocol and PUBX messages
+ * to:
+ * - Set baudrate to 38400
+ * - Configure GNSS constellations (GPS, GLONASS, Galileo)
+ * - Enable/disable specific NMEA sentences
+ * - Set navigation rate (1Hz or 5Hz)
+ *                                                                         
+ ***************************************************************************
+ *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License as published by  *
+ *   the Free Software Foundation; either version 2 of the License, or     *
+ *   (at your option) any later version.                                   *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
+ ***************************************************************************
  */
 
 #pragma once

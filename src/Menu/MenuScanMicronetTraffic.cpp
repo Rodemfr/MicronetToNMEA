@@ -1,28 +1,30 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Monitor and analyze Micronet radio traffic                    *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements a diagnostic tool that scans, decodes and        *
+ * displays Micronet network traffic. It provides real-time monitoring of: *
+ * - Raw message contents                                                  *
+ * - Message timing relative to master requests                           *
+ * - Signal strength (RSSI)                                               *
+ * - Network topology (master, slaves, slots)                             *
+ *                                                                         *
+ * The implementation is useful for:                                       *
+ * - Network debugging and troubleshooting                                *
+ * - Understanding network timing and topology                            *
+ * - Verifying RF reception quality                                       *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -41,27 +43,64 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* No file-local constants required */
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
+
+/* No local types required */
 
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/**
+ * Print detailed network topology information
+ * 
+ * @param networkMap Pointer to NetworkMap containing topology data
+ */
 void PrintNetworkMap(MicronetCodec::NetworkMap *networkMap);
-void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us);
-void PrintByte(uint8_t data);
-void PrintInt(uint32_t data);
 
-/***************************************************************************/
-/*                               Globals                                   */
-/***************************************************************************/
+/**
+ * Print raw message content with timing and signal strength
+ * 
+ * @param message Pointer to received message
+ * @param lastMasterRequest_us Timestamp of last master request for relative timing
+ */
+void PrintRawMessage(MicronetMessage_t *message, uint32_t lastMasterRequest_us);
+
+/**
+ * Print a byte as two hex digits with leading zero
+ * 
+ * @param data Byte to print (0x00-0xFF)
+ */
+void PrintByte(uint8_t data);
+
+/**
+ * Print a 32-bit value as 8 hex digits
+ * 
+ * @param data Value to print
+ */
+void PrintInt(uint32_t data);
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * MenuScanMicronetTraffic
+ * 
+ * Main scanning loop that:
+ * - Initializes message FIFO and reception
+ * - Processes received messages
+ * - Displays message content, timing and signal strength
+ * - Updates network map on master requests
+ * - Exits when user presses ESC
+ *
+ * The function performs blocking console I/O but yields regularly
+ * to allow background tasks to run.
+ */
 void MenuScanMicronetTraffic()
 {
     bool                      exitSniffLoop        = false;

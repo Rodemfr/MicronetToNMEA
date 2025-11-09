@@ -1,28 +1,28 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Configure SOG/COG filtering parameters                         *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements an interactive menu to configure Speed Over      *
+ * Ground (SOG) and Course Over Ground (COG) filtering parameters. It     *
+ * allows users to:                                                       *
+ * - Enable/disable SOG/COG filtering                                     *
+ * - Adjust filter strength (time constant)                               *
+ * - Enable/disable water speed emulation from SOG                        *
+ *                                                                         *
+ * The implementation handles parameter validation and persistence to      *
+ * EEPROM when requested by the user.                                     *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -41,28 +41,55 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* No file-local constants required */
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
+
+/* No local types required */
 
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/**
+ * PrintSogCogConfig
+ * 
+ * Display the current SOG/COG configuration and menu options
+ * to the console.
+ */
 void PrintSogCogConfig();
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
-static bool     sogCogFilteringEnable;
-static uint32_t sogCogFilterLength;
-static bool     spdEmulation;
+/**
+ * Working copies of SOG/COG parameters during menu interaction
+ */
+static bool     sogCogFilteringEnable;  // Filter enable flag
+static uint32_t sogCogFilterLength;     // Filter time constant
+static bool     spdEmulation;           // Water speed emulation from SOG
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * MenuConfigSogCog
+ *
+ * Interactive menu to configure SOG/COG filtering parameters.
+ * 
+ * Allows users to:
+ * - Enable/disable SOG/COG filtering
+ * - Adjust filter strength (1 to SOG_COG_MAX_FILTERING_DEPTH)
+ * - Enable/disable water speed emulation from SOG
+ * - Save configuration to EEPROM
+ * 
+ * The function loads current settings from EEPROM, lets the user
+ * modify them and optionally saves back to EEPROM before returning.
+ */
 void MenuConfigSogCog()
 {
     char c;
@@ -117,6 +144,16 @@ void MenuConfigSogCog()
     }
 }
 
+/**
+ * PrintSogCogConfig
+ * 
+ * Display the current SOG/COG settings and menu options.
+ * Shows:
+ * - Filter enable/disable status
+ * - Current filter strength value
+ * - Water speed emulation status
+ * - Save and exit options
+ */
 void PrintSogCogConfig()
 {
     CONSOLE.println("");

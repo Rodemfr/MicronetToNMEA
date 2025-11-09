@@ -1,8 +1,14 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Scan for nearby Micronet networks and allow the user to       *
+ *           attach the converter to the closest one.                      *
  * Author:   Ronan Demoment                                                *
+ *                                                                         *
+ * This header declares the entry point for the "Attach to network" menu.  *
+ * The implementation scans radio traffic for Micronet packets, collects   *
+ * distinct network identifiers (NID) ordered by RSSI, displays results to *
+ * the user and optionally persists the selected NID into EEPROM.         *
  *                                                                         *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
@@ -12,17 +18,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 #pragma once
 
@@ -30,17 +26,38 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+/* No public includes required; implementation includes project headers.   */
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
+
+/* No public constants required */
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
+/* No public types required */
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-void MenuAttachNetwork();
+/**
+ * MenuAttachNetwork
+ *
+ * Scans the radio for Micronet networks during a short time window,
+ * collects unique network identifiers (NID) ordered by signal strength (RSSI),
+ * presents the list to the user and offers to attach the converter to the
+ * closest/strongest network.
+ *
+ * Behaviour:
+ *  - Blocking, console-driven operation suitable for interactive use
+ *  - Verifies message CRC before considering a network valid
+ *  - Updates gConfiguration.eeprom.networkId and persists when user confirms
+ *
+ * The function returns after the scan and optional user confirmation.
+ */
+void MenuAttachNetwork(void);
 

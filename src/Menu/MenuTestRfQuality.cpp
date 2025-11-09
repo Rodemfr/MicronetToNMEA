@@ -1,28 +1,28 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Test RF link quality between Micronet devices                 *
  * Author:   Ronan Demoment                                                *
  *                                                                         *
+ * This module implements an interactive RF quality tester that:           *
+ * - Sends periodic ping messages to all network devices                   *
+ * - Measures signal strength (RSSI) for each response                     *
+ * - Reports link quality from devices to the master                       *
+ * - Identifies device types and roles in the network                      *
+ *                                                                         *
+ * Note: This diagnostic tool monopolizes the async slot, which may        *
+ * interfere with normal network operation. Not recommended during         *
+ * navigation.                                                            *
+ *                                                                         *
  ***************************************************************************
- *   Copyright (C) 2021 by Ronan Demoment                                  *
+ *   Copyright (C) 2021-2025 Ronan Demoment                                *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 /***************************************************************************/
 /*                              Includes                                   */
@@ -40,26 +40,52 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* No file-local constants required */
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
+
+/* No local types required */
 
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/**
+ * Print device type as human readable string
+ * 
+ * @param deviceType Device type code from Micronet message
+ */
+void PrintDeviceType(uint8_t deviceType);
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
+
+/* No file-local globals required */
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-// Test the quality of the radio link between MicronetToNMEA and all other devices. Also display the quality of the link between all devices and
-// network's master device. This menu sends a ping command every network cycle and listens to responses from devices, collecting message RSSI and link
-// quality byte reported by the transmitter. Be carreful, that this function monopolizes the asynchronous slot, forbidding other devices to work
-// properly. Don't use it while navigating.
+/**
+ * MenuTestRfQuality
+ *
+ * Interactive RF link quality tester. This function:
+ * - Monitors master requests to determine network timing
+ * - Sends ping messages in the async slot
+ * - Collects responses and measures signal strength
+ * - Reports:
+ *   * Device ID and type
+ *   * Link quality to this converter (LNK)
+ *   * Link quality to network master (NET)
+ *   * Master device indicator [M]
+ *
+ * The function exits when user presses ESC.
+ * Warning: Using this test during navigation is not recommended as it
+ * interferes with normal network operation.
+ */
 void MenuTestRfQuality()
 {
     bool                      exitTestLoop = false;
@@ -135,45 +161,7 @@ void MenuTestRfQuality()
                              micronetCodec.CalculateSignalFloatStrength(message), receptionStrength);
                     CONSOLE.print(deviceString);
                     // Device type
-                    switch (micronetCodec.GetDeviceType(message))
-                    {
-                    case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
-                        CONSOLE.print("Hull");
-                        break;
-                    case MICRONET_DEVICE_TYPE_WIND_TRANSDUCER:
-                        CONSOLE.print("Wind Transducer");
-                        break;
-                    case MICRONET_DEVICE_TYPE_NMEA_CONVERTER:
-                        CONSOLE.print("NMEA Converter");
-                        break;
-                    case MICRONET_DEVICE_TYPE_MAST_ROTATION:
-                        CONSOLE.print("Mast Rotation");
-                        break;
-                    case MICRONET_DEVICE_TYPE_MOB:
-                        CONSOLE.print("MOB");
-                        break;
-                    case MICRONET_DEVICE_TYPE_SDPOD:
-                        CONSOLE.print("SDPOD");
-                        break;
-                    case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
-                        CONSOLE.print("Dual Display");
-                        break;
-                    case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
-                        CONSOLE.print("Wind Display");
-                        break;
-                    case MICRONET_DEVICE_TYPE_DUAL_MAXI_DISPLAY:
-                        CONSOLE.print("Dual Maxi Display");
-                        break;
-                    case MICRONET_DEVICE_TYPE_COMPASS:
-                        CONSOLE.print("Compass");
-                        break;
-                    case MICRONET_DEVICE_TYPE_REMOTE_DISPLAY:
-                        CONSOLE.print("Remote Display");
-                        break;
-                    default:
-                        CONSOLE.print("Unknown");
-                        break;
-                    }
+                    PrintDeviceType(micronetCodec.GetDeviceType(message));
                     if (networkMap.masterDevice == micronetCodec.GetDeviceId(message))
                     {
                         CONSOLE.print(" [M]");
@@ -198,4 +186,52 @@ void MenuTestRfQuality()
         // Let Arduino's processing loop handle what it has to handle...
         yield();
     } while (!exitTestLoop);
+}
+
+/**
+ * Print device type as a human readable string
+ * Maps Micronet device type codes to descriptive names
+ * 
+ * @param deviceType Device type code from Micronet message
+ */
+void PrintDeviceType(uint8_t deviceType)
+{
+    switch (deviceType) {
+        case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
+            CONSOLE.print("Hull");
+            break;
+        case MICRONET_DEVICE_TYPE_WIND_TRANSDUCER:
+            CONSOLE.print("Wind Transducer");
+            break;
+        case MICRONET_DEVICE_TYPE_NMEA_CONVERTER:
+            CONSOLE.print("NMEA Converter");
+            break;
+        case MICRONET_DEVICE_TYPE_MAST_ROTATION:
+            CONSOLE.print("Mast Rotation");
+            break;
+        case MICRONET_DEVICE_TYPE_MOB:
+            CONSOLE.print("MOB");
+            break;
+        case MICRONET_DEVICE_TYPE_SDPOD:
+            CONSOLE.print("SDPOD");
+            break;
+        case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
+            CONSOLE.print("Dual Display");
+            break;
+        case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
+            CONSOLE.print("Wind Display");
+            break;
+        case MICRONET_DEVICE_TYPE_DUAL_MAXI_DISPLAY:
+            CONSOLE.print("Dual Maxi Display");
+            break;
+        case MICRONET_DEVICE_TYPE_COMPASS:
+            CONSOLE.print("Compass");
+            break;
+        case MICRONET_DEVICE_TYPE_REMOTE_DISPLAY:
+            CONSOLE.print("Remote Display");
+            break;
+        default:
+            CONSOLE.print("Unknown");
+            break;
+    }
 }

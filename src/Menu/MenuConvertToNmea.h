@@ -1,8 +1,14 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Convert Micronet data and forward it onto an NMEA0183 network *
  * Author:   Ronan Demoment                                                *
+ *                                                                         *
+ * This header declares the entry point for the "Convert to NMEA" menu.    *
+ * The corresponding implementation initializes the conversion pipeline,   *
+ * loads/saves calibration, configures the Micronet slave device and runs  *
+ * the main loop which forwards Micronet messages as NMEA sentences while  *
+ * handling incoming NMEA input (from a plotter or NMEA IN) and user input.*
  *                                                                         *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
@@ -12,17 +18,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
 #pragma once
 
@@ -30,17 +26,42 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+/* No public headers required by callers; implementation includes project
+   headers (Configuration, Globals, Micronet, etc.) */
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
+
+/* No public constants */
 
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
 
+/* No public types */
+
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
-void MenuConvertToNmea();
+/**
+ * MenuConvertToNmea
+ *
+ * Entry point invoked by the menu system when the user selects
+ * "Start NMEA conversion".
+ *
+ * Responsibilities:
+ *  - Ensure converter is attached to a Micronet network
+ *  - Initialize Micronet codec, DataBridge and Micronet slave device
+ *  - Load calibration from persistent storage and apply configuration
+ *  - Enter main processing loop:
+ *      * Process incoming Micronet messages and forward converted NMEA
+ *      * Handle incoming NMEA input and pass it to the DataBridge
+ *      * Periodically sample onboard sensors (compass, GNSS) if present
+ *      * Save calibration updates when required
+ *
+ * The function returns when the user exits the conversion mode (e.g. presses ESC).
+ */
+void MenuConvertToNmea(void);
 

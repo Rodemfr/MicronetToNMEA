@@ -1,8 +1,14 @@
 /***************************************************************************
  *                                                                         *
  * Project:  MicronetToNMEA                                                *
- * Purpose:  Decode data from Micronet devices send it on an NMEA network  *
+ * Purpose:  Provide "About" menu entry that shows device and configuration*
+ *           status information on the console.                            *
  * Author:   Ronan Demoment                                                *
+ *                                                                         *
+ * This module implements the menu action which prints firmware version,    *
+ * persistent configuration status and runtime-detected hardware state to  *
+ * the console. It is intended for diagnostic and configuration checks by   *
+ * the user.                                                               *
  *                                                                         *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
@@ -12,21 +18,11 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************
- */
+ ***************************************************************************/
 
-/***************************************************************************/
-/*                              Includes                                   */
-/***************************************************************************/
+ /***************************************************************************/
+ /*                              Includes                                   */
+ /***************************************************************************/
 
 #include <Arduino.h>
 
@@ -42,22 +38,47 @@
 /*                              Constants                                  */
 /***************************************************************************/
 
+/* No file-local constants required */
+
 /***************************************************************************/
 /*                             Local types                                 */
 /***************************************************************************/
+
+/* No file-local types required */
 
 /***************************************************************************/
 /*                           Local prototypes                              */
 /***************************************************************************/
 
+/* No local prototypes required */
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
+
+/* No file-local globals required */
 
 /***************************************************************************/
 /*                              Functions                                  */
 /***************************************************************************/
 
+/**
+ * MenuAbout
+ *
+ * Print firmware version, EEPROM configuration status and runtime hardware
+ * detection results to the console. This function is called from the menu
+ * system when the user selects the "About" entry.
+ *
+ * The printed information includes:
+ *  - Software version (major.minor)
+ *  - Whether a valid configuration was found in EEPROM and its checksum status
+ *  - Device ID and attached Micronet network ID if any
+ *  - RF frequency offset and its ppm equivalent
+ *  - Calibration and offsets for wind, water speed & temperature
+ *  - Compass detection state and magnetometer calibration values if available
+ *
+ * The function does not alter state, it only reports information for the user.
+ */
 void MenuAbout()
 {
     CONSOLE.print("MicronetToNMEA, Version ");
