@@ -14,16 +14,18 @@
 #include <SPI.h>
 #include <USB.h>
 
-MenuEntry_t mainMenuDesc[] = {{"MicronetToNMEA", nullptr},
-                              {"General info on MicronetToNMEA", MenuAbout},
-                              {"Attach converter to closest network", MenuAttachNetwork},
-                              {"Start NMEA conversion", MenuConvertToNmea},
-                              {"Scan surrounding Micronet traffic", MenuScanMicronetTraffic},
-                              {"Calibrate RF XTAL", MenuCalibrateXtal},
-                              {"Calibrate compass", MenuCalibrateCompass},
-                              {"Test RF quality", MenuTestRfQuality},
-                              {"Configuration", MenuConfigMtn},
-                              {nullptr, nullptr}};
+const MenuEntry_t mainMenuDesc[] = {{"MicronetToNMEA", nullptr},
+                                    {"General info on MicronetToNMEA", MenuAbout},
+                                    {"Attach converter to closest network", MenuAttachNetwork},
+                                    {"Start NMEA conversion", MenuConvertToNmea},
+                                    {"Scan surrounding Micronet traffic", MenuScanMicronetTraffic},
+                                    {"Calibrate RF XTAL", MenuCalibrateXtal},
+                                    {"Calibrate compass", MenuCalibrateCompass},
+                                    {"Test RF quality", MenuTestRfQuality},
+                                    {"Configuration", MenuConfigMtn},
+                                    {nullptr, nullptr}};
+
+bool firstLoop = true;
 
 void RfIsr();
 void FatalError();
@@ -101,11 +103,22 @@ void setup()
 
 void loop()
 {
+    // If this is the first loop, we verify if we are already attached to a Micronet network. if yes,
+    // We directly jump to NMEA conversion mode.
+    if ((firstLoop) && (gConfiguration.eeprom.networkId != 0))
+    {
+        // Menu 3 is NMEA Conversion
+        gMenuManager.ActivateMenu(3);
+        gMenuManager.PrintMenu();
+    }
+
     // Process console input
     while (CONSOLE.available() > 0)
     {
         gMenuManager.PushChar(CONSOLE.read());
     }
+
+    firstLoop = false;
 }
 
 void RfIsr()

@@ -86,7 +86,7 @@ MenuManager::~MenuManager()
  * 
  * @param menuDesc Pointer to array of MenuEntry_t, nullptr terminated
  */
-void MenuManager::SetMenuDescription(MenuEntry_t *menuDesc)
+void MenuManager::SetMenuDescription(const MenuEntry_t *menuDesc)
 {
     if (menuDesc != nullptr)
     {

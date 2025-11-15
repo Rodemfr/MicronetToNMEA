@@ -57,7 +57,7 @@
 
 /**
  * Menu entry structure
- * 
+ *
  * @param description Text to display for this menu entry
  * @param entryCallback Function to call when entry is selected
  *                     nullptr for title or end of menu marker
@@ -74,7 +74,7 @@ typedef struct MenuEntry_t
 
 /**
  * MenuManager
- * 
+ *
  * This class implements a simple console-based menu system.
  * It displays numbered entries, processes numeric input and
  * executes associated callbacks.
@@ -85,15 +85,13 @@ class MenuManager
     MenuManager();
     virtual ~MenuManager();
 
-    void SetMenuDescription(MenuEntry_t *menuDesc);
+    void SetMenuDescription(const MenuEntry_t *menuDesc);
     void PushChar(char c);
     void PrintMenu();
     void PrintPrompt();
     void ActivateMenu(uint32_t entry);
 
   private:
-    MenuEntry_t *menu;
-    int          menuLength;
+    const MenuEntry_t *menu;
+    int                menuLength;
 };
-
-
