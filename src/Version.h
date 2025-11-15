@@ -37,7 +37,7 @@
 
 // MicronetToNMEA SW version
 #define MNET2NMEA_SW_MAJOR_VERSION 2
-#define MNET2NMEA_SW_MINOR_VERSION 4
+#define MNET2NMEA_SW_MINOR_VERSION 5
 
 /***************************************************************************/
 /*                                Types                                    */
