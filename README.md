@@ -2,7 +2,7 @@
 
 ## Note to Teensy users
 
-MicronetToNMEA has migrated to ESP32. For Teensy-based hardware, please refer to the legacy code in the `teensy` branch.
+MicronetToNMEA has migrated to ESP32. For Teensy-based hardware, please refer to the legacy code in the [`teensy`](https://github.com/Rodemfr/MicronetToNMEA/tree/teensy) branch.
 
 ## Description
 
@@ -10,12 +10,12 @@ MicronetToNMEA is an Arduino project that converts data from Raymarine's wireles
 
 Required hardware:
 - A Raymarine/Tacktick master device (one with an ON/OFF button)
-- An ESP32-WROOM-32 based board (such as uPesy Wroom DevKit)
-- A CC1101 based board operating in the 868/915MHz range (ensure you order one with the appropriate antenna)
+- An ESP32 WROOM DevKitC based board ([such as uPesy Wroom DevKit](https://www.upesy.fr/products/upesy-esp32-wroom-devkit-board))
+- A CC1101 based board operating in the 868/915MHz range (ensure you order one with the appropriate 868MHz antenna, not the 433MHz one)
 
 Optional components:
 - A NMEA GPS/GNSS module connected via UART to provide position, time, date, SOG, and COG data to Micronet displays. The UBlox M8N is fully supported and can be configured directly by MicronetToNMEA
-- A LSM303DLH compass module connected via I2C to provide magnetic heading data
+- A LSM303 compass module connected via I2C to provide magnetic heading data
 
 Important Notice: While this DIY solution is an interesting project, please be aware that it may not withstand the harsh marine environment (salt, moisture, vibrations) as well as commercial equipment. MicronetToNMEA comes with no guarantees and should not be relied upon as your sole navigation system. For mission-critical applications, we recommend purchasing certified Raymarine/Tacktick equipment from authorized dealers.
 
@@ -42,14 +42,14 @@ For detailed instructions, please refer to the [User Manual](https://github.com/
 
 ## Hardware Setup
 
-For the default uPesy Wroom DevKit configuration, connect the CC1101 module as follows:
+For the default WROOM DevKitC configuration, connect the CC1101 module as follows:
 
 ```
-CC1101     ESP32-WROOM-32
-SI     <-- Pin 23 (MOSI0)
-SO     --> Pin 19 (MISO0)
-SCK    <-- Pin 18 (SCK0)
-CS     <-- Pin 5 (CS0)
+CC1101     WROOM DevKitC
+SI     <-- Pin 23 (VSPI_MOSI)
+SO     --> Pin 19 (VSPI_MISO)
+SCK    <-- Pin 18 (VSPI_SCK)
+CS     <-- Pin 5 (VSPI_CS)
 GD0    --> Pin 35
 GND    <-> GND
 3.3V   <-- 3.3V
@@ -58,9 +58,9 @@ GND    <-> GND
 NMEA GNSS device connection (UART 2):
 
 ```
-GNSS     ESP32-WROOM-32
-TXD  --> Pin 16  (RX1)
-RXD  <-- Pin 17  (TX1)
+GNSS     WROOM DevKitC
+TXD  --> Pin 16  (RX2)
+RXD  <-- Pin 17  (TX2)
 GND  <-> GND
 3.3V <-- 3.3V
 ```
@@ -68,16 +68,16 @@ GND  <-> GND
 LSM303DLH(C) compass connection:
 
 ```
-LSM303DLH(C)    ESP32-WROOM-32
-SCL         <-- Pin 22  (SCL1)
-SDA         <-> Pin 21  (SDA1)
+LSM303DLH(C)    WROOM DevKitC
+SCL         <-- Pin 22  (I2C_SCL)
+SDA         <-> Pin 21  (I2C_SDA)
 GND         <-> GND
 3.3V        <-- 3.3V
 ```
 
 The system supports LSM303DLH, LSM303DLHC, and LSM303AGR compass modules, automatically detecting and configuring the appropriate driver.
 
-To customize the pinout or use different hardware, modify the definitions in BoardConfig.h. See the [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.md) for configuration details.
+To customize the pinout or use different hardware, modify the definitions in `BoardConfig.h`. See the [User Manual](https://github.com/Rodemfr/MicronetToNMEA/blob/master/doc/user_manual/user_manual.md) for configuration details.
 
 ## Quick Start Guide
 

@@ -1,44 +1,43 @@
-All the description below is the result of observations of data traffic transiting between Micronet devices.
-The interpretation of this traffic is purely speculative and might be completely erroneous.
-The NMEA conversion software seems to work well, so many of these interpretation are probably correct, but a number
-of strange behaviors let think that there are also a lot a misinterpretations.
+The following documentation is based on observations of data traffic between Micronet devices.
+The interpretation of this traffic is speculative and may contain inaccuracies.
+While the corresponding NMEA conversion software appears to function correctly, suggesting that many interpretations are likely accurate,
+some observed behaviors indicate potential misinterpretations.
 
-As a consequence, if you want to play with your system and understand it better, you are at the right place. But if
-you want to have a robust, reliable, waterproof and extensively tested device, you would better go to your nearest
-Raymarine/TackTick reseller.
+Consequently, this document is intended for those interested in experimenting with and better understanding their system. For a
+robust, reliable, waterproof, and extensively tested device, we recommend contacting your nearest Raymarine/TackTick reseller.
 
 ***************************
 *** Radio specification ***
 ***************************
 
-Carrier frequency : 869.840MHz in Europe
-                    915.915MHz elsewhere
+Carrier frequency: 869.840MHz in Europe
+                   915.915MHz elsewhere
 Modulation : 2-FSK
 Deviation : +-38kHz
-Sync byte after preamble : 0x99
+Sync byte following preamble: 0x99
 Bit rate : 76800 baud
 
-All data after the sync word is the Micronet message described below.
+All data following the sync word constitutes the Micronet message, as described below.
 
 ***************************************
 *** Micronet message general format ***
 ***************************************
 
-When a Micronet device wants to talk to another device, it sends a "Micronet message" on the radio.
-A Micronet message is made of a header which always has the same structure for every message, and a payload which
-content depends on the type of message.
+When a Micronet device needs to communicate with another, it transmits a "Micronet message" over the radio.
+A Micronet message consists of a header, which has a consistent structure across all message types, and a payload,
+whose content varies depending on the message type.
 
 |             MESSAGE HEADER              |    PAYLOAD     |
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|   
 |83 03 77 37|02 03 90 87|02|01|07|5A|18|18|xx xx xx xx ... |
 
-Unless explicitly specified, all values are stored Big Endian in messages (MSB first).
+Unless explicitly specified, all values are stored in Big Endian format (MSB first).
 
-NID = Network ID (4 bytes). This is a unique number which identifies the network the message is addressed to.
-      It is equal to the Device ID of the network main device. Each device is associated to a unique network
-      and will only consider a message if it is addressed to this network.
+NID = Network ID (4 bytes). A unique number identifying the target network for the message. This ID is identical
+      to the Device ID of the network's master device. Each device is associated with a single network and will
+      only process messages addressed to that network.
 
-DID = Device ID (4 bytes) - Unique number identifying the device sending the message. The MSB of DID (0x02 in the
+DID = Device ID (4 bytes) - A unique number identifying the device sending the message. The MSB of DID (0x02 in the
       above example) describes the device type :
           0x01 Hull Transmitter
           0x02 Wind Transducer
@@ -51,7 +50,7 @@ DID = Device ID (4 bytes) - Unique number identifying the device sending the mes
           0x86 Dual Maxi Display 
           0x88 Remote Display 
 
-MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to know how to decode payload.
+MI = Message ID (1 byte) - The type of the message. This is necessary for the receiver to decode the payload correctly.
      0x01 Master Request
      0x02 Send Data
      0x06 Send Command
@@ -65,62 +64,62 @@ MI = Message ID (1 bytes) - Type of the message. Necessary for the receiver to k
      0x19 Ack Master Change
      0x1b Ack Remote - Report control capabilities?
 
-DF = Device Flags - Unclear if this byte really plays a role or not. It seems to give information on emitting
-     device status/properties. It seems to be defined as a set of bit flags. Interpretation probably wrong.
+DF = Device Flags - It is unclear if this byte has a functional role. It appears to provide information about the
+     emitting device's status or properties and is likely a set of bit flags. This interpretation is uncertain.
        0x01 Measurement device
        0x08 Display (or master ?) device
        0x19 Dual Maxi Display?
 
-SS = Signal Strength - Indicator of signal strength as seen by slave device. Value ranges from 0 (weakest signal) to
-                       9 (strongest signal). It is measured by slave device when receiving 0x01 message from master. 
+SS = Signal Strength - An indicator of the signal strength as perceived by the slave device. The value ranges from 0
+                       (weakest) to 9 (strongest). It is measured by the slave device upon receiving a 0x01 message from the master.
      0 Weakest signal
      9 Strongest signal
 
-CS = Check sum of all bytes from previous CS or from beginning of message.
+CS = Checksum of all bytes from the previous CS or from the beginning of the message.
 
-LE = (Length - 2) of the complete message in bytes, including payload. Value having its own checksum (i.e. copy) for
-     robustness.
+LE = (Length - 2) of the complete message in bytes, including the payload. This value is duplicated and has its own
+     checksum for robustness.
 
 ****************************
 *** Network organization ***
 ****************************
 
-A Micronet network is made of one master device and several slaves. The master is the device which has been powered
-first, so it can be a different device at each power-up if you have several displays. Only the master device is
-allowed to initiate RF communication. Master always use message 0x01 (Master request) to initiate radio communications.
-Slave devices then answer relatively to the "Master Request" message, in a predetermined manner to avoid RF collisions.
+A Micronet network consists of one master device and several slave devices. The master is the first device to be powered on,
+so it can be a different device at each power-up if multiple displays are present. Only the master device is permitted to
+initiate RF communication. The master always uses message 0x01 (Master Request) to start radio communications. Slave devices
+then respond to the "Master Request" message in a predetermined sequence to avoid RF collisions.
 
-"Master request" is sent by master every second and defines precisely when a slave device can talk on the network.
-"Master request" gives the list of every device known by the Master, how and when they can send their messages (See
-detailed description of Master Request below).
+"Master Request" is sent by the master every second and precisely defines when each slave device can transmit on the network.
+It provides a list of all devices known by the master, along with instructions on how and when they can send their messages
+(see the detailed description of Master Request below).
 
 Each slave device has a "transmission window" made of :
-   - Preamble + sync word : 16 bytes set at 0x55 (preamble) followed by 0x99 (sync by). The total duration of this
-     part is 1771us
+   - Preamble + sync word: 16 bytes set to 0x55 (preamble) followed by 0x99 (sync byte). The total duration of this
+     part is 1771 µs.
    - Message data : (14 + PL) bytes of message data
-   - a 1893ms "guard time" during which nothing should be transmitted. Its role is to give time for slave devices to
-     process the message. It also gives "space" on the line to cop-up with non precise transmission starts.
-   - Transmission window is rounded to the upper 244us
+   - A 1893 µs "guard time" during which nothing should be transmitted. Its purpose is to allow slave devices time to
+     process the message and to provide a buffer for imprecise transmission start times.
+   - The transmission window duration is rounded up to the nearest 244 µs.
    
 |---------------------------------------------------------------------------|
 | preamble | 0x99 |   Micronet message  |    Guard time    | 244us rounding |
 |---------------------------------------------------------------------------|
-|      1771us     |  (14 + PL) * 104us  |      1893ms      |    0-243us     |
+|      1771us     |  (14 + PL) * 104us  |      1893us      |    0-243us     |
 
-Slave devices must answer in the same order than defined in "Master request" message. PL parameter is also provided
-by Master request message for each slave device, allowing calculation of each window. A slave device knows the start
-of its transmission window by calculating window sizes of the preceding slave devices. The first window starts just
-at the end of "Master Request" message. If a device is listed with a payload of zero, then it has no transmission
-window at all (no guard time, preamble or header).
+Slave devices must respond in the same order as defined in the "Master Request" message. The PL parameter is also provided
+by the Master Request for each slave, allowing for the calculation of each window's duration. A slave device determines the
+start of its transmission window by calculating the window sizes of the preceding slave devices. The first window begins
+immediately after the "Master Request" message ends. If a device is listed with a payload of zero, it has no transmission
+window (i.e., no guard time, preamble, or header).
 
-Theses slave transmission windows are called "synchronous windows". Their role is to allow a slave device to
+These slave transmission windows are called "synchronous windows". Their purpose is to allow a slave device to
 periodically send its measured data to the various displays of the network. For example, this is where a wind
-transducer will send wind data every second. The sync window is generally used by message 0x02 (Send Data).
+transducer sends wind data every second. The sync window is typically used for message 0x02 (Send Data).
 
-There is however another way for a slave device to talk on a network. If a device is not listed in "Master Request"
-device list or if it needs to send something else than its periodical data, it can use the so called "asynchronous
-window". This transmission window is a special one, located after the last synchronous window and which can be used
-by any device, including devices not yet attached to network.
+However, there is another method for a slave device to communicate on the network. If a device is not listed in the "Master
+Request" device list, or if it needs to send something other than its periodic data, it can use the "asynchronous window".
+This is a special transmission window located after the last synchronous window, which can be used by any device, including
+those not yet attached to the network.
 
 Typical usages of this window are :
    - For a new device to request an attachment to a network (message 0x03)
@@ -134,23 +133,22 @@ The structure of the asynchronous window is :
 |----------------------------------------------------------|
 | preamble | 0x99 |   Micronet message  |    Guard time    |
 |----------------------------------------------------------|
-|      1771us     |  (14 + 20) * 104us  |      1893ms      |
+|      1771us     |  (14 + 20) * 104us  |      1893us      |
 
-Note that asynchronous commands can not exceed a payload of 20 bytes. Asynchronous window starts 7200us after the end of
-the last synchronous window. Since asynchronous commands are subject to collisions (any device can potentially talk in
-this window), they always require an acknowledge from the other devices. As an example, a display device could send a
-command message (0x06) which requires all other devices to acknowledge it with message 0x07. In that case  other
-devices will use other transmission windows located after the asynchronous slot. These windows are called "Ack
-windows". If other devices do not acknowledge, then it means that a collision likely occurred on asynchronous window
-and that message must be sent again at a later network cycle. If a device does not acknowledge a asynchronous message
-several times, it may be detached from network by master.
+Note that asynchronous commands cannot have a payload exceeding 20 bytes. The asynchronous window starts 7200 µs after the
+end of the last synchronous window. Since asynchronous commands are subject to collisions (as any device can potentially
+transmit in this window), they always require an acknowledgment from other devices. For example, a display device might send
+a command message (0x06) that requires all other devices to acknowledge it with message 0x07. In this case, other devices
+will use subsequent transmission windows, called "Ack windows," located after the asynchronous slot. If devices fail to
+acknowledge, a collision on the asynchronous window has likely occurred, and the message must be resent in a later network
+cycle. If a device repeatedly fails to acknowledge an asynchronous message, it may be detached from the network by the master.
 
 These Ack windows have the following structure :
 
 |----------------------------------------------------------|
 | preamble | 0x99 |   Micronet message  |    Guard time    |
 |----------------------------------------------------------|
-|      1771us     |      16 * 104us     |      1893ms      |
+|      1771us     |      16 * 104us     |      1893us      |
 
 They are located just after each others. And devices will response in reverse order compared to "Master Request"
 device list.
@@ -168,11 +166,11 @@ Knowing all of this, here is an example cycle of a network composed of devices A
 **************************************
 Transmission window : Initial
 
-This message is sent by the master device to initiate a communication cycle on the network. Slave devices use this
-message to know how and when they can talk on the radio.
+This message is sent by the master device to initiate a communication cycle on the network. Slave devices use it
+to determine how and when they can transmit on the radio.
 
-This message lists all slave devices known by the master and provides the "PL" value for each of them. PL is the maximum
-number of bytes expected in the payload of the "Send Data" message. This way, we have a complete temporal map of the
+This message lists all slave devices known by the master and provides the "PL" value for each. PL is the maximum
+number of bytes expected in the payload of a "Send Data" message. This creates a complete temporal map of the
 data exchange, allowing slaves to know where to transmit their messages, without colliding with other devices.
 
 Here is the format (with an example) :
@@ -184,7 +182,7 @@ Here is the format (with an example) :
 DIDn - Devices IDs of devices attached to the network.
        
 PL - Maximum payload length of the message expected from the mentioned device. Note that a payload of zero bytes means
-     that there is no window at all for this device.
+     that there is no transmission window for this device.
 
 CS - Checksum
 
@@ -193,9 +191,9 @@ CS - Checksum
 ********************************
 Transmission window : Synchronous
 
-This message is used to send data from one device to other network devices. It is a response to "Master Request"
-message sent by the main display to collect data from all sensors. It sends a variable number of fields depending on
-the Device Type and its available sensors. Each field is coded the same way but with variable size and type.
+This message is used to send data from one device to other devices on the network. It is sent in response to a "Master
+Request" message from the main display to collect data from all sensors. It contains a variable number of fields,
+depending on the Device Type and its available sensors. Each field is encoded similarly but with a variable size and type.
 
 Message examples :
 
@@ -225,12 +223,12 @@ Observed Field formats :
 |03|FI|FP|VA|CS| -> value on a 8bit integer
 |04|FI|FP| VAL |CS| -> value on a 16bit integer
 |05|FI|FP| VAL |??|CS| -> value on a 16bit integer followed by an unidentified byte
-|06|FI|FP| VAL1| VAL2|CS| -> values on two 16bit integers
+|06|FI|FP| VAL1| VAL2|CS| -> two values on two 16bit integers
 |0a|FI|FP|    VAL1   |    VAL2   |CS| -> two values both on a 32bit integer
 
-FL = Field Length - (FL + 2) is the total length of the field, including CRC, allowing to skip in case the format/ID
-     would be unknown to the decoding device.
-       0x03 Total field description is on 5 bytes, including CRC. Value is 8bit.
+FL = Field Length - (FL + 2) is the total length of the field, including its checksum (CS). This allows a decoding
+     device to skip the field if its format or ID is unknown.
+       0x03 Total field length is 5 bytes, including CS. Value is 8-bit.
        0x04 Total field description is on 6 bytes, including CRC. Value is 16bit.
        0x05 Total field description is on 7 bytes, including CRC. Value is 24bit.
        0x0a Total field description is on 12 bytes, including CRC. Value is on 64bit.
@@ -323,12 +321,12 @@ FI = Field ID
           |04|1b|FP| VAL |CS|
           VAL = Voltage * 10 (V)
      0x1F DTW
-          |01|02|03|04|05|06|07|08|
-          |06|1f|FP|    VAL    |CS|
+          |01|02|03|04|05|06|07|08|09|
+          |06|1f|FP|    VAL    |CS| -> /!\ Example seems to show a 32-bit value but FL=0x06 (2x16bit)
           VAL = Distance * 100 (NM)
-     0x21 RAWS - The be same value than 0x05/AWS, but used by non wind-transducer devices to repeat the value.
+     0x21 RAWS - The same value as 0x05/AWS, but used by non-wind-transducer devices to repeat the value.
           |01|02|03|04|05|06|07|
-          |04|05|FP| VAL |SO|CS|
+          |05|21|FP| VAL |SO|CS| -> /!\ Example shows FL=0x05, FI=0x21
           VAL = ApparentWindSpeed * 10 (kt)
           SO = Might be an identyfier of the repeater of the value or a property flag.
      0x22 RAWA - The be same value than 0x06/AWA, but used by non wind-transducer devices to repeat the value.
@@ -339,8 +337,8 @@ FI = Field ID
           SO = Might be an identyfier of the repeater of the value or a property flag.
 
 FP = Field Property ??
-     0x05 Seems to be the value used when the data comes from the measuring sensor
-     0x03 Seems to be the value used when the data comes from a repeater (i.e. the main display or hull transmitter)
+     0x05 Appears to be used when the data originates from the measuring sensor.
+     0x03 Appears to be used when the data is from a repeater (e.g., the main display or hull transmitter).
 
 CS = Field checksum. Sum of all bytes of the field.
 
@@ -349,8 +347,8 @@ CS = Field checksum. Sum of all bytes of the field.
 ******************************************
 Transmission window : Asynchronous
 
-When a device is not listed in the synchronous data schedule. It can request a sync transmission window to the master
-device with this message.
+When a device is not listed in the synchronous data schedule, it can use this message to request a synchronous
+transmission window from the master device.
 
 |             MESSAGE HEADER              |  SIZE  |
 |    NUID   |    DID    |MI|DF|SS|CS|LE|CS| PL  |CS|
@@ -365,8 +363,8 @@ CS - Checksum of the entire payload
 *****************************************
 Transmission window : Asynchronous
 
-When a device wants to change the size of its maximum payload in its synchronous window, it can use this command. The
-payload size will be updated at next cycle. 
+A device can use this command to change the maximum payload size of its synchronous window. The payload size
+will be updated in the next cycle.
 
 |             MESSAGE HEADER              |SIZE |
 |    NUID   |    DID    |MI|DF|SS|CS|LE|CS|NL|CS|
@@ -381,9 +379,9 @@ CS - Checksum of the entire payload
 ***********************************
 Transmission window : Asynchronous
 
-This message is sent by any device to notify other devices of a specific asynchronous event/request.
-This is used, as an example, when user changes a configuration parameter and that all devices must be notifyed
-by the display of the parameter change. It is also used to notify of alert events
+This message is sent by any device to notify other devices of a specific asynchronous event or request.
+For example, it is used when a user changes a configuration parameter, and the display must notify all other
+devices of this change. It is also used to signal alert events.
 
 Example : Wind direction calibration +10 deg
 |             MESSAGE HEADER              |     CORRECTION     |
@@ -415,7 +413,7 @@ Example : Raise NO VOLT alarm
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
 |01 0B 29 06|01 0B C9 44|06|01|09|72|10|10|E2|0C|01|EF|
 
-CO Command - This byte defines the command you want to send.
+CO = Command - This byte defines the command to be sent.
                0xFF - Change config parameter
                0xF9 - Acknowledge alarm
                0xE5 - Backlight level
@@ -430,12 +428,11 @@ Example : Wind direction calibration +10 deg
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|CO|PI|PL| VA  |VE|CS|
 |83 03 77 37|83 03 77 37|06|09|09|80|13|13|FF|07|02|0A 00|04 16|
 
-PL Parameter Length - Number of bytes on wich VA is coded.
+PL = Parameter Length - Number of bytes on which VA is coded.
 
-VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
-             This number is used to avoid writing several times the same value into EEPROM. This can happen when a
-			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
-			 EEPROM life time.
+VE = Version - Incremented by one for each new value sent to other devices. It resets to zero at each system power-up.
+             This number prevents writing the same value to EEPROM multiple times, which can occur if a device is
+             unresponsive and the sender repeats the command (up to 5 times). This mechanism extends EEPROM life.
 
 PI Parameter ID - Id of the parameter to be changed in the page
 
@@ -487,12 +484,11 @@ Example : Acknowledge NO VOLT alarm
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
 |83 09 2C 36|81 07 1E 60|06|09|00|03|10|10|F9|0C|02|07|
 
-AL Alarm ID - ID of the alarm to be acknowledged
+AL = Alarm ID - ID of the alarm to be acknowledged.
 
-VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
-             This number is used to avoid writing several times the same value into EEPROM. This can happen when a
-			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
-			 EEPROM life time.
+VE = Version - Incremented by one for each new value sent to other devices. It resets to zero at each system power-up.
+             This number prevents writing the same value to EEPROM multiple times, which can occur if a device is
+             unresponsive and the sender repeats the command (up to 5 times). This mechanism extends EEPROM life.
 
 PI Parameter ID - Id of the parameter to be changed in the page
 
@@ -503,12 +499,11 @@ Example : Set Display backlight to off
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|VA|VE|CS|
 |88 0B 29 06|88 0B C9 44|06|01|09|72|10|10|E5|00|01|E6|
 
-AL Alarm ID - ID of the alarm to be acknowledged
+AL = Alarm ID - ID of the alarm to be acknowledged.
 
-VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
-             This number is used to avoid writing several times the same value into EEPROM. This can happen when a
-			 device is not responding in which case the sender might repeat the command up to 5 times. This extends
-			 EEPROM life time.
+VE = Version - Incremented by one for each new value sent to other devices. It resets to zero at each system power-up.
+             This number prevents writing the same value to EEPROM multiple times, which can occur if a device is
+             unresponsive and the sender repeats the command (up to 5 times). This mechanism extends EEPROM life.
 
 PI Parameter ID - Id of the parameter to be changed in the page
 
@@ -519,7 +514,7 @@ Example : Raise NO VOLT alarm
 |    NID    |    DID    |MI|DF|SS|CS|LE|CS|PA|AL|VE|CS|
 |01 0B 29 06|01 0B C9 44|06|01|09|72|10|10|E2|0C|01|EF|
 
-AL Alarm ID - ID of the alarm to be acknowledged
+AL = Alarm ID - ID of the alarm to be raised.
 
 VE Version - Incremented by one at each new value sent to other devices. Reset to zero at each power-up of the system.
              This number is used to avoid writing several times the same value into EEPROM. This can happen when a
@@ -533,8 +528,9 @@ PI Parameter ID - Id of the parameter to be changed in the page
 **********************************
 Transmission window : Acknowledge
 
-This message is sent by a slave device to acknowledge a "Send Command" sent on the asynchronous window. It is
-used by master device to detect collision on asynchronous window and to repeat "Send Command" if required.
+This message is sent by a slave device to acknowledge a "Send Command" (0x06) that was transmitted in the asynchronous
+window. The master device uses this acknowledgment to detect collisions on the asynchronous window and to determine
+if the "Send Command" needs to be resent.
 
 Example :
 |83 03 77 37|83 03 77 37|07|09|09|80|13|13|
@@ -547,8 +543,8 @@ Example :
 ***************************
 Transmission window : Asynchronous
 
-This message is used by network's master to probe devices connected to the network.
-It is also used to remove from network devices which have not been detected for several ON/OFF cycles.
+This message is used by the network's master to probe for connected devices. It is also used to remove devices
+from the network that have not been detected for several power cycles.
 
 Example :
 |             MESSAGE HEADER              |
@@ -560,8 +556,8 @@ Example :
 *******************************
 Transmission window : Acknowledge
 
-This message is used by slave devices as a response to 0x0A message from master. 
-The value sent as payload is not identified. It looks like some status or property flags.
+This message is sent by slave devices in response to a 0x0A (Ping) message from the master.
+The payload's content is unidentified but appears to be status or property flags.
 
 Example :
 
@@ -574,8 +570,8 @@ Example :
 ******************************************
 Transmission window : Asynchronous?
 
-This message is used by the remote control device to broadcast that it is entering remote control mode. 
-it is followed by a 0x14 "remote device select" to select the active controlled device.
+This message is broadcast by the remote control device to indicate it is entering remote control mode.
+It is followed by a 0x14 "Send RC Command" message to select the active controlled device.
 
 Example :
 
@@ -588,8 +584,8 @@ Example :
 ******************************************
 Transmission window : Asynchronous?
 
-This message is used by the remote control device to broadcast that it is exiting remote control mode. 
-it is followed by a 0x06 "set param" message to ?. which is then ack'd (0x07) by the controllable displays (incl .the remote itself) 
+This message is broadcast by the remote control device to indicate it is exiting remote control mode.
+It is followed by a 0x06 "Send Command" message, which is then acknowledged (0x07) by the controllable displays (including the remote itself).
 
 Example :
 
@@ -602,8 +598,8 @@ Example :
 **************************************
 Transmission window : Asynchronous?
 
-This message is used to send a remote command to a controllable display device.
-It sends an RC command and the target device id.
+This message sends a remote command to a controllable display device.
+It contains an RC command and the target device ID.
 
 Message example :
 
@@ -628,7 +624,7 @@ DID1 = target device
 
 CS = Checksum
 
-Note: not sure if one can send any RC command directly to a display without prior 0x0C command and/or 0x14 device select command.
+Note: It is uncertain if an RC command can be sent directly to a display without a preceding 0x0C command.
 
 ********************************************************
 *** Message 0x18 (Initiate Master Change) ***
@@ -636,7 +632,7 @@ Note: not sure if one can send any RC command directly to a display without prio
 Transmission window : Synchronous?
 
 This message is used to initiate a change of Master device. 
-It is sent automatically by the current master to another device it selects (selection criteria unknown).
+It is sent by the current master to another device it selects (selection criteria are unknown).
 A typical case seems to be the Remote Display willing to give up its Master status to another (bigger) Display device.
 
 Message example :
@@ -651,7 +647,7 @@ Initiate Master change from the Remote Display to a Dual Maxi Display
 **********************************************
 Transmission window : Acknowledge?
 
-This message is the acknowledgement by the device which received the 0x18 request that it will become the new Master.
+This message is the acknowledgment from the device that received the 0x18 request, confirming it will become the new Master.
 
 Message example :
 
@@ -665,8 +661,9 @@ Maxi Display acknowledging to becoming the new Master
 ******************************************************************
 Transmission window : Acknowledge?
 
-This message is sent by the controlled device after it receives its first 0x14 (remote) command.
-(i.e. for a dual display, it is not sent when selecting the bottom pane or receiving menu navigation commands, but it will be resent again everytime the RC switches back to the device)
+This message is sent by the controlled device after it receives its first 0x14 (Send RC Command) message.
+For example, on a dual display, it is not sent when selecting the bottom pane or receiving menu navigation commands,
+but it will be resent each time the remote control switches back to controlling that device.
 
 Message example :
 
