@@ -52,16 +52,16 @@
 // Bluetooth device name as it will be seen by other devices
 #define BLUETOOTH_DEVICE_NAME "MicronetToNMEA"
 
-// Console UART params
+// Console UART params. Use 'Serial' for USB console, or 'gBtSerial' for Bluetooth console
 #define CONSOLE          Serial
 #define CONSOLE_BAUDRATE 115200
 
 // NMEA0183 input configuration
-#define NMEA0183_IN_IS_UBLOXM8N 1 // Set to 1 to enable UBlox M6N/M8N configuration
+#define NMEA0183_IN_IS_UBLOXM8N 1 // Set to 1 to enable UBlox M6N/M8N automatic configuration
 #define NMEA0183_IN             Serial2
 #define NMEA0183_IN_BAUDRATE    9600
 
-// Plotter/Nav Computer UART params
+// Plotter/Nav Computer UART params. Use 'Serial' for USB link, or 'gBtSerial' for Bluetooth link
 #define PLOTTER Serial
 
 /***************************************************************************/

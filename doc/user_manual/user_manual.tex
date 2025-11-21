@@ -11,360 +11,340 @@
 
 \begin{document}
 
-\title{MicronetToNMEA}
+\title{MicronetToNMEA User Manual}
 
-\chapter {Introduction}
+\chapter{Introduction}
 
-\section{What is MicronetToNMEA}
+\section{Overview}
 
-MicronetToNMEA is a ESP32/Arduino based project aimed at building a cheap NMEA/Micronet bridge. The initial purpose of this project was to understand Micronet wireless protocol and to be able to record wind and speed data on a PC. The understanding of the protocol went so well that MicronetToNMEA is now doing a lot more. It can:
+MicronetToNMEA is an ESP32-based project that provides a low-cost NMEA 0183 converter for Raymarine's TackTick wireless instruments. Initially developed to understand the Micronet wireless protocol for logging wind and speed data, the project has since expanded to offer a wide range of functionalities.
 
+Key capabilities include:
 \begin{itemize}
-\item Send or receive a NMEA stream to or from your PC/Tablet with data on depth, water speed, wind, magnetic heading, GNSS positioning, speed, time, etc.
-\item Send Heading data from the LSM303 navigation compass to your Micronet's displays (HDG).
-\item Send GNSS data to your Micronet displays (LAT, LON, TIME, DATE, COG, SOG) and to your PC/Tablet.
-\item Send navigation data from your PC/Tablet (OpenCPN, qtVlm, avnav, etc.) to your Micronet displays (BTW, DTW, XTE, ETA).
+\item Bidirectional NMEA 0183 streaming to a PC or tablet, conveying data such as depth, water speed, wind, magnetic heading, and GNSS information.
+\item Transmitting heading data from an attached LSM303 compass to Micronet displays.
+\item Sending GNSS data (position, time, date, COG, SOG) to both Micronet displays and an external NMEA device.
+\item Relaying navigation data (BTW, DTW, XTE, ETA) from navigation software like OpenCPN, qtVlm, or AVnav to Micronet displays.
 \end{itemize}
 
-\section{What is NOT MicronetToNMEA}
+\section{Disclaimer}
 
-MicronetToNMEA is not waterproof and more generally not reliable. All electronics used in this project are made for hobbyist and are all but robust. In the brutal, wet and salty environment of a boat, it will likely fail quickly. So be careful that MicronetToNMEA should not be used as primary navigation tool. Also note that Micronet wireless protocol has been reverse engineered and that many of its aspects are not yet properly understood. Worse, some understandings we think to be correct might be false in some circumstances. If you need state of the art and reliable navigation devices, just go to your nearest Raymarine/TackTick reseller.
+\textbf{Important:} MicronetToNMEA is a hobbyist project. The hardware is not waterproofed or marine-grade and is not designed for high reliability in a harsh marine environment. It should \textbf{not} be used as a primary navigation tool.
+
+The Micronet wireless protocol has been reverse-engineered. While much of it is understood, some aspects may be incomplete or misinterpreted. For certified, state-of-the-art navigation equipment, please consult an authorized Raymarine/TackTick reseller.
 
 \section{Contributors}
 
 \begin{itemize}
-\item Ronan Demoment : Main author
-\item Dietmar Warning : LSM303 drivers \& Bugfixes
-\item \href{https://github.com/j-lang}{j-lang} : UBLOX M8N initialization code
-\item Contributors of YBW forum's Micronet thread : \href{https://forums.ybw.com/index.php?threads/raymarines-Micronet.539500/}{Micronet Thread}
+\item Ronan Demoment: Main author
+\item Dietmar Warning: LSM303 drivers \& bugfixes
+\item \href{https://github.com/j-lang}{j\_lang}: UBLOX M8N initialization code
+\item Contributors to the YBW forum's Micronet thread: \href{https://forums.ybw.com/index.php?threads/raymarines-Micronet.539500/}{Micronet Thread}
 \end{itemize}
 
-\chapter{Needed hardware and software}
+\chapter{Hardware and Software Requirements}
 
-\section{Required hardware}
+\section{Required Hardware}
 
-To work properly, MicronetToNMEA needs at least a ESP32 WROOM DevKitC board and a CC1101 based breakout board.
+The minimum hardware required to build the MicronetToNMEA converter is an ESP32 development board and a CC1101 radio module.
 
 \subsection{ESP32 Board}
 
-There are many ESP32 microcontroller variants as well as many ESP32 based boards. Not all of them are suitable for MicronetToNMEA. Bluetooth Classic SPP is required and only the D0WD version of ESP32 supports it. \textbf{Newer ESP32-S3/C2/C3/H2 don't support Bluetooh Classic and will not work with MicronetToNMEA}.
+This project requires an ESP32 variant that supports Bluetooth Classic SPP, specifically one based on the D0WD chip. \textbf{Newer ESP32 variants such as the S3, C2, C3, and H2 do not support Bluetooth Classic and are not compatible.}
 
-The simplest choice is to use a WROOM DevKitC board like this one: \href{https://www.upesy.fr/products/upesy-esp32-wroom-devkit-board}{uPesu Wroom DevKit}.
-ESP32 boards are very easy to find and purchase and are very cheap.
+The recommended and most straightforward option is an ESP32 WROOM DevKitC board, which is widely available and inexpensive. An example is the \href{https://www.upesy.fr/products/upesy-esp32-wroom-devkit-board}{uPesy Wroom DevKit}.
 
 \begin{figure}[h]
-	\centering
-	
-	\includegraphics[width=150mm]{ESP32_Pinout.png}
-	\caption{Powering Teensy with a DC-DC converter}
-	\label{figure:esp32pinout}
+\centering
+\includegraphics[width=150mm]{ESP32_Pinout.png}
+\caption{WROOM DevKitC Pinout}
+\label{figure:esp32pinout}
 \end{figure}
 
-\subsection{CC1101 board}
+The project was developed on an older ESP32-WROOM-32 board (DevKitC v1) but should be compatible with newer ESP32-WROOM-32E boards (DevKitC v4).
 
-CC1101 is mandatory to MicronetToNMEA. It is the IC which enables RF communication with Micronet/TackTick devices. CC1101 breakout boards are very cheap but the quality of design and components is often less than average. So do not expect to have the same distance performance than original TackTick devices. Be careful when ordering this board since it is designed for a specific range of frequencies (filter and antenna), even if the board is announced to support 434 \& 868MHz (the IC can, but the antenna filter can not). MicronetToNMEA needs a board designed for 868/915MHz usage. Ordering the wrong board would dramatically reduce operating distance between MicronetToNMEA and TackTick devices. Here is an example of a suitable board: \href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101 module}
+\subsection{CC1101 Board}
 
-These low-cost boards are often delivered without any documentation, especially pin-out description. In that case CC1101 data-sheet might help : \href{https://www.ti.com/lit/ds/symlink/cc1101.pdf}{CC1101 datasheet}
+The CC1101 is the radio transceiver that enables RF communication with Micronet/TackTick devices and is mandatory. While low-cost CC1101 breakout boards are common, their design and component quality can be inconsistent, potentially resulting in a shorter range compared to original TackTick equipment.
 
-\section{Optional hardware}
+\textbf{Crucially, you must order a board designed for the 868/915MHz frequency range.} Although the CC1101 chip is multi-band, the board's antenna and filters are frequency-specific. Using a board for a different frequency (e.g., 434MHz) will severely limit the operational range. An example of a suitable board is this \href{https://www.amazon.fr/laqiya-cc1101-868-MHz-Transmission-Antenne-Transceiver/dp/B075PFQ57G}{868MHz CC1101 module}.
 
-You can add optional HW to MicronetToNMEA to enhance its capabilities.
+These boards often lack documentation. If no pinout is provided, refer to the official \href{https://www.ti.com/lit/ds/symlink/cc1101.pdf}{CC1101 datasheet}.
 
-\subsection{NMEA0183 GNSS}
+\section{Optional Hardware}
 
-If you want to connect a GNSS/GPS to MicronetToNMEA, there is only one important point: it must output localization data on a RS232 link using NMEA0183 format. An example of cheap GNSS which fits the need is the UBLOX NEO-M8N. The NEO-M8N can directly output NMEA stream to its serial output. Avoid too cheap offers from unknown HW sources, this might be counterfeit hardware.
+The converter's capabilities can be extended with the following optional hardware.
 
-\subsection{NMEA0183 AIS}
+\subsection{NMEA 0183 GNSS Receiver}
 
-If you already have an AIS with a NMEA0183 output on your boat you can use it as a GNSS source. MicronetToNMEA also have the capability to forward AIS data to the PC/Tablet. Be careful that AIS outputs are not 3.3V and that you will likely need a level shifter or a RS422/485 transceiver to protect your ESP32.
+You can connect any GNSS/GPS unit that outputs NMEA 0183 data over a serial (RS-232) connection. The UBLOX NEO-M8N is a good, low-cost example. When selecting a GNSS module, ensure its I/O voltage is 3.3V. \textbf{Connecting a 5V device will damage the ESP32's inputs, which are not 5V tolerant.} To avoid counterfeit hardware, purchase from reputable suppliers.
 
-\subsection{LSM303DLH, LSM303DLHC or LSM303AGR navigation compass breakout board}
+\subsection{NMEA 0183 AIS Unit}
 
-Connected to Teensy I2C bus, this IC will allow getting magnetic heading. MicronetToNMEA automatically detects the presence and type of LSM303DLH/DLHC/AGR on its I2C bus.
+An existing AIS unit with an NMEA 0183 output can serve as a GNSS source. MicronetToNMEA can also forward AIS data to a connected PC or tablet. Note that AIS NMEA 0183 outputs are typically differential and not 3.3V. An RS-422/485 to 3.3V RS232 transceiver may be required to protect the ESP32.
 
-\section{Required software}
+\subsection{LSM303 Compass Module}
 
-\subsection{Visual Studio Code and PlatformIO}
+An LSM303DLH, LSM303DLHC, or LSM303AGR compass module can be connected to the ESP32's I2C bus to provide magnetic heading data. The software automatically detects the presence and type of the connected LSM303 sensor.
 
-MicronetToNMEA has been developped with \href{https://code.visualstudio.com/}{Visual Studio Code} with PlatformIO extension. All VS Code \& PlatformIO configuration files are stored into the repository making project import very easy. MicronerToNMEA can not be compiled with ArduinoIDE.
+\section{Required Software}
 
-\chapter{Compilation}
+The project is developed using \href{https://code.visualstudio.com/}{Visual Studio Code} with the PlatformIO extension. All necessary configuration files are included in the repository for a straightforward setup.
 
-Here are the steps to compile MicronetToNMEA with Visual Studio Code :
+\chapter{Compilation and Configuration}
 
+\section{Compiling the Firmware}
+
+Follow these steps to compile the MicronetToNMEA firmware:
 \begin{itemize}
-\item Install Visual Studio Code from Microsoft website : \url{https://code.visualstudio.com}
-\item Start Visual Studio Code and install PlatformIO extension. Note that you might have to install \emph{python3-distutils} package under Linux for the installation to be successful.
-\item Open MicronetToNMEA base folder with menu \emph{"File->Open Folder"}. The base folder is the one with \emph{platformio.ini} file.
-\item At the first opening, PlatformIO plugin will download and install ESP32 toolchain. This can take a while.
-\item Once PlatformIO is ready, you can compile MicronetToNMEA by pressing \emph{SHIFT-CTRL-B}.
-\item To upload the compiled binary to the ESP32, press \emph{SHIFT-CTRL-U}.
+\item Install Visual Studio Code from your distribtion software manager or from the official website (\url{https://code.visualstudio.com}).
+\item Launch Visual Studio Code and install the PlatformIO extension with the extension manager. On some Linux distribution, you may need to install the \emph{python3\_distutils} package first.
+\item Open the MicronetToNMEA project folder using the \emph{"File -> Open Folder"} menu. This is the folder containing the \emph{platformio.ini} file.
+\item Upon opening the project for the first time, PlatformIO will automatically download and install the required ESP32 toolchain. This may take several minutes.
+\item Once the setup is complete, compile the project by pressing \emph{SHIFT+CTRL+B}.
+\item Upload the compiled firmware to the ESP32 board by pressing \emph{SHIFT+CTRL+U}.
 \end{itemize}
 
-\section{Compile time configuration}
+\section{Compile-Time Configuration}
 \label{compile-time-configuration}
 
-By default, MicronetToNMEA is configured for a specific HW layout. This means that it is configured to be connected through specific SPI, I2C or GPIO pins to the default ESP32 board. This configuration can be changed to some extent to adapt your own needs. The file bearing this configuration is “BoardConfig.h”. Note that no coherency check is made in the software, it is your responsibility to provide a reachable configuration (i.e. not to connect SPI wires to non SPI capable pins). Table {\ref{table:configswitches}} lists all available switches and their meaning.
+The file \emph{src/Config/BoardConfig.h} contains hardware layout definitions, such as pin assignments for SPI, I2C, and GPIO. You can modify this file to match your specific hardware setup. It is your responsibility to ensure the pin configuration is valid (e.g., assigning SPI functions to SPI-capable pins), as the software does not perform any validation.
 
-	\begin{tabularx}{\linewidth}{@{}lX@{}}
-		\hline
-		\textbf{Compile Switch} & \textbf{Description}\\
-		\hline
-		FREQUENCY\_SYSTEM & Defines which frequency range is used by your Micronet network (0=868MHz, 1=915MHz)\\
-		\hline
-		CS0\_PIN & Defines SPI Chip Select line connected to RF IC\\
-		\hline
-		MOSI\_PIN & Defines MOSI pin of SPI bus connected to RF IC\\
-		\hline
-		MISO\_PIN & Defines MISO pin of SPI bus connected to RF IC\\
-		\hline
-		SCK\_PIN & Defines SCK pin of SPI bus connected to RF IC\\
-		\hline
-		GDO0\_PIN & Defines GDO0 pin of SPI bus connected to RF IC\\
-		\hline
-		COMPASS\_I2C & Sets the I2C bus to which the navigation compass (i.e. LSM303DLH(C)) is connected. Defined as per “Wiring” library definition (Wire0, Wire1, etc.)\\
-		\hline
-		BLUETOOTH\_DEVICE\_NAME & Bluetooth device name as it will be seen by other devices\\
-		\hline
-		CONSOLE & Defines on which serial port is displayed the console (can be USB\_NMEA or WIRED\_NMEA). Can be on the same serial link than NMEA\_EXT\\
-		\hline
-		CONSOLE\_BAUDRATE & Defines console baud-rate\\
-		\hline
-		NMEA0183\_IN\_IS\_UBLOXM8N & Enable automatic configuration of UBLOX M8N/M6N GPS when connected to NMEA input (0=disabled, 1=enabled)\\
-		\hline
-		NMEA0183\_IN & Defines on which serial port is connected the NMEA input  (Serial, Serial1, Serial2, etc.)\\
-		\hline
-		NMEA0183\_IN\_BAUDRATE & Defines NMEA UART baud-rate\\
-		\hline
-		PLOTTER & Defines on which Serial port is connected the plotter/navigation computer (gBTSerial or Serial)\\
-		\hline
-\end{tabularx}
+Table \ref{table:configswitches} lists the available configuration options.
+
 \begin{table}[h]
-	\caption{Configuration switches in BoardConfig.h}
+\begin{tabularx}{\linewidth}{@{}lX@{}}
+\hline
+\textbf{Switch} & \textbf{Description}\\
+\hline
+\texttt{FREQUENCY\_SYSTEM} & Sets the Micronet network frequency (0 for 868MHz, 1 for 915MHz). \\
+\hline
+\texttt{CS0\_PIN} & Defines the SPI Chip Select (CS) pin for the CC1101. \\
+\hline
+\texttt{MOSI\_PIN} & Defines the SPI MOSI pin for the CC1101. \\
+\hline
+\texttt{MISO\_PIN} & Defines the SPI MISO pin for the CC1101. \\
+\hline
+\texttt{SCK\_PIN} & Defines the SPI SCK (Clock) pin for the CC1101. \\
+\hline
+\texttt{GDO0\_PIN} & Defines the GDO0 pin for the CC1101. \\
+\hline
+\texttt{COMPASS\_I2C} & Sets the I2C bus for the LSM303 compass (e.g., \texttt{Wire0}, \texttt{Wire1}). \\
+\hline
+\texttt{BLUETOOTH\_DEVICE\_NAME} & Sets the Bluetooth device name. \\
+\hline
+\texttt{CONSOLE} & Defines the serial port for the configuration console (e.g., \texttt{USB\_NMEA}, \texttt{WIRED\_NMEA}). \\
+\hline
+\texttt{CONSOLE\_BAUDRATE} & Defines the baud rate for the console. \\
+\hline
+\texttt{NMEA0183\_IN\_IS\_UBLOXM8N} & Enables auto-configuration for a UBLOX M8N/M6N GPS (1 to enable, 0 to disable). \\
+\hline
+\texttt{NMEA0183\_IN} & Defines the serial port for NMEA input (e.g., \texttt{Serial}, \texttt{Serial1}). \\
+\hline
+\texttt{NMEA0183\_IN\_BAUDRATE} & Defines the baud rate for the NMEA input UART. \\
+\hline
+\texttt{PLOTTER} & Defines the serial port for the plotter/navigation computer (e.g., \texttt{gBTSerial}, \texttt{Serial}). \\
+\hline
+\end{tabularx}
+\caption{Configuration switches in BoardConfig.h}
 \label{table:configswitches}
 \end{table}
 
-\chapter{Installation}
+\chapter{Hardware Installation}
 
-ESP32 board must be connected to other boards with the same scheme that you have defined in “BoardConfig.h”. No check is made by MicronetToNMEA software to verify that your configuration is matching your actual connections. You must carefully verify that you properly connected the various devices since wrong connections can possibly damage your hardware, especially with respect to power supply connections.
+Connect the ESP32 board to the peripheral modules according to the pin definitions in your \emph{BoardConfig.h} file. Double-check all connections before powering on the system, as incorrect wiring, especially for the power supply, can permanently damage the hardware.
 
-\section{Power supply}
+\section{Power Supply}
 
-The first and most important connection to build is the power supply. You have two options there, you can either :
-
+There are two options for powering the system:
 \begin{itemize}
-	\item Power the system via USB
-	\item Power the system using external DC power source
+\item Power via the ESP32's USB port.
+\item Power from an external DC source.
 \end{itemize}
 
-\subsection{Power via USB}
+\subsection{Powering via USB}
 
-This is the most straightforward way to power the system: just plug an USB cable in the ESP32 connector and it will be powered by the connected PC. ESP32 board is equipped with a voltage regulator which provides 3.3V. This 3.3V voltage can be used to power other boards of the system.
-Be careful that USB 2.0 limits 5V output current to 500mA, but you should be even more careful since Teensy's regulator recommends not to exceed 250mA for 3.3V. So you must take care that your system does not exceed these limits.
-As an example, table \ref{table:boardconsumption} shows maximum current values for various boards.
+The simplest method is to power the system by connecting a USB cable from a PC to the ESP32 board. The board's onboard voltage regulator will provide the 3.3V needed by the other modules. Note that a standard USB 2.0 port is limited to 500mA. Ensure your system's total current draw does not exceed this limit.
 
+Table \ref{table:boardconsumption} provides typical current consumption values.
 \begin{table}[h]
-	\begin{tabular}{|l|c|c|l|}
-		\hline
-		Board & Supply voltage & Max current & Comment \\
-		\hline
-		Teensy 3.5 & 5V & 50mA & CPU running at 120MHz\\
-		Teensy 3.6 & 5V & 80mA & Input not 5V tolerant\\
-		Teensy 4.1 & 5V & 100mA & Input not 5V tolerant\\
-		CC1101 & 3.3V & 40mA & RF at 868MHz\\
-		NEO M8N GNSS & 5V & 45mA & IOs are 3.3V\\
-		LSM303DLH(C) & 3.3V & 10mA & Unspecified in datasheet, value assumed\\
-		HC06 Bluetooth transceiver & 3.3V & 40mA & Peak during pairing\\
-		Serial WiFi (ESP8266) & 5V & 150mA & 80mA average, upto 400mA peak\\
-		\hline
-	\end{tabular}
-	\caption{Current consumption of typical boards}
-	\label{table:boardconsumption}
+\begin{tabular}{|l|c|c|l|}
+\hline
+Board & Supply & Max Current & Comment \\
+\hline
+ESP32 WROOM DevKitC & 5V & <100mA avg, 300mA peak & \\
+CC1101 & 3.3V & 40mA & RF transmission at 868MHz \\
+NEO-M8N GNSS & 5V & 45mA & I/O pins are 3.3V \\
+LSM303DLH(C) & 3.3V & ~10mA & Assumed value \\
+\hline
+\end{tabular}
+\caption{Typical current consumption of modules}
+\label{table:boardconsumption}
 \end{table}
-USB powering is especially useful when you plan to output NMEA through USB-serial. In this case, the connected PC/Tablet will provide power to the system and when MicronetToNMEA is not needed anymore, just unplug the USB cable to power-off the system.
 
-\subsection{Power with an external DC source}
-While USB powering is easy to setup, it is not a common source of power in a boat. It is more usual to get two wires with an unstable battery voltage between 11V and 15V. In that case, you will need a voltage regulator or a DC-DC converter which will be used to produce a stable 5V for the system. This 5V source can then be connected to the Vin pin of Teensy. The on-board regulator will then produce 3.3V from this input.
-\linebreak
-When Vin pin is connected to an external source of power, you must not connect an USB cable to avoid short circuit between Vin and Vusb which are connected together on Teensy by default. The Vin pin can handle voltages from 3.6 to 6V but it is strongly recommended to use 5V here. This way, if you accidentally connect a USB cable while powering Vin, there will be no heavy short circuit.
+USB power is convenient when using the USB serial output for NMEA data, as the connected PC or tablet powers the device.
 
-\begin{figure}
+\subsection{Powering with an External DC Source}
+
+On a boat, power is typically supplied from a 12V battery system, which can have voltage fluctuations (11V-15V). To use this source, you must add a DC-DC converter to produce a stable 5V supply. This 5V output can be connected to the 5V input pin on the ESP32 board. The ESP32's onboard regulator will then generate the necessary 3.3V.
+
+\begin{figure}[h]
 \centering
-
 \includegraphics[width=100mm]{MicronetToNMEA_DC_Power.png}
-	\caption{Powering Teensy with a DC-DC converter}
+\caption{Powering the ESP32 with a DC-DC converter}
 \label{figure:dcpower}
 \end{figure}
 
-\section{Connecting CC1101}
+\section{Connecting the CC1101 Module}
 
-CC1101 uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101's VCC \& GND. MOSI(SI), MISO(SO), CS0 and GD0 must be connected as per your BoardConfig.h definitions. Note that GDO2 isn't used by MicronetToNMEA and doesn't need to be connected to Teensy. Figure \ref{figure:cc1101} shows how to connect CC1101 with the default configuration.
-
-\begin{figure}[h]
-	\centering
-	\includegraphics[width=50mm]{MicronetToNMEA_CC1101.png}
-	\caption{Connecting Teensy and CC1101}
-	\label{figure:cc1101}
-\end{figure}
-
-\section{Connecting LSM303}
-
-LSM303DLH(C) uses 3.3V voltage so you can connect Teensy's 3.3V \& GND pins to CC1101's VCC \& GND. In addition SDA \& SCL must be connected as per your BoardConfig.h definitions. Note that DRDY, I1 \& I2 don't need to be connected. Figure \ref{figure:lsm303} shows how to connect LSM303DLH(C) with the default configuration.
+The CC1101 module operates at 3.3V. Connect its VCC and GND pins to the 3.3V and GND pins on the ESP32. Connect the MOSI, MISO, SCK, CS, and GDO0 pins as defined in \emph{BoardConfig.h}. The GDO2 pin is not used and can be left disconnected. Figure \ref{figure:cc1101} shows the default wiring scheme.
 
 \begin{figure}[h]
-	\centering
-	\includegraphics[width=50mm]{MicronetToNMEA_LSM303.png}
-	\caption{Connecting Teensy to LSM303}
-	\label{figure:lsm303}
+\centering
+\includegraphics[width=50mm]{MicronetToNMEA_CC1101.png}
+\caption{Connecting the ESP32 and CC1101}
+\label{figure:cc1101}
 \end{figure}
 
-\section{Connecting GNSS}
+\section{Connecting the LSM303 Module}
 
-Unlike CC1101 or LSM303DLH(C), GNSS/GPS boards are often requiring 5V VCC as power voltage. So you have to connect it directly to DC-DC Converter's output. You should check however that your GNSS board is not 3.3V powered, in which case you should use one of Teensy 3.3V pin.
-TX and RX pins must then be connected respectively on RX and TX of Teensy's UART. The recommended UBLOX M8N module has an internal regulator to 3.3V on board, so you can connect GNSS directly even if it is using 5V supply voltage. This situation may be different for other GNSS modules. 
-
-Figure \ref{figure:gnss} shows how to connect GNSS for the default configuration.
+The LSM303 compass also operates at 3.3V. Connect its VCC and GND pins to the ESP32. Connect the SDA and SCL pins according to your \emph{BoardConfig.h} definitions. The DRDY, I1, and I2 pins are not used. Figure \ref{figure:lsm303} shows the default wiring.
 
 \begin{figure}[h]
-	\centering
-	\includegraphics[width=50mm]{MicronetToNMEA_GNSS.png}
-	\caption{Connecting Teensy and GNSS}
-	\label{figure:gnss}
+\centering
+\includegraphics[width=50mm]{MicronetToNMEA_LSM303.png}
+\caption{Connecting the ESP32 to the LSM303}
+\label{figure:lsm303}
 \end{figure}
 
-MicronetToNMEA can connect to a wide variety of GNSS. You just have to configure the GNSS with the correct parameters before connecting it. GNSS has to output an NMEA compatible stream at the same bit-rate than specified in BoardConfig.h. MicronetToNMEA can automatically configure the GNSS if it is a UBLOX Neo M8N. Just enable GNSS\_UBLOXM8N option in BoardConfig.h.
+\section{Connecting a GNSS Receiver}
 
-GNSS should output the following sentences :
+Some GNSS/GPS boards require a 5V supply. If so, connect the board's VCC pin directly to the 5V output of your DC-DC converter. If your GNSS board is 3.3V powered, connect it to a 3.3V pin on the ESP32.
+
+Connect the GNSS TX/RX pins to the corresponding RX/TX pins of the UART specified in \emph{BoardConfig.h}. The recommended UBLOX M8N module has an onboard regulator and can be powered with 5V, but its I/O are 3.3V tolerant. This may not be true for all GNSS modules, so always check that TX \& RX are 3.3V.
+
+Figure \ref{figure:gnss} shows the default wiring.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=50mm]{MicronetToNMEA_GNSS.png}
+\caption{Connecting the ESP32 and GNSS}
+\label{figure:gnss}
+\end{figure}
+
+MicronetToNMEA can interface with most GNSS receivers that output standard NMEA sentences at the baud rate specified in \emph{BoardConfig.h}. If you are using a UBLOX Neo M8N or M6N, you can enable the NMEA0183\_IN\_IS\_UBLOXM8N option in \emph{BoardConfig.h} to have the software configure it automatically.
+
+The GNSS should be configured to output the following sentences:
 \begin{itemize}
-	\item GGA : Position
-	\item RMC : Time
-	\item VTG : Track and speed
+\item GGA: Position data
+\item RMC: Time, date, and basic navigation data
+\item VTG: Course over ground (COG) and speed over ground (SOG)
 \end{itemize}
 
-\section{Connecting wireless serial modules}
+\section{Installation Recommendations}
 
-When MicronetToNMEA is configured to send its console and/or NMEA
-output to a standard wired UART (i.e not USB), you can consider connecting
-a HC-06 Bluetooth transceiver or an Serial WiFi board to easily get
-wireless connectivity to your PC/Tablet. Both boards are powered with
-5V but can handle 3.3V signals. Only VCC, GND, RXD \& TXD need to
-be connected. Figure \ref{figure:hc06} shows how to connect e.g.
-HC-06 with the default configuration.
+\subsection{RF Performance}
+Micronet devices operate at low power, with a typical range of 15-20 meters. To maximize performance, avoid placing metal objects or panels between MicronetToNMEA and other network devices. Carbon fiber, used in some sails and boat hulls, can also block RF signals and significantly reduce range. Fiberglass (GRP) hulls, however, attenuate the signal only slightly.
 
-\begin{figure}[h]
-	\centering
-	\includegraphics[width=85mm]{MicronetToNMEA_HC06.png}
-	\caption{Connecting Teensy and HC-06}
-	\label{figure:hc06}
-\end{figure}
+The CC1101's antenna quality is critical. The small antennas supplied with low-cost modules often prioritize size over performance. A simple quarter-wavelength wire antenna (86.5mm for 869MHz or 82mm for 915MHz) can provide excellent range. The \emph{"Test RF quality"} menu can be used to evaluate antenna performance and find the optimal orientation.
 
-As for the GNSS, MicronetToNMEA does not configure HC-06 itself. It is your responsibility to configure HC-06 properly (i.e. with parameters matching BoardConfig.h) prior to connecting it to Teensy.
-
-\section{Recommendations}
-
-\subsection{RF performance}
-Micronet devices cannot legally exceed a handful of milliwatts of transmit power. As a consequence the operational range will hardly exceed 15-20m. It is important not to put metal objects or panels between your various devices. This would dramatically reduce of the operational range of MicronetToNMEA.
-You should also be careful if you are racing and using carbon sails. If the sails are between your wind vane and MicronetToNMEA, you will likely not receive wind data. Carbon disturbs RF transmissions.
-It is generally considered not to be a good idea to use wireless electronics in a carbon boat or with carbon sails. Fibreglass attenuates only a little the signal, so it is safe to attach your device inside a GRP hull.
-
-The quality of CC1101's antenna is critical to maximize RF performance and operational range. Antennas provided with low cost breakout boards are often designed to be small at the cost of RF performance. An easy way to get a good quality antenna is to use a simple electrical wire with the adequate length (quarter wavelength: 86.5mm for 869MHz or 82mm for 915MHz). With such an antenna you can reach a very good operating range. Wire antenna also have the interesting feature of beeing flexible so that you can orient them to maximize wind reception (use \emph{"Test RF quality"} menu for that).
-
-\subsection{Magnetic compass disturbances}
+\subsection{Magnetic Compass Placement}
 \label{compass-recommendations}
-If your are using LSM303 to get magnetic heading, it is very important to put your MicronetToNMEA assembly far from other electrical devices, especially those carrying a bit of power. This can highly disturb magnetic compass. As an example, a running 24" TV monitor can deviate the compass by 20° at 50cm and still a few degrees at 1m.
-Also, metal must be avoided : it deviates magnetic field. The bigger the piece of metal is the farthest you should put your device. In a boat you should avoid the keel, batteries and the inboard engine. At a smaller scale, you should keep LSM303 board away from DC-DC converter if you can.
+If using an LSM303 compass, install the MicronetToNMEA assembly far from electrical devices, especially power cables, which can create magnetic interference. For example, a 24" monitor can cause a 20° deviation at 50cm.
 
-\subsection{Magnetic compass calibration}
-An electronic compass must be properly calibrated to produce good values. The theory tells us that a perfect calibration would need to have your device attached in its final position and to spin your boat around the 3 axis. This is generally not something we want to do. To achieve a good calibration with less complex operations, the best is to calibrate MicronetToNMEA outside your boat, far from any metal or electronic device. You should also keep it as far as possible of its power supply. Once calibrated, get it back to your boat and fix it in a proper place, following the above recommendations. This should give good results.
+Also, avoid large metal objects such as the keel, batteries, and engine. On a smaller scale, keep the LSM303 board as far from the DC-DC converter as practical.
 
-\subsection{CPU frequency and power consumption}
-The latest Teensy boards have powerful CPUs running up to 600MHz. This power has a cost : power consumption. MicronetToNMEA doesn't need so much power so it is advised to reduce the CPU speed to 24MHz. It will significantly reduce power consumption.
-On a system with a Teensy 4.0@24MHz, a NEO M8M GNSS, a HC-06 Bluetooth transceiver, a CC1101, a LSM303DLH and a oversized DC-DC converter, the complete power consumption at 12V connector is averaging around 850mW (700-1000mW).
+\subsection{Magnetic Compass Calibration}
+For accurate heading measurements, the compass must be calibrated. The ideal calibration involves rotating the boat on all three axes, which is not realistic. A good alternative is to perform the calibration of MicronetToNMEA outside of the boat, on land, away from any metal or electronic devices.
+
+Once calibrated, install the unit in its final position on the boat, following the placement recommendations above. This should yield good results.
 
 \chapter{Usage}
 
-\section{Configuring MicronetToNMEA}
+\section{Initial Configuration}
 
-\subsection{Connecting to the console}
+\subsection{Connecting to the Console}
 
-To be able to configure MicronetToNMEA, you must have access to the configuration menu displayed on the serial console. By default, this console is connected to the USB serial port of Teensy. So you just have to find a terminal software to connect to it. A good open source terminal is \href{http://www.teraterm.org/}{Tera Term}. Note that when using Teensy USB connection, you can use any baud-rate on PC side, this as no real effect.
+To configure MicronetToNMEA, you must connect to its serial console. By default, the console is accessible over the ESP32's USB serial port. Use a terminal application (such as Tera Term) to connect. When using the USB connection, the baud rate setting on the PC side does not matter.
 
-At the first power-up, before having configured MicronetToNMEA, console should go directly to the configuration menu. If this is not the case, it means that a configuration as already been written in EEPROM and that MicronetToNMEA has automatically switched to "NMEA conversion mode". In this case, you just have to press \emph{<ESC>} key to come back to the configuration menu.
+On first power-up, the configuration menu should appear automatically. If the device instead begins outputting NMEA sentences, it means a configuration is already saved in EEPROM. Press the \emph{<ESC>} key to return to the main menu.
 
-The menu should look like this :
-
+The menu will appear as follows:
 \begin{verbatim}
 *** MicronetToNMEA ***
 
 0 - Print this menu
 1 - General info on MicronetToNMEA
-2 - Scan Micronet networks
-3 - Attach converter to a network
-4 - Start NMEA conversion
-5 - Scan surrounding Micronet traffic
-6 - Calibrate RF XTAL
-7 - Calibrate compass
-8 - Test RF quality
+2 - Attach converter to closest network
+3 - Start NMEA conversion
+4 - Scan surrounding Micronet traffic
+5 - Calibrate RF XTAL
+6 - Calibrate compass
+7 - Test RF quality
+8 - Configuration
 \end{verbatim}
 
-\subsection{Attaching your Micronet network to MicronetToNMEA}
+\subsection{Attaching to a Micronet Network}
 
-We need to identify your Micronet network for MicronetToNMEA to be able to recognize it and to ignore other networks that may be in you vicinity. You will typically find several networks when in a marina with many sailing boats.
-To identify your network, you have to power-up your Micronet display and to ensure that your master device, the one you used to power-up the network, is close to MicronetToNMEA, let say, 2 or 3 meters maximum. Once done, enter \emph{"2 - Scan Micronet networks"} menu by pressing 2 in the console. This will start a five second scanning sequence which listens to every network in the area. At the end of this sequence, every network found will be listed in the console. If there are several networks, they are listed in decreasing order of power.
+To begin, you must connect the MicronetToNMEA to your boat's Micronet network. This allows it to ignore signals from other nearby networks, a common situation in a marina.
+Power on your Micronet system and place the master display (the one used to power on the network) within 2-3 meters of the MicronetToNMEA device. From the console menu, select the option \emph{"Attach converter to closest network"}. The device will scan for five seconds and list all detected networks, ordered by signal strength.
 
 \begin{verbatim}
 Network - 83038F54 (very strong)
 Network - 810278A6 (low)
 \end{verbatim}
 
-Yours is very likely at the top of the list with mention "very strong". This is the signal strength. For each network you get a hexadecimal number which is the so called "Network ID". Write it on a piece of paper (\emph{83038F54} in our example).
-Now enter menu \emph{"3 - Attach converter to a network"} by pressing 3, and type your network ID when requested. This will attach MicronetToNMEA to your Micronet network.
-Once done, MicronetToNMEA will save this value to EEPROM and will remember it. You don't need to do this operation at each start-up. Now that MicronetToNMEA is attached, it will automatically go to NMEA conversion mode at the next power-up.
+Your network will likely be at the top of the list with a "very strong" signal. 
+MicronetToNMEA will propose you to attach to this network. Select 'y' (yes) and the network ID will be saved to EEPROM. On subsequent startups, the device will automatically enter NMEA conversion mode.
 
-\subsection{Calibrating CC1101 RF XTAL}
+\subsection{Calibrating the CC1101 RF Crystal}
 
-CC1101 board uses a crystal to generate its frequencies. Crystal frequency is more or less precise and needs to be calibrated for CC1101 to generate exactly the expected frequency. Each crystal needs to be calibrated independently. This calibration is very important because it directly influences the range performance of the RF system (i.e. the maximum distance at which MicronetToNMEA can detect other devices). When you buy a TackTick device, this calibration has already been done at factory. But when you build a MicronetToNMEA system, you need to do it yourself.
+The CC1101 module uses a crystal oscillator to generate its radio frequency. The precision of this crystal varies depending on the quality of the breakout board you use, so it must be calibrated to ensure it operates on the correct frequency for optimal range. While TackTick devices are factory-calibrated, you must perform this calibration yourself for your DIY unit.
 
-Menu \emph{"6 - Calibrate RF XTAL"} does this calibration. Enter it by pressing key 6. A text will explain the procedure : power-up your Micronet network and place the master device (the one you used to power-up the network) very close to MicronetToNMEA (less than one meter). Now press any key and let the calibration proceed. During 2 minutes, you will see dots and stars appear on the console looking like this :
+Select menu option \emph{"Calibrate RF XTAL}. The console will display instructions: power on your Micronet network and place the master device within one meter of the MicronetToNMEA unit. Press any key to begin the two-minute calibration process. The console will display a series of dots and stars:
 
 \begin{verbatim}
 ...................*.**********************.**.....................................
 \end{verbatim}
 
-Each character represents a tested frequency where MicronetToNMEA verifies if it receives data from the Master device. A dot means that nothing was received, a star means that a message was received. The center of the starred area is the best reception frequency and MicronetToNMEA will use this one to get the best RF performance. Your crystal is calibrated.
-At the end of the procedure, you will be asked if you want to save the new calibration value to EEPROM. Just answer yes and your calibration will be done once for all.
+Each character represents a tested frequency. A dot means no signal was received, while a star indicates a message was successfully received. The software identifies the center of the starred region as the optimal frequency.
 
-\subsection{Calibrating navigation compass}
+At the end of the process, you will be prompted to save the new calibration value. Answer "yes" to store it in EEPROM. This calibration only needs to be done once.
 
-Navigation compass needs to be calibrated on its 3 axis to produce correct heading measurements. An uncalibrated compass will give totally wrong values and not just by a few degrees.
+\subsection{Calibrating the Navigation Compass}
 
-The base principle of calibration consists in determining the minimum and maximum values of earth's magnetic field onto each of the three axis of the sensor. This way, heading calculation will be able to remove any bias on the 3 axis. This bias is produced by the LSM303 itself, but also by surrounding electronics (Teensy, GNSS, etc.).
+An uncalibrated compass will yield highly inaccurate heading values. Calibration compensates for magnetic deviations caused by the sensor itself and nearby electronics (such as the ESP32, GNSS module, PCB tracks, etc.). The process determines the minimum and maximum magnetic field strength on each of the sensor’s three axes. This calibration step compensates MicronetToNMEA for its own magnetic distortions, but does not compensate for magnetic influences from your boat. The boat-specific environment will be handled later using Tacktick’s built-in calibration procedure.
 
-Before starting calibration, you must first prepare your environment as explained in \ref{compass-recommendations}. Once ready, you can enter menu \emph{"7 - Calibrate compass"}.
+Before starting, prepare your environment as described in Section \ref{compass-recommendations}. MicronetToNMEA must be calibrated outside the boat, as far as possible from any metallic or electrical objects—including your computer and its display. As a rule of thumb, maintaining at least two meters of separation is recommended.
 
-This menu will produce a permanent output of calibration values looking like this :
+Then select the menu option \emph{“Calibrate compass”}. The console will continuously display calibration data:
 
 \begin{verbatim}
 (0.2 -0.35 -0.17)
 [0.20 0.98] [0.12 1.0] [-0.25 0.99]
+  ^     ^     ^    ^
+  |     |     |    |
+  |     |     |    ------ Y Amplitude
+  |     |     ----------- Y Offset
+  |     |
+  |     ----- X Amplitude
+  ----------- X offset
 \end{verbatim}
 
-The first line gives the current magnetic field on each of the three axis : X, Y and Z.
-The second line gives the two calibration parameters for each axis : center value ((max + min) / 2) and axis amplitude (max - min).
+The first line shows the current magnetic field readings for the X, Y, and Z axes.
+The second line displays two parameters for each axis: the center value ((max + min) / 2) and the amplitude (max - min).
 
-Your objective for a successful calibration is to maximize/minimize readings on each axis. To do this, you must first choose one axis and then rotate your MicronetToNMEA device until this axis is aligned with earth's magnetic field vector. You should see the corresponding reading on the first line maximum (or minimum).
-You must repeat this operation a second time for the same axis but for opposite values (i.e. you must minimize the reading). Each time you reach the maximized/minimized value, you don't need to do anything, MicronetToNMEA will memorize the min/max values for each axis.
+To calibrate, slowly rotate the device to capture the minimum and maximum readings for each axis. There are six values to determine: Xmax, Xmin, Ymax, Ymin, Zmax, Zmin. The software automatically updates these min/max values as you move the device.
 
-Note that the magnetic field vector is pointing more or less to the north, but not horizontally, it is pointing somewhat down to earth in north hemisphere and up to the sky in south hemisphere.
+Earth’s magnetic field vector points generally toward the north, but it also tilts downward in the northern hemisphere and upward in the southern hemisphere. If you obtain the maximum value for one axis—for example, the X axis—it indicates that this axis is aligned with the Earth’s magnetic field. Note this orientation, then align the other axes similarly to obtain their respective maximum values (or minimum values if the orientation is reversed).
 
-You must reproduce this operation for all 3 axis to complete calibration.
-A successful calibration should lead to very close amplitude values for all 3 axis, on the second line. Center values can however be very different.
+A successful calibration will produce similar amplitude values across all three axes. The center values, however, may differ significantly.
 
-Once achieved, just press \emph{<ESC>} and tell MicronetToNMEA to save the value in EEPROM. Your compass is calibrated.
+When you are finished, press \emph{<ESC>} and save the calibration data to EEPROM.
 
-\subsection{Testing RF performance}
+\subsection{Testing RF Performance}
 
-Menu \emph{"8 - Test RF quality"} will help you to evaluate the quality of the connection with each Micronet devices individually. This will be critical to fix your MicronetToNMEA assembly at the right place in your boat. When entering this menu, you will see the list of devices of your network with a indicator of the connection quality :
+Menu \emph{"Test RF quality"} helps you evaluate the connection quality to each device on the Micronet network, which is useful for finding the best installation location for the converter and the best antenna orientation. The menu displays a list of all network devices and their signal strength indicators:
 
 \begin{verbatim}
 81071e60 LNK=7.6 NET=9 Dual Display [M]
@@ -374,84 +354,86 @@ Menu \emph{"8 - Test RF quality"} will help you to evaluate the quality of the c
 830ab252 LNK=6.2 NET=9 Wind Display
 \end{verbatim}
 
-\emph{LNK} indicates the strength of the signal of the device as received by MicronetToNMEA.
-
-\emph{NET} indicates the strength of the signal of the Master as received by the device.
-
-A value of 9 is considered excellent while a value below 3 is low. \emph{LNK} can be used to find the best place for MicronetToNMEA, while \emph{NET} is useful to check if every device is properly receiving master's messages. The list is refreshed every second. The problematic device is generally the wind transducer which is shadowed by the mast. Placing MicronetToNMEA and your master display outside this shadow will ensure a good wind reception.
-
-\subsection{Starting NMEA conversion}
-
-Menu \emph{"4 - Start NMEA conversion"} actually start Micronet/NMEA conversion as suggested by the name. Once you enter in this mode MicronetToNMEA will output NMEA sentences to the NMEA\_EXT link. By default, NMEA\_EXT is routed to the same serial link than the console (USB serial). It means that you will immediately see NMEA sentences beeing written onto console. Additionnaly, MicronetToNMEA also decodes any incoming NMEA sentence from NMEA\_EXT serial and transmits it to your Micronet network.
-You need to be in this mode to see decoded GNSS or NMEA data displayed onto your Micronet displays. You also need to be in this mode for the configuration parameters modified onto your Micronet displays to be memorized by MicronetToNMEA (e.g. speed factor, sounder offset, etc.).
-If attached to a network, MicronetToNMEA will automatically switch to this mode when powered-up. You can leave it by just pressing \emph{<ESC>} in the console.
-\\
-\\
-Here is a summary of all actions realized by MicronetToNMEA in this mode, with the default configuration :
 \begin{itemize}
-	\item Collect and decode GNSS related NMEA sentences from GNSS\_NMEA link
-	\item Collect and decode navigation related NMEA sentences from NMEA\_EXT link
-	\item Forward GNSS related NMEA sentences from GNSS\_NMEA link to NMEA\_EXT link
-	\item Forward AIS related NMEA sentences from GNSS\_NMEA link to NMEA\_EXT link is an AIS is used to get GNSS data
-	\item Collect and decode data from Micronet devices
-	\item Send all data collected from NMEA links to Micronet network
-	\item Send all data collected from Micronet devices to NMEA\_EXT link
-	\item Calculate heading from LSM303DLH(C)
-	\item Send heading data to Micronet network and NMEA\_EXT link
+\item LNK: The signal strength of the device as received by MicronetToNMEA.
+\item NET: The signal strength of the master display as received by that device.
 \end{itemize}
 
-It is important to note that the configuration can change this sequence and the way MicronetToNMEA decodes/forwards data. See chapter {\ref{supportednmeasentences}} for more details.
+A value of 9 is excellent, while a value below 3 is very low. Use the \emph{LNK} value to find the optimal position for the MicronetToNMEA unit. Use the \emph{NET} value to ensure all devices are properly receiving the master's signal. The list refreshes every second. The wind transducer is often the most problematic device due to signal blockage from the mast. If \emph{LNK} value is too low, you have to move MicronetToNMEA. If \emph{NET} value is too low, you have to move your master device.
 
-\subsection{NMEA sentences and data flow}\label{supportednmeasentences}
+\section{NMEA Conversion Mode}
 
-MicronetToNMEA handles a number of data fields coming either from Micronet network, either from NMEA links.
-NMEA sentences can be handled in various ways depending on your installation. MicronetToNMEA offers the possibility to configure how Micronet data and NMEA sentences are processed. NMEA sentences can be configured to be decoded/encoded from the following links :
+Menu \emph{"Start NMEA conversion"} activates the core functionality of the device. In this mode, MicronetToNMEA begins bidirectionally translating data between the Micronet network and the NMEA data links.
+
+By default, NMEA output is routed to the USB serial port, and you will see NMEA sentences appearing in the console. The device also listens for incoming NMEA sentences on the same port and transmits the relevant data to the Micronet network. This mode must be active for GNSS or other NMEA data to appear on your Micronet displays, and for display settings (like depth offset) to be saved.
+
+If the device has been attached to a network, it will automatically enter this mode on power-up. You can exit to the main menu by pressing \emph{<ESC>}. Note that pressing \emph{<ESC>} will stop NMEA conversion mode.
+
+In conversion mode, the device performs the following actions:
 \begin{itemize}
-	\item LINK\_MICRONET : This link accesses data of the Micronet newtork through CC1101 IC. If a sentence is configured to be received from this link, it means that it will be decoded every second from Micronet data and sent to NMEA\_EXT link.
-	\item LINK\_NMEA\_GNSS : This is the NMEA link with the optional GNSS or AIS. It is a receiving only link. If a sentence is configured to be received from this link, it means that it will be decoded and sent to Micronet network. It will also be forwarded to NMEA\_EXT.
-	\item LINK\_NMEA\_EXT : This is the NMEA link with the "external" device. The external device can be a PC with a navigation software, a WiFi or Bluetooth bridge, etc. Practically it uses NMEA\_IN and NMEA\_OUT serial links defined in BoardConfig.h. If a sentence is configured to be received from this link, it means that it will be decoded and sent to Micronet network.
-	\item LINK\_COMPASS : This is the I2C link with LSM303DLH(C) optional IC. If a sentence is configured to be received from this link, it means that it will be sent to Micronet network, then encoded to NMEA\_EXT. 
+\item Collect and decode GNSS related NMEA sentences from NMEA0183\_IN link (as per \emph{BoardConfig.h} definition)
+\item Collect and decode navigation related NMEA sentences from PLOTTER link
+\item Forward GNSS related NMEA sentences from NMEA0183\_IN link to PLOTTER link
+\item Forward AIS related NMEA sentences from NMEA0183\_IN link to PLOTTER link if an AIS is used to get GNSS data
+\item Collect and decode data from Micronet devices
+\item Send all data collected from NMEA links to Micronet network
+\item Send all data collected from Micronet devices to PLOTTER link
+\item Compute heading from LSM303
+\item Send heading data to Micronet network and PLOTTER link
 \end{itemize}
 
-The following table summarizes all supported NMEA sentences, the corresponding Micronet data and the possible source links:
+\subsection{NMEA Sentences and Data Flow}\label{supportednmeasentences}
+
+MicronetToNMEA can be configured to process data from several sources, or "links":
+
+TODO : Ajouer un shéma global des entrées sortie de MNT
+
+\begin{itemize}
+\item \textbf{Micronet}: Bidirectional data link from/to the wireless Micronet network via the CC1101.
+\item \textbf{NMEA0183\_IN}: The serial port connected to a GNSS or AIS unit. Data from this link is decoded and sent to the Micronet network and is also forwarded to the plotter link.
+\item \textbf{Plotter}: The bidirectional serial port connected to an external device (e.g., a PC or chartplotter). Data received from this link is decoded and sent to the Micronet network.
+\item \textbf{Compass}: The I2C bus connected to the optional LSM303 compass. Heading data from this link is sent to both the Micronet network and the plotter link.
+\end{itemize}
+
+Table \ref{table:nmeasentences} summarizes the supported NMEA sentences and their data flow.
 
 \begin{table}[h]
-	\small
-	\begin{tabular}{|l|c|c|p{5cm}|}
-		\hline
-		\textbf{Sentence} & \textbf{Action}  & \textbf{Corresponding Micronet data} & \textbf{Possible sources} \\
-		\hline
-		RMB & Decoded & XTE DTW BTW VMGWP & LINK\_NMEA\_EXT \\
-		\hline
-		RMC & Decoded/Forwarded & TIME DATE & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
-		\hline
-		GGA & Decoded/Forwarded & LAT LON & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
-		\hline
-		GLL & Decoded/Forwarded & LAT LON & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
-		\hline
-		VTG & Decoded/Forwarded & COG SOG & LINK\_NMEA\_GNSS LINK\_NMEA\_EXT \\
-		\hline
-		MWV & Decoded/Encoded & AWA AWS TWA TWS & LINK\_MICRONET LINK\_NMEA\_EXT \\
-		\hline
-		DPT & Decoded/Encoded & DPT & LINK\_MICRONET LINK\_NMEA\_EXT \\
-		\hline
-		MTW & Decoded/Encoded & STP & LINK\_MICRONET LINK\_NMEA\_EXT \\
-		\hline
-		VLW & Decoded/Encoded & LOG TRIP & LINK\_MICRONET LINK\_NMEA\_EXT \\
-		\hline
-		VHW & Decoded/Encoded & SPD & LINK\_MICRONET LINK\_NMEA\_EXT \\
-		\hline
-		HDG & Decoded/Encoded & HDG & LINK\_MICRONET LINK\_NMEA\_EXT LINK\_COMPASS \\
-		\hline
-		XDR & Decoded & VCC & LINK\_MICRONET \\
-		\hline
-		VDM & Forwarded & None & LINK\_NMEA\_GNSS \\
-		\hline
-		VDO & Forwarded & None & LINK\_NMEA\_GNSS \\
-		\hline
-	\end{tabular}
-	\caption{Supported NMEA sentences}
-	\label{table:nmeasentences}
+\small
+\begin{tabular}{|l|c|c|p{5cm}|}
+\hline
+\textbf{Sentence} & \textbf{Action}  & \textbf{Micronet Data} & \textbf{Possible Sources} \\
+\hline
+RMB & Decoded & XTE, DTW, BTW, VMGWP & Plotter \\
+\hline
+RMC & Decoded/Forwarded & TIME, DATE & NMEA0183\_IN, Plotter \\
+\hline
+GGA & Decoded/Forwarded & LAT, LON & NMEA0183\_IN, Plotter \\
+\hline
+GLL & Decoded/Forwarded & LAT, LON & NMEA0183\_IN, Plotter \\
+\hline
+VTG & Decoded/Forwarded & COG, SOG & NMEA0183\_IN, Plotter \\
+\hline
+MWV & Decoded/Encoded & AWA, AWS, TWA, TWS & Micronet, NMEA0183\_IN, Plotter \\
+\hline
+DPT & Decoded/Encoded & DPT & Micronet, NMEA0183\_IN, Plotter \\
+\hline
+MTW & Decoded/Encoded & STP & Micronet, NMEA0183\_IN, Plotter \\
+\hline
+VLW & Decoded/Encoded & LOG, TRIP & Micronet, NMEA0183\_IN, Plotter \\
+\hline
+VHW & Decoded/Encoded & SPD & Micronet, NMEA0183\_IN, Plotter \\
+\hline
+HDG & Decoded/Encoded & HDG & Micronet, NMEA0183\_IN, Plotter \\
+\hline
+XDR & Decoded & VCC & Micronet \\
+\hline
+VDM & Forwarded & None & NMEA0183\_IN \\
+\hline
+VDO & Forwarded & None & NMEA0183\_IN \\
+\hline
+\end{tabular}
+\caption{Supported NMEA Sentences}
+\label{table:nmeasentences}
 \end{table}
 
 \end{document}
