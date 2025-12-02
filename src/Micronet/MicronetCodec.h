@@ -25,18 +25,10 @@
 
 #pragma once
 
-/***************************************************************************/
-/*                              Includes                                   */
-/***************************************************************************/
-
-#include <stdint.h>
+#include <cstdint>
 
 #include "Micronet.h"
 #include "NavigationData.h"
-
-/***************************************************************************/
-/*                              Constants                                  */
-/***************************************************************************/
 
 #define DEVICE_TYPE_HULL_TRANSMITTER    0x01
 #define DEVICE_TYPE_WIND_TRANSDUCER     0x02
@@ -60,10 +52,6 @@
 #define DATA_FIELD_DPT       0x00001000
 #define DATA_FIELD_SPD       0x00002000
 
-/***************************************************************************/
-/*                                Types                                    */
-/***************************************************************************/
-
 typedef struct
 {
     uint32_t deviceId;
@@ -71,10 +59,6 @@ typedef struct
     uint32_t length_us;
     uint8_t  payloadBytes;
 } TxSlotDesc_t;
-
-/***************************************************************************/
-/*                               Classes                                   */
-/***************************************************************************/
 
 /**
  * @class MicronetCodec
@@ -148,7 +132,9 @@ class MicronetCodec
     uint8_t EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
     uint8_t EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
     uint8_t EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId);
-    void    CalculateTrueWind();
+    uint32_t EncodeHeader(MicronetMessage_t *message, uint8_t messageId, uint8_t deviceFlags, uint8_t signalStrength, uint32_t networkId,
+                          uint32_t deviceId);
+    void     CalculateTrueWind();
 
   private:
     void    DecodeSendDataMessage(MicronetMessage_t *message);
@@ -167,7 +153,3 @@ class MicronetCodec
     uint8_t Add24bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
     uint8_t Add32bitField(uint8_t *buffer, uint8_t fieldCode, int32_t value);
 };
-
-/***************************************************************************/
-/*                              Prototypes                                 */
-/***************************************************************************/

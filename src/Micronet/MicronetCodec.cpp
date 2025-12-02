@@ -1,9 +1,9 @@
 /***************************************************************************
  * MicronetCodec.cpp
- * 
+ *
  * Codec implementation for Micronet protocol used by TackTick/Raymarine products.
  * This module provides:
- * - Decoding of received Micronet frames 
+ * - Decoding of received Micronet frames
  * - Encoding of frames for Micronet devices
  * - Network timing synchronization handling
  *
@@ -17,19 +17,17 @@
 /***************************************************************************/
 
 #include "MicronetCodec.h"
-#include "Globals.h"
 #include "NavigationData.h"
+#include "OSWrapper.h"
 #include "Version.h"
-#include <Arduino.h>
 #include <cmath>
-#include <string.h>
 
 /***************************************************************************/
 /*                              Constants                                    */
 /***************************************************************************/
 
 // Maximum valid depth in feet
-#define MAXIMUM_VALID_DEPTH_FT 500 
+static constexpr int MAXIMUM_VALID_DEPTH_FT = 500;
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -53,7 +51,7 @@
  * Initializes the codec object. No heavy initialization is performed here;
  * navigation state is held in the internal navData member.
  */
-MicronetCodec::MicronetCodec() 
+MicronetCodec::MicronetCodec()
 {
 }
 
@@ -75,9 +73,9 @@ uint32_t MicronetCodec::GetNetworkId(MicronetMessage_t *message)
 {
     // Extract network ID from message header
     unsigned int networkId = message->data[MICRONET_NUID_OFFSET];
-    networkId = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 1];
-    networkId = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 2];
-    networkId = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 3];
+    networkId              = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 1];
+    networkId              = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 2];
+    networkId              = (networkId << 8) | message->data[MICRONET_NUID_OFFSET + 3];
 
     return networkId;
 }
@@ -183,15 +181,15 @@ bool MicronetCodec::DecodeMessage(MicronetMessage_t *message)
     bool ackRequested = false;
 
     // Handle different message types
-    switch (message->data[MICRONET_MI_OFFSET]) 
+    switch (message->data[MICRONET_MI_OFFSET])
     {
-        case MICRONET_MESSAGE_ID_SEND_DATA:
-            DecodeSendDataMessage(message);
-            break;
-        case MICRONET_MESSAGE_ID_SET_PARAMETER:
-            DecodeSetParameterMessage(message);
-            ackRequested = true;
-            break;
+    case MICRONET_MESSAGE_ID_SEND_DATA:
+        DecodeSendDataMessage(message);
+        break;
+    case MICRONET_MESSAGE_ID_SET_PARAMETER:
+        DecodeSetParameterMessage(message);
+        ackRequested = true;
+        break;
     }
 
     return ackRequested;
@@ -334,60 +332,60 @@ void MicronetCodec::DecodePageFF(MicronetMessage_t *message)
  */
 int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
 {
-    int16_t value16;
-    int32_t value_32_1, value32_2;
+    uint8_t fieldLength = message->data[offset] + 2;
 
-    if (message->data[offset] == MICRONET_FIELD_TYPE_3)
+    // Boundary check: ensure the full field fits within the message length
+    if (offset + fieldLength > message->len)
     {
-        uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3];
-        if (crc == message->data[offset + 4])
-        {
-            int8_t value8 = message->data[offset + 3];
-            UpdateMicronetData(message->data[offset + 1], value8);
-        }
-    }
-    else if (message->data[offset] == MICRONET_FIELD_TYPE_4)
-    {
-        uint8_t crc =
-            message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3] + message->data[offset + 4];
-        if (crc == message->data[offset + 5])
-        {
-            value16 = message->data[offset + 3];
-            value16 = (value16 << 8) | message->data[offset + 4];
-            UpdateMicronetData(message->data[offset + 1], value16);
-        }
-    }
-    else if (message->data[offset] == MICRONET_FIELD_TYPE_5)
-    {
-        uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3] +
-                      message->data[offset + 4] + message->data[offset + 5];
-        if (crc == message->data[offset + 6])
-        {
-            value16 = message->data[offset + 3];
-            value16 = (value16 << 8) | message->data[offset + 4];
-            UpdateMicronetData(message->data[offset + 1], value16);
-        }
-    }
-    else if (message->data[offset] == MICRONET_FIELD_TYPE_A)
-    {
-        uint8_t crc = message->data[offset] + message->data[offset + 1] + message->data[offset + 2] + message->data[offset + 3] +
-                      message->data[offset + 4] + message->data[offset + 5] + message->data[offset + 6] + message->data[offset + 7] +
-                      message->data[offset + 8] + message->data[offset + 9] + message->data[offset + 10];
-        if (crc == message->data[offset + 11])
-        {
-            value_32_1 = message->data[offset + 3];
-            value_32_1 = (value_32_1 << 8) | message->data[offset + 4];
-            value_32_1 = (value_32_1 << 8) | message->data[offset + 5];
-            value_32_1 = (value_32_1 << 8) | message->data[offset + 6];
-            value32_2  = message->data[offset + 7];
-            value32_2  = (value32_2 << 8) | message->data[offset + 8];
-            value32_2  = (value32_2 << 8) | message->data[offset + 9];
-            value32_2  = (value32_2 << 8) | message->data[offset + 10];
-            UpdateMicronetData(message->data[offset + 1], value_32_1, value32_2);
-        }
+        return -1; // Error: field would read past the end of the message
     }
 
-    return offset + message->data[offset] + 2;
+    // Verify field CRC
+    uint8_t crc = 0;
+    for (int i = 0; i < fieldLength - 1; i++)
+    {
+        crc += message->data[offset + i];
+    }
+    if (crc != message->data[offset + fieldLength - 1])
+    {
+        return -1; // Error: invalid field CRC
+    }
+
+    uint8_t fieldId = message->data[offset + 1];
+
+    switch (message->data[offset])
+    {
+    case MICRONET_FIELD_TYPE_3: // 8-bit value
+    {
+        int8_t value8 = message->data[offset + 3];
+        UpdateMicronetData(fieldId, value8);
+        break;
+    }
+
+    case MICRONET_FIELD_TYPE_4: // 16-bit value
+    case MICRONET_FIELD_TYPE_5: // 16-bit value with an extra byte
+    {
+        int16_t value16 = (message->data[offset + 3] << 8) | message->data[offset + 4];
+        UpdateMicronetData(fieldId, value16);
+        break;
+    }
+
+    case MICRONET_FIELD_TYPE_A: // 2x 32-bit values
+    {
+        int32_t value32_1 = (message->data[offset + 3] << 24) | (message->data[offset + 4] << 16) | (message->data[offset + 5] << 8) |
+                            message->data[offset + 6];
+        int32_t value32_2 = (message->data[offset + 7] << 24) | (message->data[offset + 8] << 16) | (message->data[offset + 9] << 8) |
+                            message->data[offset + 10];
+        UpdateMicronetData(fieldId, value32_1, value32_2);
+        break;
+    }
+
+    default:
+        // Unknown field type, stop parsing to avoid errors.
+        return -1;
+    }
+
+    return offset + fieldLength;
 }
 
 /**
@@ -502,8 +500,8 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t 
 
 /**
  * @brief Calculate true wind speed and angle from apparent wind and boat speed
- * 
- * Updates navData.tws_kt and navData.twa_deg if valid apparent wind and boat speed data 
+ *
+ * Updates navData.tws_kt and navData.twa_deg if valid apparent wind and boat speed data
  * are available and more recent than current true wind data.
  */
 void MicronetCodec::CalculateTrueWind()
@@ -533,7 +531,7 @@ void MicronetCodec::CalculateTrueWind()
  * @param dataFields Bitfield of DATA_FIELD_xxx flags indicating which fields to include
  * @return Total message length in bytes
  */
-uint8_t MicronetCodec::GetDataMessageLength(uint32_t dataFields) 
+uint8_t MicronetCodec::GetDataMessageLength(uint32_t dataFields)
 {
     int offset = 0;
 
@@ -606,31 +604,11 @@ uint8_t MicronetCodec::GetDataMessageLength(uint32_t dataFields)
  * @param dataFields Bitfield of DATA_FIELD_xxx flags indicating which fields to include
  * @return Length of encoded payload in bytes
  */
-uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, 
-                                        uint32_t networkId, uint32_t deviceId,
-                                        uint32_t dataFields)
+uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
+                                         uint32_t dataFields)
 {
-    int offset = 0;
+    int offset = EncodeHeader(message, MICRONET_MESSAGE_ID_SEND_DATA, 0x01, signalStrength, networkId, deviceId);
 
-    // Network ID
-    message->data[offset++] = (networkId >> 24) & 0xff;
-    message->data[offset++] = (networkId >> 16) & 0xff;
-    message->data[offset++] = (networkId >> 8) & 0xff;
-    message->data[offset++] = networkId & 0xff;
-    // Device ID
-    message->data[offset++] = (deviceId >> 24) & 0xff;
-    message->data[offset++] = (deviceId >> 16) & 0xff;
-    message->data[offset++] = (deviceId >> 8) & 0xff;
-    message->data[offset++] = deviceId & 0xff;
-    // Message info
-    message->data[offset++] = MICRONET_MESSAGE_ID_SEND_DATA;
-    message->data[offset++] = 0x01;
-    message->data[offset++] = signalStrength;
-    // Header CRC
-    message->data[offset++] = 0x00;
-    // Message size
-    message->data[offset++] = 0x00;
-    message->data[offset++] = 0x00;
     // Data fields
     if ((dataFields & DATA_FIELD_TIME) && (navData.time.valid))
     {
@@ -719,31 +697,11 @@ uint8_t MicronetCodec::EncodeDataMessage(MicronetMessage_t *message, uint8_t sig
  * @param payloadLength Length of payload data in bytes
  * @return Length of encoded payload in bytes
  */
-uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength,
-                                              uint32_t networkId, uint32_t deviceId,
-                                              uint8_t payloadLength)
+uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
+                                               uint8_t payloadLength)
 {
-    int offset = 0;
+    int offset = EncodeHeader(message, MICRONET_MESSAGE_ID_UPDATE_SLOT, 0x09, signalStrength, networkId, deviceId);
 
-    // Network ID
-    message->data[offset++] = (networkId >> 24) & 0xff;
-    message->data[offset++] = (networkId >> 16) & 0xff;
-    message->data[offset++] = (networkId >> 8) & 0xff;
-    message->data[offset++] = networkId & 0xff;
-    // Device ID
-    message->data[offset++] = (deviceId >> 24) & 0xff;
-    message->data[offset++] = (deviceId >> 16) & 0xff;
-    message->data[offset++] = (deviceId >> 8) & 0xff;
-    message->data[offset++] = deviceId & 0xff;
-    // Message info
-    message->data[offset++] = MICRONET_MESSAGE_ID_UPDATE_SLOT;
-    message->data[offset++] = 0x09;
-    message->data[offset++] = signalStrength;
-    // Header CRC
-    message->data[offset++] = 0x00;
-    // Message size
-    message->data[offset++] = 0x00;
-    message->data[offset++] = 0x00;
     // Data fields
     message->data[offset++] = payloadLength;
 
@@ -773,27 +731,8 @@ uint8_t MicronetCodec::EncodeSlotUpdateMessage(MicronetMessage_t *message, uint8
 uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
                                                 uint8_t payloadLength)
 {
-    int offset = 0;
+    int offset = EncodeHeader(message, MICRONET_MESSAGE_ID_REQUEST_SLOT, 0x09, signalStrength, networkId, deviceId);
 
-    // Network ID
-    message->data[offset++] = (networkId >> 24) & 0xff;
-    message->data[offset++] = (networkId >> 16) & 0xff;
-    message->data[offset++] = (networkId >> 8) & 0xff;
-    message->data[offset++] = networkId & 0xff;
-    // Device ID
-    message->data[offset++] = (deviceId >> 24) & 0xff;
-    message->data[offset++] = (deviceId >> 16) & 0xff;
-    message->data[offset++] = (deviceId >> 8) & 0xff;
-    message->data[offset++] = deviceId & 0xff;
-    // Message info
-    message->data[offset++] = MICRONET_MESSAGE_ID_REQUEST_SLOT;
-    message->data[offset++] = 0x09;
-    message->data[offset++] = signalStrength;
-    // Header CRC
-    message->data[offset++] = 0x00;
-    // Message size
-    message->data[offset++] = 0x00;
-    message->data[offset++] = 0x00;
     // Data fields
     message->data[offset++] = 0x00;
     message->data[offset++] = payloadLength;
@@ -822,27 +761,8 @@ uint8_t MicronetCodec::EncodeSlotRequestMessage(MicronetMessage_t *message, uint
  */
 uint8_t MicronetCodec::EncodeResetMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId)
 {
-    int offset = 0;
+    int offset = EncodeHeader(message, MICRONET_MESSAGE_ID_SET_PARAMETER, 0x09, signalStrength, networkId, deviceId);
 
-    // Network ID
-    message->data[offset++] = (networkId >> 24) & 0xff;
-    message->data[offset++] = (networkId >> 16) & 0xff;
-    message->data[offset++] = (networkId >> 8) & 0xff;
-    message->data[offset++] = networkId & 0xff;
-    // Device ID
-    message->data[offset++] = (deviceId >> 24) & 0xff;
-    message->data[offset++] = (deviceId >> 16) & 0xff;
-    message->data[offset++] = (deviceId >> 8) & 0xff;
-    message->data[offset++] = deviceId & 0xff;
-    // Message info
-    message->data[offset++] = MICRONET_MESSAGE_ID_SET_PARAMETER;
-    message->data[offset++] = 0x09;
-    message->data[offset++] = signalStrength;
-    // Header CRC
-    message->data[offset++] = 0x00;
-    // Message size
-    message->data[offset++] = 0x00;
-    message->data[offset++] = 0x00;
     // Data fields
     message->data[offset++] = 0xfa;
     message->data[offset++] = 0x4f;
@@ -874,28 +794,7 @@ uint8_t MicronetCodec::EncodeResetMessage(MicronetMessage_t *message, uint8_t si
  */
 uint8_t MicronetCodec::EncodeAckParamMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId)
 {
-    int offset = 0;
-
-    // Network ID
-    message->data[offset++] = (networkId >> 24) & 0xff;
-    message->data[offset++] = (networkId >> 16) & 0xff;
-    message->data[offset++] = (networkId >> 8) & 0xff;
-    message->data[offset++] = networkId & 0xff;
-    // Device ID
-    message->data[offset++] = (deviceId >> 24) & 0xff;
-    message->data[offset++] = (deviceId >> 16) & 0xff;
-    message->data[offset++] = (deviceId >> 8) & 0xff;
-    message->data[offset++] = deviceId & 0xff;
-    // Message info
-    message->data[offset++] = MICRONET_MESSAGE_ID_ACK_PARAMETER;
-    message->data[offset++] = 0x01;
-    message->data[offset++] = signalStrength;
-    // Header CRC
-    message->data[offset++] = 0x00;
-    // Message size
-    message->data[offset++] = 0x00;
-    message->data[offset++] = 0x00;
-
+    int offset   = EncodeHeader(message, MICRONET_MESSAGE_ID_ACK_PARAMETER, 0x01, signalStrength, networkId, deviceId);
     message->len = offset;
 
     WriteHeaderLengthAndCrc(message);
@@ -906,12 +805,41 @@ uint8_t MicronetCodec::EncodeAckParamMessage(MicronetMessage_t *message, uint8_t
 /**
  * @brief Encode a ping message
  * @param message Pointer to message buffer to encode into
- * @param signalStrength Signal strength value (0-9) 
+ * @param signalStrength Signal strength value (0-9)
  * @param networkId Network identifier
  * @param deviceId Device identifier
  * @return Length of encoded payload in bytes
  */
 uint8_t MicronetCodec::EncodePingMessage(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId)
+{
+    int offset = EncodeHeader(message, MICRONET_MESSAGE_ID_PING, 0x09, signalStrength, networkId, deviceId);
+
+    uint8_t crc = 0;
+    for (int i = MICRONET_PAYLOAD_OFFSET; i < offset; i++)
+    {
+        crc += message->data[i];
+    }
+    message->data[offset++] = crc;
+
+    message->len = offset;
+
+    WriteHeaderLengthAndCrc(message);
+
+    return offset - MICRONET_PAYLOAD_OFFSET;
+}
+
+/**
+ * @brief Encodes the common header for a Micronet message.
+ * @param message Pointer to the message buffer.
+ * @param messageId The message ID (e.g., MICRONET_MESSAGE_ID_SEND_DATA).
+ * @param deviceFlags The device flags (DF field).
+ * @param signalStrength The signal strength (SS field).
+ * @param networkId The network ID.
+ * @param deviceId The device ID.
+ * @return The offset after writing the header (always MICRONET_PAYLOAD_OFFSET).
+ */
+uint32_t MicronetCodec::EncodeHeader(MicronetMessage_t *message, uint8_t messageId, uint8_t deviceFlags, uint8_t signalStrength, uint32_t networkId,
+                                     uint32_t deviceId)
 {
     int offset = 0;
 
@@ -926,27 +854,16 @@ uint8_t MicronetCodec::EncodePingMessage(MicronetMessage_t *message, uint8_t sig
     message->data[offset++] = (deviceId >> 8) & 0xff;
     message->data[offset++] = deviceId & 0xff;
     // Message info
-    message->data[offset++] = MICRONET_MESSAGE_ID_PING;
-    message->data[offset++] = 0x09;
+    message->data[offset++] = messageId;
+    message->data[offset++] = deviceFlags;
     message->data[offset++] = signalStrength;
-    // Header CRC
+    // Header CRC (placeholder)
     message->data[offset++] = 0x00;
-    // Message size
+    // Message size (placeholder)
     message->data[offset++] = 0x00;
     message->data[offset++] = 0x00;
 
-    uint8_t crc = 0;
-    for (int i = MICRONET_PAYLOAD_OFFSET; i < offset; i++)
-    {
-        crc += message->data[i];
-    }
-    message->data[offset++] = crc;
-
-    message->len = offset;
-
-    WriteHeaderLengthAndCrc(message);
-
-    return offset - MICRONET_PAYLOAD_OFFSET;
+    return offset;
 }
 
 /**
@@ -1341,6 +1258,12 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
     return true;
 }
 
+/**
+ * @brief Obtient le slot de transmission synchrone pour un appareil donné.
+ * @param networkMap Pointeur vers la carte réseau actuelle.
+ * @param deviceId L'ID de l'appareil pour lequel obtenir le slot.
+ * @return Le descripteur de slot de transmission (TxSlotDesc_t). Retourne un slot vide si non trouvé.
+ */
 TxSlotDesc_t MicronetCodec::GetSyncTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId)
 {
     for (uint32_t i = 0; i < networkMap->nbSyncSlots; i++)
@@ -1354,11 +1277,22 @@ TxSlotDesc_t MicronetCodec::GetSyncTransmissionSlot(NetworkMap *networkMap, uint
     return {0, 0, 0, 0};
 }
 
+/**
+ * @brief Obtient le slot de transmission asynchrone.
+ * @param networkMap Pointeur vers la carte réseau actuelle.
+ * @return Le descripteur de slot de transmission asynchrone (TxSlotDesc_t).
+ */
 TxSlotDesc_t MicronetCodec::GetAsyncTransmissionSlot(NetworkMap *networkMap)
 {
     return networkMap->asyncSlot;
 }
 
+/**
+ * @brief Obtient le slot de transmission d'acquittement (ACK) pour un appareil donné.
+ * @param networkMap Pointeur vers la carte réseau actuelle.
+ * @param deviceId L'ID de l'appareil pour lequel obtenir le slot d'acquittement.
+ * @return Le descripteur de slot de transmission d'acquittement (TxSlotDesc_t). Retourne un slot vide si non trouvé.
+ */
 TxSlotDesc_t MicronetCodec::GetAckTransmissionSlot(NetworkMap *networkMap, uint32_t deviceId)
 {
     for (uint32_t i = 0; i < networkMap->nbAckSlots; i++)
@@ -1440,7 +1374,7 @@ uint8_t MicronetCodec::CalculateSignalStrength(MicronetMessage_t *message)
 /**
  * @brief Calculate signal strength as floating point value
  * @param message Message containing RSSI value
- * @return Signal strength as float value 0.0 (weakest) to 9.0 (strongest)
+ * @return Signal strength as a positive float value 0.0 (weakest) to 9.0+ (strongest)
  */
 float MicronetCodec::CalculateSignalFloatStrength(MicronetMessage_t *message)
 {
