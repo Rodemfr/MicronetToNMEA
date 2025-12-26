@@ -158,6 +158,9 @@ void MenuTestRfQuality()
                     case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
                         CONSOLE.print("Dual Display");
                         break;
+                    case MICRONET_DEVICE_TYPE_COMPASS:
+                        CONSOLE.print("Compass");
+                        break;
                     case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
                         CONSOLE.print("Wind Display");
                         break;
