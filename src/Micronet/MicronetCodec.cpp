@@ -372,10 +372,10 @@ int MicronetCodec::DecodeDataField(MicronetMessage_t *message, int offset)
 
     case MICRONET_FIELD_TYPE_A: // 2x 32-bit values
     {
-        int32_t value32_1 = (message->data[offset + 3] << 24) | (message->data[offset + 4] << 16) | (message->data[offset + 5] << 8) |
-                            message->data[offset + 6];
-        int32_t value32_2 = (message->data[offset + 7] << 24) | (message->data[offset + 8] << 16) | (message->data[offset + 9] << 8) |
-                            message->data[offset + 10];
+        int32_t value32_1 =
+            (message->data[offset + 3] << 24) | (message->data[offset + 4] << 16) | (message->data[offset + 5] << 8) | message->data[offset + 6];
+        int32_t value32_2 =
+            (message->data[offset + 7] << 24) | (message->data[offset + 8] << 16) | (message->data[offset + 9] << 8) | message->data[offset + 10];
         UpdateMicronetData(fieldId, value32_1, value32_2);
         break;
     }
@@ -1384,4 +1384,50 @@ float MicronetCodec::CalculateSignalFloatStrength(MicronetMessage_t *message)
         strength = 0;
 
     return strength;
+}
+
+/**
+ * @brief Encode a master request message
+ * @param message Pointer to message buffer to encode into
+ * @param signalStrength Signal strength value (0-9)
+ * @param networkId Network identifier
+ * @param deviceId Device identifier of the master
+ * @param nbSlaves Number of slaves in the list (including master)
+ * @param slaveIds Pointer to an array of slave device IDs
+ * @param payloadLens Pointer to an array of payload lengths for each slave
+ * @return Length of encoded payload in bytes
+ */
+uint8_t MicronetCodec::EncodeMasterRequest(MicronetMessage_t *message, uint8_t signalStrength, uint32_t networkId, uint32_t deviceId,
+                                           uint32_t nbSlaves, const uint32_t *slaveIds, const uint8_t *payloadLens)
+{
+    int offset             = EncodeHeader(message, MICRONET_MESSAGE_ID_MASTER_REQUEST, 0x09, signalStrength, networkId, deviceId);
+    int payloadStartOffset = offset;
+
+    // Device list
+    for (uint32_t i = 0; i < nbSlaves; i++)
+    {
+        uint32_t currentDeviceId = slaveIds[i];
+        message->data[offset++]  = (currentDeviceId >> 24) & 0xff;
+        message->data[offset++]  = (currentDeviceId >> 16) & 0xff;
+        message->data[offset++]  = (currentDeviceId >> 8) & 0xff;
+        message->data[offset++]  = currentDeviceId & 0xff;
+        message->data[offset++]  = payloadLens[i];
+    }
+
+    // Two unknown bytes, as seen in documentation
+    message->data[offset++] = 0x00;
+    message->data[offset++] = 0x00;
+
+    uint8_t crc = 0;
+    for (int i = payloadStartOffset; i < offset; i++)
+    {
+        crc += message->data[i];
+    }
+    message->data[offset++] = crc;
+
+    message->len = offset;
+
+    WriteHeaderLengthAndCrc(message);
+
+    return offset - payloadStartOffset;
 }

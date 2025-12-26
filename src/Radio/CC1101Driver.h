@@ -123,6 +123,9 @@ class CC1101Driver
     void    FlushRxFifo();
     void    FlushTxFifo();
     void    UpdateFreqOffset();
+    void    StartCWTransmit();
+    void    StopCWTransmit();
+    void    StartCWSweep(float range_kHz, float step_kHz, uint16_t duration_s);
 
   private:
     SPIClass             ccSpi;
@@ -147,4 +150,3 @@ class CC1101Driver
     void    ChipSelect();
     void    ChipDeselect(uint32_t guardTime_us);
 };
-

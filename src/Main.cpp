@@ -9,6 +9,7 @@
 #include "MenuManager.h"
 #include "MenuScanMicronetTraffic.h"
 #include "MenuTestRfQuality.h"
+#include "MenuTestMaster.h"
 
 #include <Arduino.h>
 #include <SPI.h>
@@ -23,6 +24,7 @@ const MenuEntry_t mainMenuDesc[] = {{"MicronetToNMEA", nullptr},
                                     {"Calibrate compass", MenuCalibrateCompass},
                                     {"Test RF quality", MenuTestRfQuality},
                                     {"Configuration", MenuConfigMtn},
+                                    {"Test Master Mode", MenuTestMaster},
                                     {nullptr, nullptr}};
 
 bool firstLoop = true;

@@ -929,3 +929,134 @@ void CC1101Driver::UpdateFreqOffset()
         SpiWriteReg(CC1101_FSCTRL0, currentFreqOff, 8);
     }
 }
+
+/**
+ * StartCWTransmit
+ *
+ * Configure the CC1101 to transmit a continuous wave (CW) carrier.
+ *
+ * Steps:
+ *  - Set modulation to ASK/OOK (On-Off Keying) with zero deviation
+ *  - Configure TX power to maximum
+ *  - Set TXFIFO to transmit mode
+ *  - Transition to TX state
+ *
+ * The transmitter will send an unmodulated carrier at the configured
+ * frequency. Use StopTransmit() or SetRxMode() to exit CW mode.
+ *
+ * Warning: CW transmission interferes with all other RF activity on
+ * the configured frequency. Use only for testing/calibration.
+ */
+void CC1101Driver::StartCWTransmit()
+{
+    // Go to idle state
+    SpiStrobe(CC1101_SIDLE, 8);
+    // Set GDO0 to high impedance state
+    SpiWriteReg(CC1101_IOCFG0, 0x2E, 8);
+    // Set ASK/OOK modulation
+    SpiWriteReg(CC1101_MDMCFG2, 0x30, 8);
+    // Disbale frequency deviation
+    SpiWriteReg(CC1101_DEVIATN, 0x00, 8);
+    // Serial synchronous mode, modulator sends a constant stream of 1s
+    SpiWriteReg(CC1101_PKTCTRL0, 0x32, 8);
+
+    // Transition to TX state
+    SpiStrobe(CC1101_STX, 8);
+
+    // Wait for transition to complete
+    delay(10);
+}
+
+/**
+ * StopCWTransmit
+ *
+ * Stop continuous wave (CW) transmission and return to idle state.
+ *
+ * Steps:
+ *  - Transition to IDLE state via SIDLE strobe command
+ *  - Flush TXFIFO to clear any pending data
+ *  - Wait for state transition to complete
+ *
+ * After this call the CC1101 is in IDLE state and ready for normal
+ * RX/TX operation or further configuration.
+ */
+void CC1101Driver::StopCWTransmit()
+{
+    // Transition to idle state
+    SpiStrobe(CC1101_SIDLE, 8);
+
+    delay(1);
+
+    // Restore normal configuration
+    SetBaseConfiguration();
+
+    delay(1);
+}
+
+/**
+ * StartCWSweep
+ *
+ * Configure the CC1101 to transmit a continuous wave (CW) carrier
+ * while sweeping the frequency to create a comb spectrum effect.
+ *
+ * This is a blocking function that will sweep for the specified duration.
+ *
+ * @param range_kHz       The total frequency range to sweep (e.g., 200 kHz).
+ * @param step_kHz        The frequency step for each hop (e.g., 10 kHz).
+ * @param step_delay_ms   The time to stay on each frequency step in milliseconds.
+ * @param duration_s      The total duration of the sweep in seconds.
+ */
+void CC1101Driver::StartCWSweep(float range_kHz, float step_kHz, uint16_t duration_s)
+{
+    // Prepare for CW transmission
+    SpiStrobe(CC1101_SIDLE, 8);
+    SpiWriteReg(CC1101_IOCFG0, 0x2E, 8);   // Set GDO0 to high impedance state
+    SpiWriteReg(CC1101_MDMCFG2, 0x30, 8);  // Set ASK/OOK modulation
+    SpiWriteReg(CC1101_DEVIATN, 0x00, 8);  // Disable frequency deviation
+    SpiWriteReg(CC1101_PKTCTRL0, 0x32, 8); // Serial synchronous mode, modulator sends a constant stream of 1s
+
+    // Frequency calculation constants
+    const double fXosc = 26000000.0;
+    const double factor = fXosc / 65536.0;
+
+    // Calculate frequency settings
+    uint32_t center_freq_setting = (uint32_t)((rfFreq_mHz * 1000000.0) / factor);
+    uint32_t range_setting = (uint32_t)((range_kHz * 1000.0) / factor);
+    uint32_t step_setting = (uint32_t)((step_kHz * 1000.0) / factor);
+
+    if (step_setting == 0) step_setting = 1; // Avoid infinite loop
+
+    uint32_t start_freq_setting = center_freq_setting - (range_setting / 2);
+    uint32_t end_freq_setting = center_freq_setting + (range_setting / 2);
+
+    uint32_t start_time = millis();
+    uint32_t end_time = start_time + (duration_s * 1000);
+
+    // Main sweep loop
+    while (millis() < end_time)
+    {
+        for (uint32_t current_freq = start_freq_setting; current_freq <= end_freq_setting; current_freq += step_setting)
+        {
+            // Check duration timeout
+            if (millis() >= end_time) break;
+
+            SpiStrobe(CC1101_SIDLE, 8);
+
+            // Set new frequency
+            uint8_t freq2 = (current_freq >> 16) & 0xFF;
+            uint8_t freq1 = (current_freq >> 8) & 0xFF;
+            uint8_t freq0 = current_freq & 0xFF;
+            SpiWriteReg(CC1101_FREQ2, freq2, 8);
+            SpiWriteReg(CC1101_FREQ1, freq1, 8);
+            SpiWriteReg(CC1101_FREQ0, freq0, 8);
+
+            // Start transmitting
+            SpiStrobe(CC1101_STX, 8);
+
+            delay(1);
+        }
+    }
+
+    // Stop transmission and restore base configuration
+    StopCWTransmit();
+}

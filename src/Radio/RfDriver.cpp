@@ -534,3 +534,42 @@ void RfDriver::DisableFrequencyTracking()
 {
     freqTrackingNID = 0;
 }
+
+/**
+ * StartCWTransmit
+ *
+ * Start continuous wave transmission by delegating to the CC1101 driver.
+ *
+ * This configures the RF hardware to transmit an unmodulated carrier
+ * at the currently configured frequency.
+ */
+void RfDriver::StartCWTransmit()
+{
+    cc1101Driver.StartCWTransmit();
+}
+
+/**
+ * StopCWTransmit
+ *
+ * Stop continuous wave transmission by delegating to the CC1101 driver.
+ *
+ * Returns the RF hardware to idle state.
+ */
+void RfDriver::StopCWTransmit()
+{
+    cc1101Driver.StopCWTransmit();
+    cc1101Driver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ + frequencyOffset_MHz);
+    cc1101Driver.SetDeviation(MICRONET_RF_DEVIATION_KHZ);
+    cc1101Driver.SetBitrate(MICRONET_RF_BAUDRATE_BAUD / 1000.0f);
+    cc1101Driver.SetBw(250);
+    cc1101Driver.SetSyncWord(0x55, 0x99);
+    cc1101Driver.SetLengthConfig(0);
+    cc1101Driver.SetPacketLength(CC1101_FIFO_MAX_SIZE);
+    cc1101Driver.SetPQT(4);
+}
+
+void RfDriver::StartCWSweep()
+{
+    cc1101Driver.StartCWSweep(125.0, 25.0, 6);
+}
+

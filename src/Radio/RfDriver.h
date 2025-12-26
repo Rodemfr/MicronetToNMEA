@@ -83,6 +83,9 @@ class RfDriver
     void Transmit(MicronetMessage_t *message);
     void EnableFrequencyTracking(uint32_t networkId);
     void DisableFrequencyTracking();
+    void StartCWTransmit();
+    void StopCWTransmit();
+    void StartCWSweep();
 
     void RfIsr();
 
