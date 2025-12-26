@@ -63,7 +63,7 @@
 // AIS UART pins
 #define AIS          Serial2
 #define AIS_BAUDRATE 38400
-#define AIS_RX_PIN   17
+#define AIS_RX_PIN   7
 
 // Plotter/Nav Computer UART params
 #define PLOTTER          Serial1
