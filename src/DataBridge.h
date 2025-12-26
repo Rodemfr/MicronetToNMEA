@@ -100,7 +100,7 @@ class DataBridge
     uint32_t             sogFilterIndex;
     uint32_t             sogFilterTimeStamp;
     float                sogFilterBuffer[SOG_COG_MAX_FILTERING_DEPTH];
-    int                  cogFilterIndex;
+    uint32_t             cogFilterIndex;
     uint32_t             cogFilterTimeStamp;
     float                cogFilterBuffer[SOG_COG_MAX_FILTERING_DEPTH];
 

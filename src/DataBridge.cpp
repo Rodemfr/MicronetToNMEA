@@ -377,7 +377,7 @@ float DataBridge::FilteredCOG(float newCog_deg)
         float filteredCog_deg = cogFilterBuffer[0];
         float previousCog_deg = filteredCog_deg;
         float bufferedCog_deg;
-        for (int i = 1; i < gConfiguration.sogCogFilterLength; i++)
+        for (uint32_t i = 1; i < gConfiguration.sogCogFilterLength; i++)
         {
             bufferedCog_deg = cogFilterBuffer[i];
             if (bufferedCog_deg - previousCog_deg > 180)
