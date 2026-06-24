@@ -156,14 +156,14 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                 switch (sId)
                 {
                 case NMEA_ID_RMB:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == LINK_PLOTTER)
                     {
                         DecodeRMBSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_RMC:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeRMCSentence(nmeaBuffer);
@@ -175,7 +175,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_GGA:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeGGASentence(nmeaBuffer);
@@ -187,7 +187,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_GLL:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeGLLSentence(nmeaBuffer);
@@ -199,7 +199,7 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_VTG:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.gnssSource)
                     {
                         DecodeVTGSentence(nmeaBuffer);
@@ -211,28 +211,28 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     }
                     break;
                 case NMEA_ID_MWV:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.windSource)
                     {
                         DecodeMWVSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_DPT:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.depthSource)
                     {
                         DecodeDPTSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_VHW:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.speedSource)
                     {
                         DecodeVHWSentence(nmeaBuffer);
                     }
                     break;
                 case NMEA_ID_HDG:
-                    // Check that with received the sentence from where we expect it
+                    // Check that we received the sentence from where we expect it
                     if (sourceLink == gConfiguration.compassSource)
                     {
                         DecodeHDGSentence(nmeaBuffer);
@@ -290,10 +290,10 @@ void DataBridge::UpdateCompassData(float heading_deg, float roll_deg)
         micronetCodec->navData.magHdg_deg.value     = heading_deg;
         micronetCodec->navData.magHdg_deg.valid     = true;
         micronetCodec->navData.magHdg_deg.timeStamp = millis();
-        micronetCodec->navData.roll_deg.value       = roll_deg;
-        micronetCodec->navData.roll_deg.valid       = true;
-        micronetCodec->navData.roll_deg.timeStamp   = millis();
         EncodeHDG();
+        micronetCodec->navData.roll_deg.value     = roll_deg;
+        micronetCodec->navData.roll_deg.valid     = true;
+        micronetCodec->navData.roll_deg.timeStamp = millis();
         EncodeRollXDR();
     }
 }

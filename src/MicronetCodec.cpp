@@ -339,7 +339,6 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
         navData.spd_kt.value     = (((float)value) / 100.0f) * navData.waterSpeedFactor_per;
         navData.spd_kt.valid     = true;
         navData.spd_kt.timeStamp = millis();
-
         break;
     case MICRONET_FIELD_ID_DPT:
         if (value < MAXIMUM_VALID_DEPTH_FT * 10)
@@ -369,18 +368,21 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
         navData.awa_deg.timeStamp = millis();
         break;
     case MICRONET_FIELD_ID_HDG:
-        newValue = ((float)value) + navData.headingOffset_deg;
-        if (newValue < 0.0f)
+        if (gConfiguration.compassSource == LINK_MICRONET)
         {
-            newValue += 360.0f;
+            newValue = ((float)value) + navData.headingOffset_deg;
+            if (newValue < 0.0f)
+            {
+                newValue += 360.0f;
+            }
+            if (newValue >= 360.0f)
+            {
+                newValue -= 360.0f;
+            }
+            navData.magHdg_deg.value     = newValue;
+            navData.magHdg_deg.valid     = true;
+            navData.magHdg_deg.timeStamp = millis();
         }
-        if (newValue >= 360.0f)
-        {
-            newValue -= 360.0f;
-        }
-        navData.magHdg_deg.value     = newValue;
-        navData.magHdg_deg.valid     = true;
-        navData.magHdg_deg.timeStamp = millis();
         break;
     case MICRONET_FIELD_ID_VCC:
         navData.vcc_v.value     = ((float)value) / 10.0f;
