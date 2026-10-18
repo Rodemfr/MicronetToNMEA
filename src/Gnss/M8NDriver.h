@@ -32,7 +32,7 @@
 
 #pragma once
 
-#include <Arduino.h>
+#include <cstdint>
 
 #define M8N_GGA_ENABLE  0x00000001
 #define M8N_VTG_ENABLE  0x00000002
@@ -45,10 +45,10 @@ class M8NDriver
     M8NDriver();
     virtual ~M8NDriver();
 
-    static const PROGMEM uint8_t ClearConfig[];
-    static const PROGMEM uint8_t UART1_38400[];
-    static const PROGMEM uint8_t Navrate5hz[];
-    static const PROGMEM uint8_t GNSSSetup[];
+    static const uint8_t ClearConfig[];
+    static const uint8_t UART1_38400[];
+    static const uint8_t Navrate5hz[];
+    static const uint8_t GNSSSetup[];
 
     void Start(uint32_t nmeaSentences);
 

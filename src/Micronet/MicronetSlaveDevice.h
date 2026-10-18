@@ -33,7 +33,6 @@
 #include "Micronet.h"
 #include "MicronetCodec.h"
 #include "MicronetMessageFifo.h"
-#include <Arduino.h>
 
 /***************************************************************************/
 /*                              Constants                                  */

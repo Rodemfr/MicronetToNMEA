@@ -22,18 +22,26 @@
  *                                                                         *
  ***************************************************************************/
 
- /***************************************************************************/
- /*                              Includes                                   */
- /***************************************************************************/
-
-#include <Arduino.h>
+/***************************************************************************/
+/*                              Includes                                   */
+/***************************************************************************/
 
 #include "BoardConfig.h"
 #include "Configuration.h"
+#include "DataBridge.h"
 #include "Globals.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
 #include "MicronetMessageFifo.h"
+#include "MicronetSlaveDevice.h"
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -110,7 +118,7 @@ void MenuConvertToNmea()
     bool                exitNmeaLoop = false;
     MicronetMessage_t  *rxMessage;
     MicronetMessageFifo txMessageFifo;
-    uint32_t            lastHeadingTime = millis();
+    uint32_t            lastHeadingTime = static_cast<uint32_t>(esp_timer_get_time() / 1000);
     MicronetCodec       micronetCodec;
     DataBridge          dataBridge(&micronetCodec);
     MicronetSlaveDevice micronetDevice(&micronetCodec);
@@ -118,15 +126,15 @@ void MenuConvertToNmea()
     // Check that we have been attached to a network
     if (gConfiguration.eeprom.networkId == 0)
     {
-        CONSOLE.println("No Micronet network has been attached.");
-        CONSOLE.println("Scan and attach a Micronet network first.");
+        CONSOLE.printf("No Micronet network has been attached.\r\n");
+        CONSOLE.printf("Scan and attach a Micronet network first.\r\n");
+        CONSOLE.transmit();
         return;
     }
 
-    CONSOLE.println("");
-    CONSOLE.println("Starting Micronet to NMEA0183 conversion.");
-    CONSOLE.println("Press ESC key at any time to stop conversion and come back to menu.");
-    CONSOLE.println("");
+    CONSOLE.printf("\r\nStarting Micronet to NMEA0183 conversion.\r\n");
+    CONSOLE.printf("Press ESC key at any time to stop conversion and come back to menu.\r\n");
+    CONSOLE.transmit();
 
     // Load sensor calibration data into Micronet codec
     LoadCalibration(micronetCodec);
@@ -162,13 +170,19 @@ void MenuConvertToNmea()
             dataBridge.PushNmeaChar(NMEA0183_IN.read(), LINK_NMEA0183_IN);
         }
 
+        while (GNSS.available() > 0)
+        {
+            dataBridge.PushNmeaChar(GNSS.read(), LINK_GNSS);
+        }
+
         char c;
         while (PLOTTER.available() > 0)
         {
             c = PLOTTER.read();
             if (((void *)(&CONSOLE) == (void *)(&PLOTTER)) && (c == 0x1b))
             {
-                CONSOLE.println("ESC key pressed, stopping conversion.");
+                CONSOLE.printf("ESC key pressed, stopping conversion.\r\n");
+                CONSOLE.transmit();
                 exitNmeaLoop = true;
             }
             dataBridge.PushNmeaChar(c, LINK_PLOTTER);
@@ -179,9 +193,9 @@ void MenuConvertToNmea()
         {
             // Handle magnetic compass
             // Only request new reading if previous is at least 100ms old
-            if ((millis() - lastHeadingTime) > 100)
+            if ((((static_cast<uint32_t>(esp_timer_get_time() / 1000))) - lastHeadingTime) > 100)
             {
-                lastHeadingTime = millis();
+                lastHeadingTime = static_cast<uint32_t>(esp_timer_get_time() / 1000);
                 float heading_deg, roll_deg;
                 gNavCompass.GetHeadingAndRoll(&heading_deg, &roll_deg);
                 dataBridge.UpdateCompassData(heading_deg + micronetCodec.navData.headingOffset_deg, roll_deg);
@@ -194,7 +208,8 @@ void MenuConvertToNmea()
             {
                 if (CONSOLE.read() == 0x1b)
                 {
-                    CONSOLE.println("ESC key pressed, stopping conversion.");
+                    CONSOLE.printf("ESC key pressed, stopping conversion.\r\n");
+                    CONSOLE.transmit();
                     exitNmeaLoop = true;
                 }
             }
@@ -202,7 +217,7 @@ void MenuConvertToNmea()
 
         micronetCodec.navData.UpdateValidity();
 
-        yield();
+        vTaskDelay(pdMS_TO_TICKS(10));
 
     } while (!exitNmeaLoop);
 

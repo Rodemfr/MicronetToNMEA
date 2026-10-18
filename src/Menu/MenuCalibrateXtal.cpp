@@ -23,10 +23,8 @@
  ***************************************************************************/
 
 /***************************************************************************/
- /*                              Includes                                   */
- /***************************************************************************/
-
-#include <Arduino.h>
+/*                              Includes                                   */
+/***************************************************************************/
 
 #include "BoardConfig.h"
 #include "Configuration.h"
@@ -34,6 +32,14 @@
 #include "Micronet.h"
 #include "MicronetCodec.h"
 #include "MicronetMessageFifo.h"
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -87,30 +93,28 @@ void MenuCalibrateXtal()
 {
     bool          exitTuneLoop;
     bool          updateFreq;
-    uint32_t      lastMessageTime      = millis();
+    uint32_t      lastMessageTime      = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
     float         currentFreq_MHz      = MICRONET_RF_CENTER_FREQUENCY_MHZ - (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f);
     float         firstWorkingFreq_MHz = 100000;
     float         lastWorkingFreq_MHz  = 0;
     float         range_kHz, centerFrequency_MHz;
-    char          c;
     MicronetCodec micronetCodec;
 
-    CONSOLE.println("");
-    CONSOLE.println("To tune RF frequency, you must start your Micronet network and");
-    CONSOLE.println("put MicronetToNMEA HW close to your Micronet main display (less than one meter).");
-    CONSOLE.println("You must not move any of the devices during the tuning phase.");
-    CONSOLE.println("Tuning phase will last about two minutes.");
-    CONSOLE.println("Press any key when you are ready to start.");
+    CONSOLE.printf("\r\nTo tune RF frequency, you must start your Micronet network and\r\n");
+    CONSOLE.printf("put MicronetToNMEA HW close to your Micronet main display (less than one meter).");
+    CONSOLE.printf("You must not move any of the devices during the tuning phase.\r\n");
+    CONSOLE.printf("Tuning phase will last about two minutes.\r\n");
+    CONSOLE.printf("Press any key when you are ready to start.\r\n");
+    CONSOLE.transmit();
 
     while (CONSOLE.available() == 0)
     {
-        yield();
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 
-    CONSOLE.println("");
-    CONSOLE.println("Starting Frequency tuning");
-    CONSOLE.println("Press ESC key at any time to stop tuning and come back to menu.");
-    CONSOLE.println("");
+    CONSOLE.printf("\r\nStarting Frequency tuning\r\n");
+    CONSOLE.printf("Press ESC key at any time to stop tuning and come back to menu.\r\n");
+    CONSOLE.transmit();
 
     gRfReceiver.DisableFrequencyTracking();
     gRfReceiver.SetFrequencyOffset(0);
@@ -128,8 +132,10 @@ void MenuCalibrateXtal()
         {
             if (micronetCodec.GetMessageId(rxMessage) == MICRONET_MESSAGE_ID_MASTER_REQUEST)
             {
-                lastMessageTime = millis();
-                CONSOLE.print("*");
+                lastMessageTime = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
+                CONSOLE.printf("*");
+                CONSOLE.transmit();
+
                 updateFreq = true;
                 if (currentFreq_MHz < firstWorkingFreq_MHz)
                     firstWorkingFreq_MHz = currentFreq_MHz;
@@ -139,16 +145,17 @@ void MenuCalibrateXtal()
             gRxMessageFifo.DeleteMessage();
         }
 
-        if (millis() - lastMessageTime > 1250)
+        if (static_cast<uint32_t>(esp_timer_get_time()) / 1000 - lastMessageTime > 1250)
         {
-            lastMessageTime = millis();
-            CONSOLE.print(".");
+            lastMessageTime = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
+            CONSOLE.printf(".");
+            CONSOLE.transmit();
             updateFreq = true;
         }
 
         if (updateFreq)
         {
-            lastMessageTime = millis();
+            lastMessageTime = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
             updateFreq      = false;
             if (currentFreq_MHz < MICRONET_RF_CENTER_FREQUENCY_MHZ + (FREQUENCY_SWEEP_RANGE_KHZ / 2000.0f))
             {
@@ -161,35 +168,41 @@ void MenuCalibrateXtal()
                 range_kHz           = (lastWorkingFreq_MHz - firstWorkingFreq_MHz) * 1000;
                 if ((range_kHz > 0) && (range_kHz < FREQUENCY_SWEEP_RANGE_KHZ))
                 {
-                    CONSOLE.println("");
-                    CONSOLE.print("Frequency = ");
-                    CONSOLE.print(centerFrequency_MHz * 1000);
-                    CONSOLE.println("kHz");
-                    CONSOLE.print("Range = ");
-                    CONSOLE.print(range_kHz);
-                    CONSOLE.println("kHz");
-                    CONSOLE.print("Deviation to real frequency = ");
-                    CONSOLE.print((centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) * 1000);
-                    CONSOLE.print("kHz (");
-                    CONSOLE.print((int)(1000000.0 * (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) / MICRONET_RF_CENTER_FREQUENCY_MHZ));
-                    CONSOLE.println(" ppm)");
+                    CONSOLE.printf("\r\nFrequency = %.0f kHz\r\n", centerFrequency_MHz * 1000);
+                    CONSOLE.printf("Range = ");
+                    CONSOLE.printf("%.0f", range_kHz);
+                    CONSOLE.printf("kHz");
+                    CONSOLE.printf("\r\nDeviation to real frequency = ");
+                    CONSOLE.printf("%d", (int)((centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) * 1000));
+                    CONSOLE.printf("kHz (");
+                    CONSOLE.printf("%d",
+                                   (int)(1000000.0 * (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ) / MICRONET_RF_CENTER_FREQUENCY_MHZ));
+                    CONSOLE.printf(" ppm)\r\n");
 
-                    CONSOLE.println("Do you want to save the new RF calibration values (y/n) ?");
-                    while (CONSOLE.available() == 0)
-                        ;
-                    c = CONSOLE.read();
-                    if ((c == 'y') || (c == 'Y'))
+                    CONSOLE.printf("Do you want to save the new RF calibration values (y/n) ?\r\n");
+                    CONSOLE.transmit();
+
+                    char c;
+                    do
                     {
-                        gConfiguration.eeprom.rfFrequencyOffset_MHz = (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ);
-                        gConfiguration.SaveToEeprom();
-                        CONSOLE.println("Configuration saved");
-                    }
-                    else
-                    {
-                        CONSOLE.println("Configuration discarded");
-                    }
+                        c = CONSOLE.read();
+                        if ((c == 'y') || (c == 'Y'))
+                        {
+                            gConfiguration.eeprom.rfFrequencyOffset_MHz = (centerFrequency_MHz - MICRONET_RF_CENTER_FREQUENCY_MHZ);
+                            gConfiguration.SaveToEeprom();
+                            CONSOLE.printf("Configuration saved\r\n");
+                        }
+                        else
+                        {
+                            CONSOLE.printf("Configuration discarded\r\n");
+                        }
+                    } while ((c != 'y') && (c != 'Y') && (c != 'n') && (c != 'N'));
                 }
-
+                else
+                {
+                    CONSOLE.printf("\r\nNo valid frequency range found, tuning failed\r\n");
+                }
+                CONSOLE.transmit();
                 exitTuneLoop = true;
             }
         }
@@ -198,16 +211,16 @@ void MenuCalibrateXtal()
         {
             if (CONSOLE.read() == 0x1b)
             {
-                CONSOLE.println("\r\nESC key pressed, stopping frequency tuning.");
+                CONSOLE.printf("\r\nESC key pressed, stopping frequency tuning.\r\n");
+                CONSOLE.transmit();
                 exitTuneLoop = true;
             }
         }
 
-        yield();
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     } while (!exitTuneLoop);
 
     gRfReceiver.SetBandwidth(RfDriver::RF_BANDWIDTH_HIGH);
     gRfReceiver.SetFrequencyOffset(gConfiguration.eeprom.rfFrequencyOffset_MHz);
     gRfReceiver.SetFrequency(MICRONET_RF_CENTER_FREQUENCY_MHZ);
 }
-

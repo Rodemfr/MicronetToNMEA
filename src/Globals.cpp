@@ -50,13 +50,15 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-RfDriver            gRfReceiver;
-MicronetMessageFifo gRxMessageFifo; // Micronet message fifo store, used for communication between CC1101 ISR and main loop code
 Configuration       gConfiguration;
-MenuManager         gMenuManager;
-NavCompass          gNavCompass;
-BluetoothSerial     gBTSerial;
+BtMultiSPP          gBtMultiSPP(BLUETOOTH_MAX_CONNECTIONS);
+EspSerial           gSerial1(UART_NUM_1, NMEA0183_IN_RX_PIN, NMEA0183_IN_TX_PIN);
+EspSerial           gSerial2(UART_NUM_2, GNSS_RX_PIN, GNSS_TX_PIN);
 M8NDriver           gM8nDriver;
+RfDriver            gRfReceiver;
+MicronetMessageFifo gRxMessageFifo;
+NavCompass          gNavCompass;
+MenuManager         gMenuManager;
 
 /***************************************************************************/
 /*                              Functions                                  */

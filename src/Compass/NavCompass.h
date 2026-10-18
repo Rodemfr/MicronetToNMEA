@@ -32,8 +32,9 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include "NavCompassDriver.h"
 #include "Configuration.h"
+#include "I2cMaster.h"
+#include "NavCompassDriver.h"
 
 #include <stdint.h>
 #include <string>
@@ -49,8 +50,6 @@
 /*                                Types                                    */
 /***************************************************************************/
 
-using string = std::string;
-
 /***************************************************************************/
 /*                               Classes                                   */
 /***************************************************************************/
@@ -61,11 +60,11 @@ class NavCompass
     NavCompass();
     virtual ~NavCompass();
 
-    bool   Init();
-    string GetDeviceName();
-    void   GetHeadingAndRoll(float *heading_deg, float *roll_deg);
-    void   GetMagneticField(float *magX, float *magY, float *magZ);
-    void   GetAcceleration(float *accX, float *accY, float *accZ);
+    bool        Init();
+    std::string GetDeviceName();
+    void        GetHeadingAndRoll(float *heading_deg, float *roll_deg);
+    void        GetMagneticField(float *magX, float *magY, float *magZ);
+    void        GetAcceleration(float *accX, float *accY, float *accZ);
 
   private:
     float              headingHistory[HEADING_HISTORY_LENGTH];
@@ -80,10 +79,10 @@ class NavCompass
     static const Vec3D Axis[6];
     Axis_t             previousHeadingAxis;
     Axis_t             previousDownAxis;
+    I2cMaster          compassI2c;
 
     bool  isZero(Vec3D *a);
     void  Normalize(Vec3D *a);
     void  CrossProduct(Vec3D *a, Vec3D *b, Vec3D *out);
     float VectorDot(Vec3D *a, Vec3D *b);
 };
-

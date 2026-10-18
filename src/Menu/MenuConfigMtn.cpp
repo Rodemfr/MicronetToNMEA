@@ -25,8 +25,6 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <Arduino.h>
-
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
@@ -36,6 +34,14 @@
 #include "MenuConfigMtn.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -113,38 +119,8 @@ void MenuConfigMtn()
             configMenuManager.PushChar(CONSOLE.read());
         }
 
-        yield();
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
-}
-
-/**
- * ConfigLink
- * 
- * Placeholder for data source configuration callback
- * Implemented in MenuConfigLink.cpp
- */
-void ConfigLink()
-{
-}
-
-/**
- * ConfigSogCog
- * 
- * Placeholder for SOG/COG configuration callback
- * Implemented in MenuConfigSogCog.cpp
- */
-void ConfigSogCog()
-{
-}
-
-/**
- * ConfigOrientation
- * 
- * Placeholder for orientation configuration callback
- * Implemented in MenuConfigOrient.cpp
- */
-void ConfigOrientation()
-{
 }
 
 /**

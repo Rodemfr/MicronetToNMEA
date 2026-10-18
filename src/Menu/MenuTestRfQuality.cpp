@@ -28,8 +28,6 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <Arduino.h>
-
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
@@ -54,7 +52,7 @@
 
 /**
  * Print device type as human readable string
- * 
+ *
  * @param deviceType Device type code from Micronet message
  */
 void PrintDeviceType(uint8_t deviceType);
@@ -96,9 +94,9 @@ void MenuTestRfQuality()
     MicronetCodec             micronetCodec;
     char                      deviceString[128];
 
-    CONSOLE.println("Starting RF signal quality test.");
-    CONSOLE.println("Press ESC key at any time to stop testing and come back to menu.");
-    CONSOLE.println("");
+    CONSOLE.printf("Starting RF signal quality test.\r\n");
+    CONSOLE.printf("Press ESC key at any time to stop testing and come back to menu.\r\n\r\n");
+    CONSOLE.transmit();
 
     gRxMessageFifo.ResetFifo();
 
@@ -117,7 +115,7 @@ void MenuTestRfQuality()
                 if (message->data[MICRONET_MI_OFFSET] == MICRONET_MESSAGE_ID_MASTER_REQUEST)
                 {
                     // Yes : Decode network map and encode a Ping message
-                    CONSOLE.println("");
+                    CONSOLE.printf("\r\n");
                     micronetCodec.GetNetworkMap(message, &networkMap);
                     txSlot = micronetCodec.GetAsyncTransmissionSlot(&networkMap);
                     micronetCodec.EncodePingMessage(&txMessage, 9, networkMap.networkId, gConfiguration.eeprom.deviceId);
@@ -159,79 +157,83 @@ void MenuTestRfQuality()
 
                     snprintf(deviceString, sizeof(deviceString), "%08lx LNK=%.1f NET=%1d ", micronetCodec.GetDeviceId(message),
                              micronetCodec.CalculateSignalFloatStrength(message), receptionStrength);
-                    CONSOLE.print(deviceString);
+                    CONSOLE.printf("%s", deviceString);
                     // Device type
                     PrintDeviceType(micronetCodec.GetDeviceType(message));
                     if (networkMap.masterDevice == micronetCodec.GetDeviceId(message))
                     {
-                        CONSOLE.print(" [M]");
+                        CONSOLE.printf(" [M]");
                     }
-                    CONSOLE.println("");
+                    CONSOLE.printf("\r\n");
                 }
             }
             // Delete processed message
             gRxMessageFifo.DeleteMessage();
         }
 
+        CONSOLE.transmit();
+
         // Check if ESC key has been pressed
         while (CONSOLE.available() > 0)
         {
             if (CONSOLE.read() == 0x1b)
             {
-                CONSOLE.println("ESC key pressed, stopping scan.");
+                CONSOLE.printf("ESC key pressed, stopping scan.\r\n");
+                CONSOLE.transmit();
                 exitTestLoop = true;
             }
         }
 
         // Let Arduino's processing loop handle what it has to handle...
-        yield();
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     } while (!exitTestLoop);
 }
 
 /**
  * Print device type as a human readable string
  * Maps Micronet device type codes to descriptive names
- * 
+ *
  * @param deviceType Device type code from Micronet message
  */
 void PrintDeviceType(uint8_t deviceType)
 {
-    switch (deviceType) {
-        case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
-            CONSOLE.print("Hull");
-            break;
-        case MICRONET_DEVICE_TYPE_WIND_TRANSDUCER:
-            CONSOLE.print("Wind Transducer");
-            break;
-        case MICRONET_DEVICE_TYPE_NMEA_CONVERTER:
-            CONSOLE.print("NMEA Converter");
-            break;
-        case MICRONET_DEVICE_TYPE_MAST_ROTATION:
-            CONSOLE.print("Mast Rotation");
-            break;
-        case MICRONET_DEVICE_TYPE_MOB:
-            CONSOLE.print("MOB");
-            break;
-        case MICRONET_DEVICE_TYPE_SDPOD:
-            CONSOLE.print("SDPOD");
-            break;
-        case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
-            CONSOLE.print("Dual Display");
-            break;
-        case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
-            CONSOLE.print("Wind Display");
-            break;
-        case MICRONET_DEVICE_TYPE_DUAL_MAXI_DISPLAY:
-            CONSOLE.print("Dual Maxi Display");
-            break;
-        case MICRONET_DEVICE_TYPE_COMPASS:
-            CONSOLE.print("Compass");
-            break;
-        case MICRONET_DEVICE_TYPE_REMOTE_DISPLAY:
-            CONSOLE.print("Remote Display");
-            break;
-        default:
-            CONSOLE.print("Unknown");
-            break;
+    switch (deviceType)
+    {
+    case MICRONET_DEVICE_TYPE_HULL_TRANSMITTER:
+        CONSOLE.printf("Hull");
+        break;
+    case MICRONET_DEVICE_TYPE_WIND_TRANSDUCER:
+        CONSOLE.printf("Wind Transducer");
+        break;
+    case MICRONET_DEVICE_TYPE_NMEA_CONVERTER:
+        CONSOLE.printf("NMEA Converter");
+        break;
+    case MICRONET_DEVICE_TYPE_MAST_ROTATION:
+        CONSOLE.printf("Mast Rotation");
+        break;
+    case MICRONET_DEVICE_TYPE_MOB:
+        CONSOLE.printf("MOB");
+        break;
+    case MICRONET_DEVICE_TYPE_SDPOD:
+        CONSOLE.printf("SDPOD");
+        break;
+    case MICRONET_DEVICE_TYPE_DUAL_DISPLAY:
+        CONSOLE.printf("Dual Display");
+        break;
+    case MICRONET_DEVICE_TYPE_ANALOG_WIND_DISPLAY:
+        CONSOLE.printf("Wind Display");
+        break;
+    case MICRONET_DEVICE_TYPE_DUAL_MAXI_DISPLAY:
+        CONSOLE.printf("Dual Maxi Display");
+        break;
+    case MICRONET_DEVICE_TYPE_COMPASS:
+        CONSOLE.printf("Compass");
+        break;
+    case MICRONET_DEVICE_TYPE_REMOTE_DISPLAY:
+        CONSOLE.printf("Remote Display");
+        break;
+    default:
+        CONSOLE.printf("Unknown");
+        break;
     }
 }

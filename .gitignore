@@ -2,3 +2,5 @@
 .vscode
 *.backup
 hardware/*_backup/
+build/*
+

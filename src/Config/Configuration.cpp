@@ -26,12 +26,18 @@
 /***************************************************************************/
 
 #include "Configuration.h"
-#include "Globals.h"
 #include "BoardConfig.h"
+#include "Globals.h"
 
-#include <Arduino.h>
-#include <EEPROM.h>
-#include <esp_bt.h>
+#include <cstring>
+
+extern "C"
+{
+#include "esp_random.h"
+#include "esp_system.h"
+#include "nvs.h"
+#include "nvs_flash.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -39,13 +45,11 @@
 
 /**
  * Configuration storage constants
- * CONFIGURATION_EEPROM_SIZE: Total EEPROM space reserved
- * EEPROM_CONFIG_OFFSET: Start offset in EEPROM
  * CONFIG_MAGIC_NUMBER: Identifier for valid config blocks
  */
-#define CONFIGURATION_EEPROM_SIZE 128
-#define EEPROM_CONFIG_OFFSET      0
-#define CONFIG_MAGIC_NUMBER       0x4D544E4D  // 'MTNM'
+#define CONFIG_NVS_NAMESPACE "config"
+#define CONFIG_NVS_KEY       "block"
+#define CONFIG_MAGIC_NUMBER  0x54495441 //'TITA'
 
 /***************************************************************************/
 /*                             Local types                                 */
@@ -56,10 +60,11 @@
  * Packed to ensure consistent EEPROM layout
  */
 #pragma pack(1)
-typedef struct {
-    uint32_t       magicWord;  // Config block identifier 
-    EEPROMConfig_t config;     // User configuration data
-    uint8_t        checksum;   // Simple checksum for validation
+typedef struct
+{
+    uint32_t       magicWord; // Config block identifier
+    EEPROMConfig_t config;    // User configuration data
+    uint8_t        checksum;  // Simple checksum for validation
 } ConfigBlock_t;
 #pragma pack()
 
@@ -77,7 +82,7 @@ typedef struct {
 
 /**
  * Configuration class constructor
- * 
+ *
  * Initializes:
  * - Configuration validation flags
  * - Default values for all settings
@@ -106,7 +111,7 @@ Configuration::Configuration() : magicNumberFound(false), checksumValid(false), 
     eeprom.zMagOffset               = 0;
     eeprom.rfFrequencyOffset_MHz    = 0;
 
-    eeprom.gnssSource    = LINK_NMEA0183_IN;
+    eeprom.gnssSource    = LINK_GNSS;
     eeprom.windSource    = LINK_MICRONET;
     eeprom.depthSource   = LINK_MICRONET;
     eeprom.speedSource   = LINK_MICRONET;
@@ -139,11 +144,26 @@ Configuration::~Configuration()
  */
 void Configuration::LoadFromEeprom()
 {
-    ConfigBlock_t configBlock = {0};
+    ConfigBlock_t configBlock;
+
+    memset(&configBlock, 0, sizeof(configBlock));
 
     InitEeprom();
 
-    EEPROM.get(0, configBlock);
+    nvs_handle_t nvsHandle;
+    if (nvs_open(CONFIG_NVS_NAMESPACE, NVS_READONLY, &nvsHandle) != ESP_OK)
+    {
+        return;
+    }
+
+    size_t    configBlockSize = sizeof(configBlock);
+    esp_err_t ret             = nvs_get_blob(nvsHandle, CONFIG_NVS_KEY, &configBlock, &configBlockSize);
+    nvs_close(nvsHandle);
+    if (ret != ESP_OK || configBlockSize != sizeof(configBlock))
+    {
+        return;
+    }
+
     uint8_t *pConfig = (uint8_t *)(&configBlock);
 
     if (configBlock.magicWord == CONFIG_MAGIC_NUMBER)
@@ -200,8 +220,11 @@ void Configuration::LoadFromEeprom()
  */
 void Configuration::SaveToEeprom()
 {
-    ConfigBlock_t eepromBlock = {0};
-    ConfigBlock_t configBlock = {0};
+    ConfigBlock_t eepromBlock;
+    ConfigBlock_t configBlock;
+
+    memset(&eepromBlock, 0, sizeof(eepromBlock));
+    memset(&configBlock, 0, sizeof(configBlock));
 
     InitEeprom();
 
@@ -209,7 +232,16 @@ void Configuration::SaveToEeprom()
     uint8_t *pConfig      = (uint8_t *)(&configBlock);
     uint8_t  checksum     = 0;
 
-    EEPROM.get(0, eepromBlock);
+    nvs_handle_t nvsHandle;
+    if (nvs_open(CONFIG_NVS_NAMESPACE, NVS_READONLY, &nvsHandle) == ESP_OK)
+    {
+        size_t eepromBlockSize = sizeof(eepromBlock);
+        if (nvs_get_blob(nvsHandle, CONFIG_NVS_KEY, &eepromBlock, &eepromBlockSize) != ESP_OK || eepromBlockSize != sizeof(eepromBlock))
+        {
+            memset(&eepromBlock, 0, sizeof(eepromBlock));
+        }
+        nvs_close(nvsHandle);
+    }
 
     configBlock.magicWord                       = CONFIG_MAGIC_NUMBER;
     configBlock.config.networkId                = eeprom.networkId;
@@ -247,24 +279,36 @@ void Configuration::SaveToEeprom()
     {
         if (pEepromBlock[i] != pConfig[i])
         {
-            EEPROM.put(0, configBlock);
-            EEPROM.commit();
+            if (nvs_open(CONFIG_NVS_NAMESPACE, NVS_READWRITE, &nvsHandle) == ESP_OK)
+            {
+                if (nvs_set_blob(nvsHandle, CONFIG_NVS_KEY, &configBlock, sizeof(configBlock)) == ESP_OK)
+                {
+                    (void)nvs_commit(nvsHandle);
+                }
+                nvs_close(nvsHandle);
+            }
             break;
         }
     }
 }
 
 /**
- * @brief Initialize the EEPROM subsystem if necessary.
+ * @brief Initialize the NVS subsystem if necessary.
  *
- * Ensures the EEPROM has been begun with the expected size before any read or
- * write operations are performed.
+ * Ensures NVS has been initialized before any read or write operations are
+ * performed. NVS initialization is idempotent when another component already
+ * initialized the flash partition.
  */
 void Configuration::InitEeprom()
 {
     if (!eepromInit)
     {
-        EEPROM.begin(sizeof(ConfigBlock_t));
-        eepromInit = true;
+        esp_err_t ret = nvs_flash_init();
+        if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+        {
+            (void)nvs_flash_erase();
+            ret = nvs_flash_init();
+        }
+        eepromInit = (ret == ESP_OK || ret == ESP_ERR_INVALID_STATE);
     }
 }

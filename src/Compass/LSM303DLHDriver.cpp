@@ -30,7 +30,6 @@
 
 #include "LSM303DLHDriver.h"
 #include "BoardConfig.h"
-#include <Wire.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -102,8 +101,7 @@
 /***************************************************************************/
 
 // Constructor
-LSM303DLHDriver::LSM303DLHDriver()
-    : accAddr(LSM303DLH_ACC_ADDR), magAddr(LSM303DLH_MAG_ADDR), LsbPerGaussXY(1100.0f), LsbPerGaussZ(980.0f), GPerLsb(1.0f)
+LSM303DLHDriver::LSM303DLHDriver() : i2cMaster(nullptr), LsbPerGaussXY(1100.0f), LsbPerGaussZ(980.0f), GPerLsb(1.0f)
 {
 }
 
@@ -114,71 +112,69 @@ LSM303DLHDriver::~LSM303DLHDriver()
 
 // Initialization function
 // Returns true if LSM303DLH has been found on the I2C bus, false else
-bool LSM303DLHDriver::Init()
+bool LSM303DLHDriver::Init(I2cMaster *i2cMaster)
 {
     uint8_t ira = 0, irb = 0, irc = 0, sr, whoami = 0;
 
-    COMPASS_I2C.begin();
+    this->i2cMaster = i2cMaster;
 
+    accDeviceHandle = i2cMaster->RegisterSlave(LSM303DLH_ACC_ADDR_1, 100000);
+    magDeviceHandle = i2cMaster->RegisterSlave(LSM303DLH_MAG_ADDR, 100000);
     // First we search for linear acceleration address which depends on SA0 pin level on LSM303DLH
-    if (!I2CRead(LSM303DLH_ACC_ADDR_1, STATUS_REG_A, &sr))
+    if (!i2cMaster->I2CRead(accDeviceHandle, STATUS_REG_A, &sr))
     {
-        if (!I2CRead(LSM303DLH_ACC_ADDR, STATUS_REG_A, &sr))
+        i2cMaster->UnregisterSlave(accDeviceHandle);
+        accDeviceHandle = i2cMaster->RegisterSlave(LSM303DLH_ACC_ADDR, 100000);
+        if (!i2cMaster->I2CRead(accDeviceHandle, STATUS_REG_A, &sr))
         {
             // Linear acceleration not found : return false
+            UnregisterSlaves();
             return false;
         }
-        // Linear acceleration found on primary address
-        accAddr = LSM303DLH_ACC_ADDR;
-    }
-    else
-    {
-        // Linear acceleration found on secondary address
-        accAddr = LSM303DLH_ACC_ADDR_1;
     }
 
     // Check that magnetic register have the correct identification ID
-    I2CRead(LSM303DLH_MAG_ADDR, IRA_REG_M, &ira);
-    I2CRead(LSM303DLH_MAG_ADDR, IRB_REG_M, &irb);
-    I2CRead(LSM303DLH_MAG_ADDR, IRC_REG_M, &irc);
+    i2cMaster->I2CRead(magDeviceHandle, IRA_REG_M, &ira);
+    i2cMaster->I2CRead(magDeviceHandle, IRB_REG_M, &irb);
+    i2cMaster->I2CRead(magDeviceHandle, IRC_REG_M, &irc);
 
     if ((ira != 'H') || (irb != '4') || (irc != '3'))
     {
         // No : return false
+        UnregisterSlaves();
         return false;
     }
 
-    // Yes : store I2C address
-    magAddr = LSM303DLH_MAG_ADDR;
-
     // Check if we have foudn an LSM303DLH or LSM303DLHC
-    I2CRead(magAddr, WHO_AM_I_M, &whoami);
+    i2cMaster->I2CRead(magDeviceHandle, WHO_AM_I_M, &whoami);
 
     if (whoami == LSM303DLHC_WHO_AM_I)
     {
         // This is a LSM303DLHC : return false
+        i2cMaster->UnregisterSlave(accDeviceHandle);
+        i2cMaster->UnregisterSlave(magDeviceHandle);
         return false;
     }
 
     // Okay : if we are here, we have a LSM303DLH
 
     // Initialize registers and conversion coefficients
-    I2CWrite(magAddr, 0x18, CRA_REG_M);   // 0x18=0b00011000 ODR 75Hz
-    I2CWrite(accAddr, 0x27, CTRL_REG1_A); // 0x27=0b00100111 Normal Mode, ODR 50hz, all axes on
-    I2CWrite(accAddr, 0x00, CTRL_REG4_A); // 0x00=0b00000000 Range: +/-2 Gal, Sens.: 1mGal/LSB
+    i2cMaster->I2CWrite(magDeviceHandle, 0x18, CRA_REG_M);   // 0x18=0b00011000 ODR 75Hz
+    i2cMaster->I2CWrite(accDeviceHandle, 0x27, CTRL_REG1_A); // 0x27=0b00100111 Normal Mode, ODR 50hz, all axes on
+    i2cMaster->I2CWrite(accDeviceHandle, 0x00, CTRL_REG4_A); // 0x00=0b00000000 Range: +/-2 Gal, Sens.: 1mGal/LSB
     GPerLsb = 1.0 / 16384.0;
-    I2CWrite(magAddr, 0x60, CRB_REG_M); // 0x60=0b01100000 Range: +/-2.5 Gauss gain: 635LSB/Gauss
+    i2cMaster->I2CWrite(magDeviceHandle, 0x60, CRB_REG_M); // 0x60=0b01100000 Range: +/-2.5 Gauss gain: 635LSB/Gauss
     LsbPerGaussXY = 635;
     LsbPerGaussZ  = 570;
-    I2CWrite(magAddr, 0x00, MR_REG_M); // Continuous mode
+    i2cMaster->I2CWrite(magDeviceHandle, 0x00, MR_REG_M); // Continuous mode
 
     return true;
 }
 
 // Return the name of the driven device
-string LSM303DLHDriver::GetDeviceName()
+std::string LSM303DLHDriver::GetDeviceName()
 {
-    return (string("LSM303DLH"));
+    return (std::string("LSM303DLH"));
 }
 
 // Returns magnetic field measurements on X, Y and Z axis
@@ -189,7 +185,7 @@ void LSM303DLHDriver::GetMagneticField(Vec3D *mag)
     int16_t mx, my, mz;
 
     // Single read of all magnetic measurements
-    I2CBurstRead(magAddr, OUT_X_H_M, magBuffer, 6);
+    i2cMaster->I2CBurstRead(magDeviceHandle, OUT_X_H_M, magBuffer, 6);
 
     // Rebuilt integers values
     mx = ((int16_t)(magBuffer[0] << 8)) | magBuffer[1];
@@ -211,19 +207,19 @@ void LSM303DLHDriver::GetAcceleration(Vec3D *acc)
 
     // Read of all acceleration measurements
     // X axis
-    I2CRead(accAddr, OUT_X_H_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_X_H_A, &regValue);
     ax = regValue;
-    I2CRead(accAddr, OUT_X_L_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_X_L_A, &regValue);
     ax = (ax << 8) | regValue;
     // Y axis
-    I2CRead(accAddr, OUT_Y_H_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Y_H_A, &regValue);
     ay = regValue;
-    I2CRead(accAddr, OUT_Y_L_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Y_L_A, &regValue);
     ay = (ay << 8) | regValue;
     // Z axis
-    I2CRead(accAddr, OUT_Z_H_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Z_H_A, &regValue);
     az = regValue;
-    I2CRead(accAddr, OUT_Z_L_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Z_L_A, &regValue);
     az = (az << 8) | regValue;
 
     // Convert to G
@@ -232,38 +228,19 @@ void LSM303DLHDriver::GetAcceleration(Vec3D *acc)
     acc->z = az * GPerLsb;
 }
 
-// TODO : Create a static class to drive I2C so that this code will not be duplicated for each compass driver
-bool LSM303DLHDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
+void LSM303DLHDriver::UnregisterSlaves()
 {
-    COMPASS_I2C.beginTransmission(i2cAddress);
-    COMPASS_I2C.write(address);
-    if (COMPASS_I2C.endTransmission() != 0)
+    if (i2cMaster != nullptr)
     {
-        return false;
+        if (accDeviceHandle != nullptr)
+        {
+            i2cMaster->UnregisterSlave(accDeviceHandle);
+            accDeviceHandle = nullptr;
+        }
+        if (magDeviceHandle != nullptr)
+        {
+            i2cMaster->UnregisterSlave(magDeviceHandle);
+            magDeviceHandle = nullptr;
+        }
     }
-    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)1);
-    *data = COMPASS_I2C.read();
-
-    return (COMPASS_I2C.endTransmission() == 0);
-}
-
-bool LSM303DLHDriver::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
-{
-    COMPASS_I2C.beginTransmission(i2cAddress);
-    COMPASS_I2C.write(address);
-    if (COMPASS_I2C.endTransmission() != 0)
-    {
-        return false;
-    }
-    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)length);
-    COMPASS_I2C.readBytes(buffer, COMPASS_I2C.available());
-    return (COMPASS_I2C.endTransmission() == 0);
-}
-
-bool LSM303DLHDriver::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
-{
-    COMPASS_I2C.beginTransmission(i2cAddress);
-    COMPASS_I2C.write(address);
-    COMPASS_I2C.write(data);
-    return (COMPASS_I2C.endTransmission() == 0);
 }

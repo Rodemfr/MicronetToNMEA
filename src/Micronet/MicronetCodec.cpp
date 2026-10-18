@@ -18,9 +18,17 @@
 
 #include "MicronetCodec.h"
 #include "NavigationData.h"
-#include "OSWrapper.h"
 #include "Version.h"
+
 #include <cmath>
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                    */
@@ -402,7 +410,7 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int8_t value)
     case MICRONET_FIELD_ID_STP:
         navData.stp_degc.value     = (((float)value) / 2.0f) + navData.waterTemperatureOffset_degc;
         navData.stp_degc.valid     = true;
-        navData.stp_degc.timeStamp = millis();
+        navData.stp_degc.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         break;
     }
 }
@@ -423,7 +431,7 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
     case MICRONET_FIELD_ID_SPD:
         navData.spd_kt.value     = (((float)value) / 100.0f) * navData.waterSpeedFactor_per;
         navData.spd_kt.valid     = true;
-        navData.spd_kt.timeStamp = millis();
+        navData.spd_kt.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
 
         break;
     case MICRONET_FIELD_ID_DPT:
@@ -431,7 +439,7 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
         {
             navData.dpt_m.value     = (((float)value) * 0.3048f / 10.0f) + navData.depthOffset_m;
             navData.dpt_m.valid     = true;
-            navData.dpt_m.timeStamp = millis();
+            navData.dpt_m.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         }
         else
         {
@@ -441,7 +449,7 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
     case MICRONET_FIELD_ID_AWS:
         navData.aws_kt.value     = (((float)value) / 10.0f) * navData.windSpeedFactor_per;
         navData.aws_kt.valid     = true;
-        navData.aws_kt.timeStamp = millis();
+        navData.aws_kt.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         break;
     case MICRONET_FIELD_ID_AWA:
         newValue = ((float)value) + navData.windDirectionOffset_deg;
@@ -451,7 +459,7 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
             newValue += 360.0f;
         navData.awa_deg.value     = newValue;
         navData.awa_deg.valid     = true;
-        navData.awa_deg.timeStamp = millis();
+        navData.awa_deg.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         break;
     case MICRONET_FIELD_ID_HDG:
         newValue = ((float)value) + navData.headingOffset_deg;
@@ -465,12 +473,12 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int16_t value)
         }
         navData.magHdg_deg.value     = newValue;
         navData.magHdg_deg.valid     = true;
-        navData.magHdg_deg.timeStamp = millis();
+        navData.magHdg_deg.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         break;
     case MICRONET_FIELD_ID_VCC:
         navData.vcc_v.value     = ((float)value) / 10.0f;
         navData.vcc_v.valid     = true;
-        navData.vcc_v.timeStamp = millis();
+        navData.vcc_v.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         break;
     }
 }
@@ -490,10 +498,10 @@ void MicronetCodec::UpdateMicronetData(uint8_t fieldId, int32_t value1, int32_t 
     case MICRONET_FIELD_ID_LOG:
         navData.trip_nm.value     = ((float)value1) / 100.0f;
         navData.trip_nm.valid     = true;
-        navData.trip_nm.timeStamp = millis();
+        navData.trip_nm.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         navData.log_nm.value      = ((float)value2) / 10.0f;
         navData.log_nm.valid      = true;
-        navData.log_nm.timeStamp  = millis();
+        navData.log_nm.timeStamp  = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         break;
     }
 }
@@ -517,11 +525,11 @@ void MicronetCodec::CalculateTrueWind()
 
             navData.tws_kt.value     = sqrtf(twLon * twLon + twLat * twLat);
             navData.tws_kt.valid     = true;
-            navData.tws_kt.timeStamp = millis();
+            navData.tws_kt.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
 
             navData.twa_deg.value     = atan2f(twLat, twLon) * 180.0f / M_PI;
             navData.twa_deg.valid     = true;
-            navData.twa_deg.timeStamp = millis();
+            navData.twa_deg.timeStamp = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
         }
     }
 }
@@ -1159,7 +1167,7 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
     uint32_t offset;
     uint32_t networkId;
     uint32_t nbDevices;
-    uint32_t slotDelay_us;
+    uint32_t slotStart_us;
     uint32_t slotLength_us;
     uint32_t deviceId;
     uint32_t slotIndex;
@@ -1198,7 +1206,7 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
 
     networkMap->firstSlot = message->endTime_us;
 
-    slotDelay_us = 0;
+    slotStart_us = 0;
     slotIndex    = 0;
     for (uint32_t i = 1; i < nbDevices; i++)
     {
@@ -1214,10 +1222,10 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
         // A payload length of zero indicates that there is no slot reserved for the corresponding device.
         if (payloadBytes != 0)
         {
-            networkMap->syncSlot[slotIndex].start_us = message->endTime_us + slotDelay_us;
+            networkMap->syncSlot[slotIndex].start_us = message->endTime_us + slotStart_us;
             slotLength_us = PREAMBLE_LENGTH_IN_US + HEADER_LENGTH_IN_US + (payloadBytes * BYTE_LENGTH_IN_US) + GUARD_TIME_IN_US;
             slotLength_us = ((slotLength_us + WINDOW_ROUNDING_TIME_US - 1) / WINDOW_ROUNDING_TIME_US) * WINDOW_ROUNDING_TIME_US;
-            slotDelay_us += slotLength_us;
+            slotStart_us += slotLength_us;
             networkMap->syncSlot[slotIndex].length_us = slotLength_us;
         }
         else
@@ -1231,29 +1239,29 @@ bool MicronetCodec::GetNetworkMap(MicronetMessage_t *message, NetworkMap *networ
     networkMap->nbSyncSlots = slotIndex;
 
     networkMap->asyncSlot.deviceId = 0;
-    slotDelay_us += ASYNC_WINDOW_OFFSET;
-    networkMap->asyncSlot.start_us     = message->endTime_us + slotDelay_us;
+    slotStart_us += ASYNC_WINDOW_OFFSET;
+    networkMap->asyncSlot.start_us     = message->endTime_us + slotStart_us;
     networkMap->asyncSlot.length_us    = ASYNC_WINDOW_LENGTH;
     networkMap->asyncSlot.payloadBytes = ASYNC_WINDOW_PAYLOAD;
-    slotDelay_us += ASYNC_WINDOW_LENGTH;
+    slotStart_us += ASYNC_WINDOW_LENGTH;
 
     for (uint32_t i = 0; i < networkMap->nbSyncSlots; i++)
     {
         networkMap->ackSlot[i].deviceId     = networkMap->syncSlot[networkMap->nbSyncSlots - 1 - i].deviceId;
-        networkMap->ackSlot[i].start_us     = message->endTime_us + slotDelay_us;
+        networkMap->ackSlot[i].start_us     = message->endTime_us + slotStart_us;
         networkMap->ackSlot[i].length_us    = ACK_WINDOW_LENGTH;
         networkMap->ackSlot[i].payloadBytes = ACK_WINDOW_PAYLOAD;
-        slotDelay_us += ACK_WINDOW_LENGTH;
+        slotStart_us += ACK_WINDOW_LENGTH;
     }
 
     networkMap->ackSlot[networkMap->nbSyncSlots].deviceId     = networkMap->masterDevice;
-    networkMap->ackSlot[networkMap->nbSyncSlots].start_us     = message->endTime_us + slotDelay_us;
+    networkMap->ackSlot[networkMap->nbSyncSlots].start_us     = message->endTime_us + slotStart_us;
     networkMap->ackSlot[networkMap->nbSyncSlots].length_us    = ACK_WINDOW_LENGTH;
     networkMap->ackSlot[networkMap->nbSyncSlots].payloadBytes = ACK_WINDOW_PAYLOAD;
     networkMap->nbAckSlots                                    = networkMap->nbSyncSlots + 1;
-    slotDelay_us += ACK_WINDOW_LENGTH;
+    slotStart_us += ACK_WINDOW_LENGTH;
 
-    networkMap->networkEnd = message->endTime_us + slotDelay_us;
+    networkMap->networkEnd = message->endTime_us + slotStart_us;
 
     return true;
 }

@@ -28,14 +28,20 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <Arduino.h>
-
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
 #include "MenuConfigSogCog.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -105,13 +111,14 @@ void MenuConfigSogCog()
 
         do
         {
-            yield();
+            vTaskDelay(pdMS_TO_TICKS(10));
             c = CONSOLE.read();
         } while (c == 0xff);
 
         if ((c >= 0x30) && (c <= 0x39))
         {
-            CONSOLE.println(c);
+            CONSOLE.printf("%c\r\n", c);
+            CONSOLE.transmit();
             c -= 0x30;
             switch (c)
             {
@@ -132,8 +139,10 @@ void MenuConfigSogCog()
                 gConfiguration.eeprom.sogCogFilterLength = sogCogFilterLength;
                 gConfiguration.eeprom.spdEmulation = spdEmulation;
                 gConfiguration.SaveToEeprom();
+                [[fallthrough]];
             case 4:
-                CONSOLE.println("Exiting to upper menu...");
+                CONSOLE.printf("Exiting to upper menu...");
+                CONSOLE.transmit();
                 return;
             }
         }
@@ -156,33 +165,28 @@ void MenuConfigSogCog()
  */
 void PrintSogCogConfig()
 {
-    CONSOLE.println("");
-    CONSOLE.print("*** ");
-    CONSOLE.print("SOG/COG Configuration");
-    CONSOLE.println(" ***");
-    CONSOLE.println("");
-    CONSOLE.print("0 - SOG/COG Filter : ");
+    CONSOLE.printf("\r\n*** SOG/COG Configuration ***\r\n\r\n");
+    CONSOLE.printf("0 - SOG/COG Filter : ");
     if (sogCogFilteringEnable)
     {
-        CONSOLE.println("ENABLED");
+        CONSOLE.printf("ENABLED\r\n");
     }
     else
     {
-        CONSOLE.println("DISABLED");
+        CONSOLE.printf("DISABLED\r\n");
     }
-    CONSOLE.print("1 - Filter strength : ");
-    CONSOLE.println(sogCogFilterLength);
-    CONSOLE.print("2 - Emulate water speed with SOG : ");
+    CONSOLE.printf("1 - Filter strength : %d\r\n", sogCogFilterLength);
+    CONSOLE.printf("2 - Emulate water speed with SOG : ");
     if (spdEmulation)
     {
-        CONSOLE.println("ENABLED");
+        CONSOLE.printf("ENABLED\r\n");
     }
     else
     {
-        CONSOLE.println("DISABLED");
+        CONSOLE.printf("DISABLED\r\n");
     }
-    CONSOLE.println("3 - Save and exit");
-    CONSOLE.println("4 - Exit without saving");
-    CONSOLE.println("");
-    CONSOLE.print("Choice : ");
+    CONSOLE.printf("3 - Save and exit\r\n");
+    CONSOLE.printf("4 - Exit without saving\r\n\r\n");
+    CONSOLE.printf("Choice : ");
+    CONSOLE.transmit();
 }

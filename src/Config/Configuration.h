@@ -44,6 +44,11 @@
  */
 #define SOG_COG_MAX_FILTERING_DEPTH 16
 
+/**
+ * Maximum number of simultaneous Bluetooth SPP connections
+ */
+#define BLUETOOTH_MAX_CONNECTIONS 3
+
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
@@ -54,8 +59,8 @@
  */
 typedef enum
 {
-    RF_FREQ_SYSTEM_868 = 0,  ///< European 868 MHz band
-    RF_FREQ_SYSTEM_915       ///< North American 915 MHz band
+    RF_FREQ_SYSTEM_868 = 0, ///< European 868 MHz band
+    RF_FREQ_SYSTEM_915      ///< North American 915 MHz band
 } FreqSystem_t;
 
 /**
@@ -64,10 +69,11 @@ typedef enum
  */
 typedef enum
 {
-    LINK_PLOTTER = 0,     ///< External chart plotter
-    LINK_NMEA0183_IN,     ///< NMEA0183 input port
-    LINK_MICRONET,        ///< Micronet wireless network
-    LINK_COMPASS          ///< Internal compass sensor
+    LINK_PLOTTER = 0, ///< External chart plotter
+    LINK_NMEA0183_IN, ///< NMEA0183 input port
+    LINK_MICRONET,    ///< Micronet wireless network
+    LINK_GNSS,
+    LINK_COMPASS      ///< Internal compass sensor
 } LinkId_t;
 
 /**
@@ -76,12 +82,12 @@ typedef enum
  */
 typedef enum
 {
-    AXIS_X = 0,           ///< Positive X axis
-    AXIS_MINUS_X,         ///< Negative X axis  
-    AXIS_Y,              ///< Positive Y axis
-    AXIS_MINUS_Y,         ///< Negative Y axis
-    AXIS_Z,              ///< Positive Z axis
-    AXIS_MINUS_Z          ///< Negative Z axis
+    AXIS_X = 0,   ///< Positive X axis
+    AXIS_MINUS_X, ///< Negative X axis
+    AXIS_Y,       ///< Positive Y axis
+    AXIS_MINUS_Y, ///< Negative Y axis
+    AXIS_Z,       ///< Positive Z axis
+    AXIS_MINUS_Z  ///< Negative Z axis
 } Axis_t;
 
 /**
@@ -90,30 +96,30 @@ typedef enum
  */
 typedef struct
 {
-    uint32_t networkId;                  ///< Micronet network identifier
-    uint32_t deviceId;                   ///< Device unique identifier
-    float    waterSpeedFactor_per;       ///< Water speed calibration factor
-    float    waterTemperatureOffset_C;   ///< Water temp sensor offset
-    float    depthOffset_m;              ///< Depth sensor offset
-    float    windSpeedFactor_per;        ///< Wind speed calibration factor
-    float    windDirectionOffset_deg;    ///< Wind direction offset
-    float    headingOffset_deg;          ///< Magnetic heading offset
-    float    magneticVariation_deg;      ///< Local magnetic variation
-    float    windShift;                  ///< Wind shift angle
-    float    xMagOffset;                 ///< X-axis magnetometer offset
-    float    yMagOffset;                 ///< Y-axis magnetometer offset
-    float    zMagOffset;                 ///< Z-axis magnetometer offset
-    float    rfFrequencyOffset_MHz;      ///< RF crystal frequency trim
-    uint8_t  gnssSource;                 ///< GNSS data source selection
-    uint8_t  windSource;                 ///< Wind data source selection
-    uint8_t  depthSource;                ///< Depth data source selection
-    uint8_t  speedSource;                ///< Speed data source selection
-    uint8_t  compassSource;              ///< Compass data source selection
-    uint8_t  sogCogFilteringEnable;      ///< SOG/COG filter enable flag
-    uint8_t  sogCogFilterLength;         ///< SOG/COG filter depth
-    uint8_t  spdEmulation;               ///< Speed emulation enable
-    Axis_t   headingAxis;                ///< Heading reference axis
-    Axis_t   downAxis;                   ///< Vertical reference axis
+    uint32_t networkId;                ///< Micronet network identifier
+    uint32_t deviceId;                 ///< Device unique identifier
+    float    waterSpeedFactor_per;     ///< Water speed calibration factor
+    float    waterTemperatureOffset_C; ///< Water temp sensor offset
+    float    depthOffset_m;            ///< Depth sensor offset
+    float    windSpeedFactor_per;      ///< Wind speed calibration factor
+    float    windDirectionOffset_deg;  ///< Wind direction offset
+    float    headingOffset_deg;        ///< Magnetic heading offset
+    float    magneticVariation_deg;    ///< Local magnetic variation
+    float    windShift;                ///< Wind shift angle
+    float    xMagOffset;               ///< X-axis magnetometer offset
+    float    yMagOffset;               ///< Y-axis magnetometer offset
+    float    zMagOffset;               ///< Z-axis magnetometer offset
+    float    rfFrequencyOffset_MHz;    ///< RF crystal frequency trim
+    uint8_t  gnssSource;               ///< GNSS data source selection
+    uint8_t  windSource;               ///< Wind data source selection
+    uint8_t  depthSource;              ///< Depth data source selection
+    uint8_t  speedSource;              ///< Speed data source selection
+    uint8_t  compassSource;            ///< Compass data source selection
+    uint8_t  sogCogFilteringEnable;    ///< SOG/COG filter enable flag
+    uint8_t  sogCogFilterLength;       ///< SOG/COG filter depth
+    uint8_t  spdEmulation;             ///< Speed emulation enable
+    Axis_t   headingAxis;              ///< Heading reference axis
+    Axis_t   downAxis;                 ///< Vertical reference axis
 } EEPROMConfig_t;
 
 /**
@@ -122,7 +128,7 @@ typedef struct
  */
 typedef struct
 {
-    bool navCompassAvailable;            ///< Compass hardware detected flag
+    bool navCompassAvailable; ///< Compass hardware detected flag
 } RAMConfig_t;
 
 /***************************************************************************/
@@ -170,10 +176,10 @@ class Configuration
      */
     void InitEeprom();
 
-    bool magicNumberFound;              ///< Valid config block found flag
-    bool checksumValid;                 ///< Config checksum valid flag
-    bool eepromInit;                    ///< EEPROM initialized flag
+    bool magicNumberFound; ///< Valid config block found flag
+    bool checksumValid;    ///< Config checksum valid flag
+    bool eepromInit;       ///< EEPROM initialized flag
 
-    EEPROMConfig_t eeprom;             ///< Persistent configuration
-    RAMConfig_t    ram;                ///< Runtime configuration
+    EEPROMConfig_t eeprom; ///< Persistent configuration
+    RAMConfig_t    ram;    ///< Runtime configuration
 };

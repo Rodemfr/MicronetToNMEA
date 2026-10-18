@@ -1,7 +1,7 @@
 /***************************************************************************
- *                                                                         
- * DataBridge.cpp                                                           
- *                                                                         
+ *
+ * DataBridge.cpp
+ *
  * This module provides bidirectional conversion between Micronet and NMEA0183
  * protocols. It handles:
  * - Decoding of NMEA0183 sentences from external devices (GPS, plotters...)
@@ -9,7 +9,7 @@
  * - Data filtering (SOG, COG smoothing)
  * - ASCII character conversion for proper display on Micronet devices
  * - Navigation data timestamping and validation
- *                                                                         
+ *
  ***************************************************************************
  *   Copyright (C) 2021 by Ronan Demoment                                  *
  *                                                                         *
@@ -38,8 +38,16 @@
 #include "BoardConfig.h"
 #include "Globals.h"
 
-#include <Arduino.h>
+#include <cmath>
 #include <string.h>
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                    */
@@ -51,7 +59,7 @@
  * Non-displayable characters are mapped to space
  * Special characters are mapped to their closest ASCII equivalent
  */
-const uint8_t DataBridge::asciiTable[128] = {
+const uint8_t DataBridge::micronetAsciiTable[128] = {
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',  ' ', ' ', ' ', ' ', ' ',  ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
     ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '\"', ' ', ' ', '%', '&', '\'', ' ', ' ', ' ', '+', ' ', '-', '.', '/', '0', '1', '2', '3',
     '4', '5', '6', '7', '8', '9', ':', ' ', '<',  ' ', '>', '?', ' ', 'A',  '(', 'C', ')', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
@@ -115,7 +123,7 @@ DataBridge::~DataBridge()
  * @param c Character to be processed
  * @param sourceLink Source of the NMEA data (LINK_PLOTTER or LINK_NMEA0183_IN)
  */
-void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink) 
+void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
 {
     char *nmeaBuffer     = nullptr;
     int  *nmeaWriteIndex = 0;
@@ -130,6 +138,10 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
     case LINK_NMEA0183_IN:
         nmeaBuffer     = nmeaNmeaInBuffer;
         nmeaWriteIndex = &nmeaNmeaInWriteIndex;
+        break;
+    case LINK_GNSS:
+        nmeaBuffer     = nmeaGnssBuffer;
+        nmeaWriteIndex = &nmeaGnssWriteIndex;
         break;
     default:
         return;
@@ -174,7 +186,8 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                         // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER.println(nmeaBuffer);
+                            PLOTTER.printf("%s\r\n", nmeaBuffer);
+                            PLOTTER.transmit();
                         }
                     }
                     break;
@@ -186,7 +199,8 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                         // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER.println(nmeaBuffer);
+                            PLOTTER.printf("%s\r\n", nmeaBuffer);
+                            PLOTTER.transmit();
                         }
                     }
                     break;
@@ -198,7 +212,8 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                         // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER.println(nmeaBuffer);
+                            PLOTTER.printf("%s\r\n", nmeaBuffer);
+                            PLOTTER.transmit();
                         }
                     }
                     break;
@@ -210,7 +225,8 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                         // If the sentence is not coming from the chart plotter, forward it.
                         if (sourceLink != LINK_PLOTTER)
                         {
-                            PLOTTER.println(nmeaBuffer);
+                            PLOTTER.printf("%s\r\n", nmeaBuffer);
+                            PLOTTER.transmit();
                         }
                     }
                     break;
@@ -247,7 +263,8 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
                     // It is especially useful to provide AIVDM/AIVDO and alert sentences.
                     if (sourceLink == LINK_NMEA0183_IN)
                     {
-                        PLOTTER.println(nmeaBuffer);
+                        PLOTTER.printf("%s\r\n", nmeaBuffer);
+                        PLOTTER.transmit();
                     }
                     break;
                 }
@@ -510,7 +527,7 @@ NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
  * - Distance To Waypoint (DTW)
  * - Bearing To Waypoint (BTW)
  * - Velocity Made Good to waypoint (VMG)
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeRMBSentence(char *sentence)
@@ -551,12 +568,13 @@ void DataBridge::DecodeRMBSentence(char *sentence)
         uint32_t i;
         for (i = 0; i < sizeof(micronetCodec->navData.waypoint.name); i++)
         {
+            // TODO : handle UTF-8 characters properly. For now, we just replace them with a space.
             if (sentence[i] != ',')
             {
                 c = sentence[i];
                 if (c < 128)
                 {
-                    c = asciiTable[(int32_t)sentence[i]];
+                    c = micronetAsciiTable[(int32_t)sentence[i]];
                 }
                 else
                 {
@@ -613,7 +631,7 @@ void DataBridge::DecodeRMBSentence(char *sentence)
  * - Latitude/Longitude
  * - Speed Over Ground (SOG)
  * - Course Over Ground (COG)
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeRMCSentence(char *sentence)
@@ -714,7 +732,7 @@ void DataBridge::DecodeRMCSentence(char *sentence)
 /**
  * Decodes GGA (Global Positioning System Fix Data) sentence
  * Updates Micronet data with position (latitude/longitude)
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeGGASentence(char *sentence)
@@ -761,7 +779,7 @@ void DataBridge::DecodeGGASentence(char *sentence)
 /**
  * Decodes GLL (Geographic Position - Latitude/Longitude) sentence
  * Updates Micronet data with position coordinates
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeGLLSentence(char *sentence)
@@ -807,7 +825,7 @@ void DataBridge::DecodeGLLSentence(char *sentence)
  * - Course Over Ground (COG)
  * - Speed Over Ground (SOG)
  * Supports both old and new VTG format
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeVTGSentence(char *sentence)
@@ -873,7 +891,7 @@ void DataBridge::DecodeVTGSentence(char *sentence)
  * - Apparent Wind Angle (AWA)
  * - Apparent Wind Speed (AWS)
  * Also triggers true wind calculation
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeMWVSentence(char *sentence)
@@ -939,7 +957,7 @@ void DataBridge::DecodeMWVSentence(char *sentence)
  * Decodes DPT (Depth) sentence
  * Updates Micronet data with water depth
  * Adds configured offset to raw depth value
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeDPTSentence(char *sentence)
@@ -971,7 +989,7 @@ void DataBridge::DecodeDPTSentence(char *sentence)
  * Updates Micronet data with:
  * - Magnetic heading
  * - Water speed
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeVHWSentence(char *sentence)
@@ -1019,7 +1037,7 @@ void DataBridge::DecodeVHWSentence(char *sentence)
  * Decodes HDG (Heading, Deviation and Variation) sentence
  * Updates Micronet data with magnetic heading
  * Normalizes heading to [0..360[ range
- * 
+ *
  * @param sentence Pointer to NMEA sentence (null terminated)
  */
 void DataBridge::DecodeHDGSentence(char *sentence)
@@ -1041,7 +1059,7 @@ void DataBridge::DecodeHDGSentence(char *sentence)
 
 /**
  * Converts hexadecimal character to its numeric value
- * 
+ *
  * @param c Character to convert ('0'-'9','A'-'F','a'-'f')
  * @return Numeric value [0-15] or -1 if invalid character
  */
@@ -1074,6 +1092,8 @@ void DataBridge::EncodeMWV_R()
 {
     if (gConfiguration.eeprom.windSource == LINK_MICRONET)
     {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         bool update;
 
         update = (micronetCodec->navData.awa_deg.timeStamp > nmeaTimeStamps.vwr + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1089,7 +1109,8 @@ void DataBridge::EncodeMWV_R()
             sprintf(sentence, "$INMWV,%.1f,R,%.1f,N,A", absAwa, micronetCodec->navData.aws_kt.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwr = millis();
-            PLOTTER.println(sentence);
+            PLOTTER.printf("%s\r\n", sentence);
+            PLOTTER.transmit();
         }
     }
 }
@@ -1105,6 +1126,8 @@ void DataBridge::EncodeMWV_T()
 {
     if (gConfiguration.eeprom.windSource == LINK_MICRONET)
     {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         bool update;
 
         update = (micronetCodec->navData.twa_deg.timeStamp > nmeaTimeStamps.vwt + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1120,7 +1143,8 @@ void DataBridge::EncodeMWV_T()
             sprintf(sentence, "$INMWV,%.1f,T,%.1f,N,A", absTwa, micronetCodec->navData.tws_kt.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwt = millis();
-            PLOTTER.println(sentence);
+            PLOTTER.printf("%s\r\n", sentence);
+            PLOTTER.transmit();
         }
     }
 }
@@ -1136,6 +1160,8 @@ void DataBridge::EncodeDPT()
 {
     if (gConfiguration.eeprom.depthSource == LINK_MICRONET)
     {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         bool update;
 
         update = (micronetCodec->navData.dpt_m.timeStamp > nmeaTimeStamps.dpt + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1148,7 +1174,8 @@ void DataBridge::EncodeDPT()
                     micronetCodec->navData.depthOffset_m);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.dpt = millis();
-            PLOTTER.println(sentence);
+            PLOTTER.printf("%s\r\n", sentence);
+            PLOTTER.transmit();
         }
     }
 }
@@ -1164,6 +1191,8 @@ void DataBridge::EncodeMTW()
 {
     if (gConfiguration.eeprom.depthSource == LINK_MICRONET)
     {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         bool update;
 
         update = (micronetCodec->navData.stp_degc.timeStamp > (nmeaTimeStamps.mtw + NMEA_SENTENCE_MIN_PERIOD_MS));
@@ -1175,7 +1204,8 @@ void DataBridge::EncodeMTW()
             sprintf(sentence, "$INMTW,%.1f,C", micronetCodec->navData.stp_degc.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.mtw = millis();
-            PLOTTER.println(sentence);
+            PLOTTER.printf("%s\r\n", sentence);
+            PLOTTER.transmit();
         }
     }
 }
@@ -1191,6 +1221,8 @@ void DataBridge::EncodeVLW()
 {
     if (gConfiguration.eeprom.speedSource == LINK_MICRONET)
     {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         bool update;
 
         update = (micronetCodec->navData.log_nm.timeStamp > nmeaTimeStamps.vlw + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1203,7 +1235,8 @@ void DataBridge::EncodeVLW()
             sprintf(sentence, "$INVLW,%.1f,N,%.1f,N,,N,,N", micronetCodec->navData.log_nm.value, micronetCodec->navData.trip_nm.value);
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vlw = millis();
-            PLOTTER.println(sentence);
+            PLOTTER.printf("%s\r\n", sentence);
+            PLOTTER.transmit();
         }
     }
 }
@@ -1220,6 +1253,8 @@ void DataBridge::EncodeVHW()
 {
     if (gConfiguration.eeprom.speedSource == LINK_MICRONET)
     {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         bool update =
             (micronetCodec->navData.spd_kt.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS) && (micronetCodec->navData.spd_kt.valid);
 
@@ -1246,7 +1281,8 @@ void DataBridge::EncodeVHW()
             }
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vhw = millis();
-            PLOTTER.println(sentence);
+            PLOTTER.printf("%s\r\n", sentence);
+            PLOTTER.transmit();
         }
     }
 }
@@ -1263,6 +1299,8 @@ void DataBridge::EncodeHDG()
 {
     if ((gConfiguration.eeprom.compassSource == LINK_MICRONET) || (gConfiguration.eeprom.compassSource == LINK_COMPASS))
     {
+        std::lock_guard<std::mutex> lock(dataMutex);
+
         bool update;
 
         update = (micronetCodec->navData.magHdg_deg.timeStamp > nmeaTimeStamps.hdg + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1275,7 +1313,8 @@ void DataBridge::EncodeHDG()
                     (micronetCodec->navData.magneticVariation_deg < 0.0f) ? 'W' : 'E');
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.hdg = millis();
-            PLOTTER.println(sentence);
+            PLOTTER.printf("%s\r\n", sentence);
+            PLOTTER.transmit();
         }
     }
 }
@@ -1288,6 +1327,8 @@ void DataBridge::EncodeHDG()
  */
 void DataBridge::EncodeBatteryXDR()
 {
+    std::lock_guard<std::mutex> lock(dataMutex);
+
     bool update;
 
     update = (micronetCodec->navData.vcc_v.timeStamp > nmeaTimeStamps.vcc + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1299,7 +1340,8 @@ void DataBridge::EncodeBatteryXDR()
         sprintf(sentence, "$INXDR,U,%.1f,V,TACKTICK#0", micronetCodec->navData.vcc_v.value);
         AddNmeaChecksum(sentence);
         nmeaTimeStamps.vcc = millis();
-        PLOTTER.println(sentence);
+        PLOTTER.printf("%s\r\n", sentence);
+        PLOTTER.transmit();
     }
 }
 
@@ -1311,6 +1353,8 @@ void DataBridge::EncodeBatteryXDR()
  */
 void DataBridge::EncodeRollXDR()
 {
+    std::lock_guard<std::mutex> lock(dataMutex);
+
     bool update;
 
     update = (micronetCodec->navData.roll_deg.timeStamp > nmeaTimeStamps.roll + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1322,13 +1366,14 @@ void DataBridge::EncodeRollXDR()
         sprintf(sentence, "$INXDR,A,%.0f,D,ROLL", micronetCodec->navData.roll_deg.value);
         AddNmeaChecksum(sentence);
         nmeaTimeStamps.roll = millis();
-        PLOTTER.println(sentence);
+        PLOTTER.printf("%s\r\n", sentence);
+        PLOTTER.transmit();
     }
 }
 
 /**
  * Calculates and appends NMEA checksum to a sentence
- * 
+ *
  * @param sentence Pointer to null-terminated NMEA sentence (without checksum)
  * @return Calculated checksum value
  */
@@ -1348,4 +1393,14 @@ uint8_t DataBridge::AddNmeaChecksum(char *sentence)
     strcat(sentence, crcString);
 
     return crc;
+}
+
+int64_t DataBridge::micros()
+{
+    return esp_timer_get_time();
+}
+
+uint32_t DataBridge::millis()
+{
+    return static_cast<uint32_t>(esp_timer_get_time() / 1000);
 }

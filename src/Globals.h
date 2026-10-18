@@ -30,17 +30,13 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "BtMultiSPP.h"
 #include "Configuration.h"
-#include "DataBridge.h"
-#include "MenuManager.h"
-#include "MicronetMessageFifo.h"
-#include "MicronetSlaveDevice.h"
-#include "NavCompass.h"
-#include "NavigationData.h"
-#include "RfDriver.h"
+#include "EspSerial.h"
 #include "M8NDriver.h"
-
-#include <BluetoothSerial.h>
+#include "RfDriver.h"
+#include "NavCompass.h"
+#include "MenuManager.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -54,13 +50,16 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
+extern Configuration       gConfiguration;
+extern BtMultiSPP          gBtMultiSPP;
+extern EspSerial           gSerial1;
+extern EspSerial           gSerial2;
+extern M8NDriver           gM8nDriver;
 extern RfDriver            gRfReceiver;
 extern MicronetMessageFifo gRxMessageFifo;
-extern Configuration       gConfiguration;
-extern MenuManager         gMenuManager;
 extern NavCompass          gNavCompass;
-extern BluetoothSerial     gBTSerial;
-extern M8NDriver           gM8nDriver;
+extern MenuManager         gMenuManager;
+
 
 /***************************************************************************/
 /*                              Prototypes                                 */

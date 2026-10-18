@@ -33,7 +33,15 @@
 #include "Globals.h"
 #include "Micronet.h"
 
-#include <Arduino.h>
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
+
+#include <cstring>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -53,8 +61,6 @@
 /*                               Globals                                   */
 /***************************************************************************/
 
-RfDriver *RfDriver::rfDriver;
-
 const uint8_t RfDriver::preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH] = {
     MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
     MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE, MICRONET_RF_PREAMBLE_BYTE,
@@ -66,14 +72,18 @@ const uint8_t RfDriver::preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH] = {
 
 RfDriver::RfDriver()
     : messageFifo(nullptr), rfState(RF_STATE_RX_WAIT_SYNC), nextTransmitIndex(-1), messageBytesSent(0), frequencyOffset_MHz(0), freqTrackingNID(0),
-      txTimer(nullptr)
+      txTimer(nullptr), timerMux(portMUX_INITIALIZER_UNLOCKED)
 {
-    // timerMux = portMUX_INITIALIZER_UNLOCKED;
     // memset(transmitList, 0, sizeof(transmitList));
 }
 
 RfDriver::~RfDriver()
 {
+    if (txTimer != nullptr)
+    {
+        gptimer_disable(txTimer);
+        gptimer_del_timer(txTimer);
+    }
 }
 
 bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
@@ -83,13 +93,18 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
         return false;
     }
 
-    this->frequencyOffset_MHz = frequencyOffset_mHz;
-    this->messageFifo         = messageFifo;
-    rfDriver                  = this;
+    this->frequencyOffset_MHz    = frequencyOffset_mHz;
+    this->messageFifo            = messageFifo;
+    gptimer_config_t timerConfig = {};
+    timerConfig.clk_src          = GPTIMER_CLK_SRC_APB;
+    timerConfig.direction        = GPTIMER_COUNT_UP;
+    timerConfig.resolution_hz    = 1000000;
+    ESP_ERROR_CHECK(gptimer_new_timer(&timerConfig, &txTimer));
 
-    txTimer = timerBegin(0, getApbFrequency() / 1000000, true);
-    timerAlarmDisable(txTimer);
-    timerAttachInterrupt(txTimer, TimerHandler, true);
+    gptimer_event_callbacks_t callbacks = {};
+    callbacks.on_alarm                  = TimerIsr;
+    ESP_ERROR_CHECK(gptimer_register_event_callbacks(txTimer, &callbacks, this));
+    ESP_ERROR_CHECK(gptimer_enable(txTimer));
 
     cc1101Driver.Init();
     cc1101Driver.SetFrequency(
@@ -104,6 +119,22 @@ bool RfDriver::Init(MicronetMessageFifo *messageFifo, float frequencyOffset_mHz)
     cc1101Driver.SetPacketLength(CC1101_FIFO_MAX_SIZE); // Indicates the packet length when fixed packet length mode is enabled. If variable packet
                                                         // length mode is used, this value indicates the maximum packet length allowed.
     cc1101Driver.SetPQT(4);
+
+    // Attach callback to GDO0 pin
+    // According to CC1101 configuration this callback will be executed when CC1101 will have detected Micronet's sync word
+    gpio_config_t io_conf = {};
+    io_conf.pin_bit_mask  = (1ULL << GDO0_PIN);
+    io_conf.mode          = GPIO_MODE_INPUT;
+    io_conf.pull_up_en    = GPIO_PULLUP_DISABLE;
+    io_conf.pull_down_en  = GPIO_PULLDOWN_DISABLE;
+    io_conf.intr_type     = GPIO_INTR_HIGH_LEVEL;
+
+    gpio_config(&io_conf);
+
+    gpio_install_isr_service(0);
+    gpio_isr_handler_add(GDO0_PIN, RfIsr, (void *)this);
+
+    RestartReception();
 
     return true;
 }
@@ -134,20 +165,23 @@ void RfDriver::SetBandwidth(RfBandwidth_t bandwidth)
     }
 }
 
-void RfDriver::RfIsr()
+void IRAM_ATTR RfDriver::RfIsr(void *arg)
 {
-    if ((rfState == RF_STATE_TX_TRANSMIT) || (rfState == RF_STATE_TX_LAST_TRANSMIT))
+    RfDriver *pThis = (RfDriver *)arg;
+
+    if ((pThis->rfState == RF_STATE_TX_TRANSMIT) || (pThis->rfState == RF_STATE_TX_LAST_TRANSMIT))
     {
-        RfIsr_Tx();
+        pThis->TxCallback();
     }
     else
     {
-        RfIsr_Rx();
+        pThis->RxCallback();
     }
 }
 
-void RfDriver::RfIsr_Tx()
+void RfDriver::TxCallback()
 {
+
     if (rfState == RF_STATE_TX_TRANSMIT)
     {
         int bytesInFifo;
@@ -178,8 +212,9 @@ void RfDriver::RfIsr_Tx()
     }
 }
 
-void RfDriver::RfIsr_Rx()
+void RfDriver::RxCallback()
 {
+    // TODO : don't use static fields, use attributes of RfDriver class instead.
     static MicronetMessage_t message;
     static int               dataOffset;
     static int               packetLength;
@@ -189,10 +224,10 @@ void RfDriver::RfIsr_Rx()
     if (rfState == RF_STATE_RX_WAIT_SYNC)
     {
         // When we reach this point, we know that a packet is under reception by CC1101. We will not wait the end of this reception and will
-        // begin collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
+        // start collecting bytes right now. This way we will be able to receive packets that are longer than FIFO size and we will instruct
         // CC1101 to change packet size on the fly as soon as we will have identified the length field
         rfState      = RF_STATE_RX_HEADER;
-        startTime_us = micros() - PREAMBLE_LENGTH_IN_US;
+        startTime_us = static_cast<uint32_t>(esp_timer_get_time()) - PREAMBLE_LENGTH_IN_US;
         packetLength = -1;
         dataOffset   = 0;
 
@@ -212,7 +247,6 @@ void RfDriver::RfIsr_Rx()
     else if ((rfState == RF_STATE_RX_HEADER) || (rfState == RF_STATE_RX_PAYLOAD))
     {
         nbBytes = cc1101Driver.GetRxFifoLevel();
-
         // Check for FIFO overflow
         if (nbBytes > 64)
         {
@@ -239,6 +273,7 @@ void RfDriver::RfIsr_Rx()
         }
         cc1101Driver.ReadRxFifo(message.data + dataOffset, nbBytes);
         dataOffset += nbBytes;
+
         // Check if we have reached the packet length field
         if ((rfState == RF_STATE_RX_HEADER) && (dataOffset >= (MICRONET_LEN_OFFSET_1 + 2)))
         {
@@ -317,7 +352,7 @@ void RfDriver::Transmit(MicronetMessageFifo *txMessageFifo)
 
 void RfDriver::Transmit(MicronetMessage_t *message)
 {
-    bool       isrContext = xPortInIsrContext;
+    bool       isrContext = xPortInIsrContext();
     BaseType_t savedInterruptLevel;
 
     if (isrContext)
@@ -372,8 +407,8 @@ void RfDriver::ScheduleTransmit()
             return;
         }
         // Check that we are not already late for this transmit
-        uint32_t now  = micros();
-        transmitDelay = transmitList[transmitIndex].startTime_us - now - RF_TX_PROG_DELAY_US;
+        uint32_t now  = static_cast<uint32_t>(esp_timer_get_time());
+        transmitDelay = transmitList[transmitIndex].startTime_us - now - txProgDelay_us;
         if (transmitDelay > 60000000)
         {
             // transmitDelay is more than 1 minute away, this is invalid
@@ -383,13 +418,13 @@ void RfDriver::ScheduleTransmit()
     } while (transmitIndex < 0);
 
     // A new transmit is to be scheduled : stop current timer
-    timerStop(txTimer);
-    timerAlarmDisable(txTimer);
-    timerWrite(txTimer, 0);
-    nextTransmitIndex = transmitIndex;
-    timerAlarmWrite(txTimer, transmitDelay, false);
-    timerAlarmEnable(txTimer);
-    timerStart(txTimer);
+    gptimer_stop(txTimer);
+    gptimer_set_raw_count(txTimer, 0);
+    nextTransmitIndex                  = transmitIndex;
+    gptimer_alarm_config_t alarmConfig = {};
+    alarmConfig.alarm_count            = transmitDelay;
+    ESP_ERROR_CHECK(gptimer_set_alarm_action(txTimer, &alarmConfig));
+    ESP_ERROR_CHECK(gptimer_start(txTimer));
 
     return;
 }
@@ -453,12 +488,19 @@ int RfDriver::GetFreeTransmitSlot()
     return freeIndex;
 }
 
-void IRAM_ATTR RfDriver::TimerHandler()
+bool IRAM_ATTR RfDriver::TimerIsr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *userData)
 {
-    rfDriver->TransmitCallback();
+    (void)timer;
+    (void)edata;
+
+    RfDriver *pThis = (RfDriver *)userData;
+
+    pThis->TransmitCallback();
+
+    return false;
 }
 
-void IRAM_ATTR RfDriver::TransmitCallback()
+void RfDriver::TransmitCallback()
 {
     if (nextTransmitIndex < 0)
     {
@@ -466,12 +508,12 @@ void IRAM_ATTR RfDriver::TransmitCallback()
         return;
     }
 
-    int32_t triggerDelay = micros() - transmitList[nextTransmitIndex].startTime_us;
-
-    // Depending on the Teensy version, timer may not be able to reach delay of more than
+    // Depending on the HW, timer may not be able to reach delay of more than
     // about 50ms. in that case we reprogram it until we reach the specified amount of time
-    if (triggerDelay < -RF_TX_PROG_DELAY_US - 25)
+    int32_t triggerDelay_us = static_cast<uint32_t>(esp_timer_get_time()) - transmitList[nextTransmitIndex].startTime_us;
+    if (triggerDelay_us < -txProgDelay_us - 200)
     {
+        // If we are more than 200us early, we reprogram the timer to reach the target time
         ScheduleTransmit();
         return;
     }
@@ -510,6 +552,10 @@ void IRAM_ATTR RfDriver::TransmitCallback()
 
         // Fill FIFO with preamble's first byte
         cc1101Driver.WriteTxFifo(MICRONET_RF_PREAMBLE_BYTE);
+
+        // Check if we are well aligned with the expected start time of the transmission
+        // If not, we will adjust the delay needed to program CC1101 before sending the first byte in order to compensate for this misalignment
+        ComputeTxProgDelay();
 
         // Start transmission as soon as we have the first byte available in FIFO to minimize latency
         cc1101Driver.SetTx();
@@ -573,3 +619,39 @@ void RfDriver::StartCWSweep()
     cc1101Driver.StartCWSweep(125.0, 25.0, 6);
 }
 
+void RfDriver::ComputeTxProgDelay()
+{
+    int32_t triggerDelay = static_cast<uint32_t>(esp_timer_get_time()) - transmitList[nextTransmitIndex].startTime_us;
+
+    if ((txTimerDelayMin_us < 0) || (txTimerDelayCout >= 30))
+    {
+        txProgDelay_us += txTimerDelayMin_us;
+        txTimerDelayCout   = 0;
+        txTimerDelay_us    = 0;
+        txTimerDelayMin_us = 1000;
+        txTimerDelayMax_us = -1000;
+        txTimerDelayAcc_us = 0;
+    }
+
+    txTimerDelay_us = triggerDelay;
+    if (txTimerDelay_us < txTimerDelayMin_us)
+    {
+        txTimerDelayMin_us = txTimerDelay_us;
+    }
+    if (txTimerDelay_us > txTimerDelayMax_us)
+    {
+        txTimerDelayMax_us = txTimerDelay_us;
+    }
+    txTimerDelayAcc_us += txTimerDelay_us;
+    txTimerDelayCout++;
+}
+
+void RfDriver::PrintTxTimerStats()
+{
+    if (txTimerDelayCout > 0)
+    {
+        uint32_t avgDelay = txTimerDelayAcc_us / txTimerDelayCout;
+        printf("Tx timer delay stats: prog=%ld us, min=%ld us, max=%ld us, avg=%ld us, count=%ld\r\n", txProgDelay_us, txTimerDelayMin_us,
+               txTimerDelayMax_us, avgDelay, txTimerDelayCout);
+    }
+}

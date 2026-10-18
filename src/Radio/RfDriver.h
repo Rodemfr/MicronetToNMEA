@@ -34,6 +34,12 @@
 #include "Micronet.h"
 #include "MicronetMessageFifo.h"
 
+extern "C"
+{
+#include "driver/gptimer.h"
+#include "freertos/FreeRTOS.h"
+}
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
@@ -42,7 +48,7 @@
 #define LOW_BANDWIDTH_VALUE    80
 #define MEDIUM_BANDWIDTH_VALUE 125
 #define HIGH_BANDWIDTH_VALUE   250
-#define RF_TX_PROG_DELAY_US    185 // Time needed to program CC1101 before sending the first byte with CPU@24MHz
+#define RF_TX_PROG_DELAY_US    190 // Time needed to program CC1101 before sending the first byte with CPU@240MHz and SPI@4MHz
 
 /***************************************************************************/
 /*                                Types                                    */
@@ -86,8 +92,7 @@ class RfDriver
     void StartCWTransmit();
     void StopCWTransmit();
     void StartCWSweep();
-
-    void RfIsr();
+    void PrintTxTimerStats();
 
   private:
     CC1101Driver             cc1101Driver;
@@ -98,20 +103,24 @@ class RfDriver
     volatile int             messageBytesSent;
     float                    frequencyOffset_MHz;
     uint32_t                 freqTrackingNID;
-    hw_timer_t              *txTimer;
+    gptimer_handle_t         txTimer;
     portMUX_TYPE             timerMux;
+    int32_t                  txTimerDelay_us    = 0;
+    int32_t                  txTimerDelayMin_us = 1000;
+    int32_t                  txTimerDelayMax_us = -1000;
+    int32_t                  txTimerDelayAcc_us = 0;
+    int32_t                  txTimerDelayCout   = 0;
+    int32_t                  txProgDelay_us     = RF_TX_PROG_DELAY_US; // Time needed to program CC1101 before sending the first byte
 
     static const uint8_t preambleAndSync[MICRONET_RF_PREAMBLE_LENGTH];
 
-    void ScheduleTransmit();
-    int  GetNextTransmitIndex();
-    int  GetFreeTransmitSlot();
-    void TransmitCallback();
-    void RfIsr_Rx();
-    void RfIsr_Tx();
-
-    static void      TimerHandler();
-    static RfDriver *rfDriver;
+    void        ScheduleTransmit();
+    int         GetNextTransmitIndex();
+    int         GetFreeTransmitSlot();
+    void        TransmitCallback();
+    static bool TimerIsr(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *userData);
+    static void RfIsr(void *arg);
+    void        RxCallback();
+    void        TxCallback();
+    void        ComputeTxProgDelay();
 };
-
-

@@ -34,6 +34,7 @@
 #include "MicronetCodec.h"
 #include "NavigationData.h"
 
+#include <mutex>
 #include <stdint.h>
 
 /***************************************************************************/
@@ -74,7 +75,7 @@ typedef struct
     uint32_t roll;
 } NmeaTimeStamps_t;
 
-#define NMEA_SENTENCE_MIN_PERIOD_MS 1000
+#define NMEA_SENTENCE_MIN_PERIOD_MS 900
 
 class DataBridge
 {
@@ -87,11 +88,13 @@ class DataBridge
     void SendUpdatedNMEASentences();
 
   private:
-    static const uint8_t asciiTable[128];
+    static const uint8_t micronetAsciiTable[128];
     char                 nmeaPlotterBuffer[NMEA_SENTENCE_MAX_LENGTH];
     char                 nmeaNmeaInBuffer[NMEA_SENTENCE_MAX_LENGTH];
+    char                 nmeaGnssBuffer[NMEA_SENTENCE_MAX_LENGTH];
     int                  nmeaPlotterWriteIndex;
     int                  nmeaNmeaInWriteIndex;
+    int                  nmeaGnssWriteIndex;
     NmeaTimeStamps_t     nmeaTimeStamps;
     MicronetCodec       *micronetCodec;
     uint32_t             sogFilterIndex;
@@ -100,6 +103,7 @@ class DataBridge
     int                  cogFilterIndex;
     uint32_t             cogFilterTimeStamp;
     float                cogFilterBuffer[SOG_COG_MAX_FILTERING_DEPTH];
+    std::mutex           dataMutex;
 
     float FilteredSOG(float newSog_kt);
     float FilteredCOG(float newCog_deg);
@@ -127,11 +131,11 @@ class DataBridge
     void EncodeBatteryXDR();
     void EncodeRollXDR();
 
-    uint8_t AddNmeaChecksum(char *sentence);
+    uint8_t  AddNmeaChecksum(char *sentence);
+    int64_t  micros();
+    uint32_t millis();
 };
 
 /***************************************************************************/
 /*                              Prototypes                                 */
 /***************************************************************************/
-
-

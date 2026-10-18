@@ -30,7 +30,6 @@
 
 #include "LSM303AGRDriver.h"
 #include "BoardConfig.h"
-#include <Wire.h>
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -123,74 +122,94 @@
 /***************************************************************************/
 
 // Constructor
-LSM303AGRDriver::LSM303AGRDriver() : GPerLsb(1.0f)
+LSM303AGRDriver::LSM303AGRDriver() : i2cMaster(nullptr), magDeviceHandle(nullptr), accDeviceHandle(nullptr), GPerLsb(1.0f)
 {
 }
 
 // Destructor
 LSM303AGRDriver::~LSM303AGRDriver()
 {
+    if (i2cMaster != nullptr)
+    {
+        if (accDeviceHandle != nullptr)
+        {
+            i2cMaster->UnregisterSlave(accDeviceHandle);
+        }
+        if (magDeviceHandle != nullptr)
+        {
+            i2cMaster->UnregisterSlave(magDeviceHandle);
+        }
+        i2cMaster = nullptr;
+    }
 }
 
 // Initialization function
 // Returns true if LSM303AGR has been found on the I2C bus, false else
-bool LSM303AGRDriver::Init()
+bool LSM303AGRDriver::Init(I2cMaster *i2cMaster)
 {
     uint8_t whoami = 0;
 
-    COMPASS_I2C.begin();
+    this->i2cMaster = i2cMaster;
 
+    accDeviceHandle = i2cMaster->RegisterSlave(LSM303AGR_ACC_ADDR, 100000);
+    magDeviceHandle = i2cMaster->RegisterSlave(LSM303AGR_MAG_ADDR, 100000);
     // Check that we can read linear acceleration I2C address
-    if (!I2CRead(LSM303AGR_ACC_ADDR, WHO_AM_I_A, &whoami))
+    if (!i2cMaster->I2CRead(accDeviceHandle, WHO_AM_I_A, &whoami))
     {
+        UnregisterSlaves();
         return false;
     }
     // Then check that we have the correct WHO_AM_I register value
     if (whoami != 0x33)
     {
+        UnregisterSlaves();
         return false;
     }
 
     // Check that we can read magnetic I2C address
-    if (!I2CRead(LSM303AGR_MAG_ADDR, WHO_AM_I_M, &whoami))
+    if (!i2cMaster->I2CRead(magDeviceHandle, WHO_AM_I_M, &whoami))
     {
+        UnregisterSlaves();
         return false;
     }
     // Then check that we have the correct WHO_AM_I register value
     if (whoami != 0x40)
     {
+        UnregisterSlaves();
         return false;
     }
 
     // Check that we can read linear acceleration I2C address
-    if (!I2CRead(LSM303AGR_ACC_ADDR, WHO_AM_I_A, &whoami))
+    if (!i2cMaster->I2CRead(accDeviceHandle, WHO_AM_I_A, &whoami))
     {
+        UnregisterSlaves();
         return false;
     }
     // Then check that we have the correct WHO_AM_I register value
     if (whoami != 0x33)
     {
+        UnregisterSlaves();
         return false;
     }
 
     // Okay : if we are here, we have a LSM303AGR
 
     // Initialize registers and conversion coefficients
-    I2CWrite(LSM303AGR_MAG_ADDR, 0x00, CFG_REG_A_M);    // 0x00 ODR 10Hz, continuous mode
-    I2CWrite(LSM303AGR_MAG_ADDR, 0x01, CFG_REG_C_M);    // 0x10 BDU enabled
-    I2CWrite(LSM303AGR_MAG_ADDR, 0x00, INT_CRTL_REG_M); // 0x00 No interrupt handling
+    i2cMaster->I2CWrite(magDeviceHandle, 0x00, CFG_REG_A_M);    // 0x00 ODR 10Hz, continuous mode
+    i2cMaster->I2CWrite(magDeviceHandle, 0x01, CFG_REG_C_M);    // 0x10 BDU enabled
+    i2cMaster->I2CWrite(magDeviceHandle, 0x00, INT_CRTL_REG_M); // 0x00 No interrupt handling
 
-    I2CWrite(LSM303AGR_ACC_ADDR, 0x27, CTRL_REG1_A); // 0x47 Normal Mode, ODR 50hz, all axes on
-    I2CWrite(LSM303AGR_ACC_ADDR, 0x00, CTRL_REG4_A); // 0x00 Range: +/-2 Gal, Sens.: 1mGal/LSB
+    i2cMaster->I2CWrite(accDeviceHandle, 0x27, CTRL_REG1_A); // 0x47 Normal Mode, ODR 50hz, all axes on
+    i2cMaster->I2CWrite(accDeviceHandle, 0x00, CTRL_REG4_A); // 0x00 Range: +/-2 Gal, Sens.: 1mGal/LSB
     GPerLsb = 1.0 / 16384.0;
 
     return true;
 }
 
 // Return the name of the driven device
-string LSM303AGRDriver::GetDeviceName()
+std::string LSM303AGRDriver::GetDeviceName()
 {
-    return (string("LSM303AGR"));
+    return (std::string("LSM303AGR"));
 }
 
 // Returns magnetic field measurements on X, Y and Z axis
@@ -201,7 +220,7 @@ void LSM303AGRDriver::GetMagneticField(Vec3D *mag)
     int16_t mx, my, mz;
 
     // Single read of all magnetic measurements
-    I2CBurstRead(LSM303AGR_MAG_ADDR, OUTX_L_REG_M, magBuffer, 6);
+    i2cMaster->I2CBurstRead(magDeviceHandle, OUTX_L_REG_M, magBuffer, 6);
 
     // Rebuilt integers values
     mx = ((int16_t)(magBuffer[1] << 8)) | (magBuffer[0] & 0xff);
@@ -223,19 +242,19 @@ void LSM303AGRDriver::GetAcceleration(Vec3D *acc)
 
     // Read of all acceleration measurements
     // X axis
-    I2CRead(LSM303AGR_ACC_ADDR, OUT_X_H_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_X_H_A, &regValue);
     ax = regValue;
-    I2CRead(LSM303AGR_ACC_ADDR, OUT_X_L_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_X_L_A, &regValue);
     ax = (ax << 8) | regValue;
     // Y axis
-    I2CRead(LSM303AGR_ACC_ADDR, OUT_Y_H_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Y_H_A, &regValue);
     ay = regValue;
-    I2CRead(LSM303AGR_ACC_ADDR, OUT_Y_L_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Y_L_A, &regValue);
     ay = (ay << 8) | regValue;
     // Z axis
-    I2CRead(LSM303AGR_ACC_ADDR, OUT_Z_H_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Z_H_A, &regValue);
     az = regValue;
-    I2CRead(LSM303AGR_ACC_ADDR, OUT_Z_L_A, &regValue);
+    i2cMaster->I2CRead(accDeviceHandle, OUT_Z_L_A, &regValue);
     az = (az << 8) | regValue;
 
     // Convert to G
@@ -244,37 +263,19 @@ void LSM303AGRDriver::GetAcceleration(Vec3D *acc)
     acc->z = az * GPerLsb;
 }
 
-bool LSM303AGRDriver::I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data)
+void LSM303AGRDriver::UnregisterSlaves()
 {
-    COMPASS_I2C.beginTransmission(i2cAddress);
-    COMPASS_I2C.write(address);
-    if (COMPASS_I2C.endTransmission() != 0)
+    if (i2cMaster != nullptr)
     {
-        return false;
+        if (accDeviceHandle != nullptr)
+        {
+            i2cMaster->UnregisterSlave(accDeviceHandle);
+            accDeviceHandle = nullptr;
+        }
+        if (magDeviceHandle != nullptr)
+        {
+            i2cMaster->UnregisterSlave(magDeviceHandle);
+            magDeviceHandle = nullptr;
+        }
     }
-    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)1);
-    *data = COMPASS_I2C.read();
-
-    return (COMPASS_I2C.endTransmission() == 0);
-}
-
-bool LSM303AGRDriver::I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length)
-{
-    COMPASS_I2C.beginTransmission(i2cAddress);
-    COMPASS_I2C.write(address);
-    if (COMPASS_I2C.endTransmission() != 0)
-    {
-        return false;
-    }
-    COMPASS_I2C.requestFrom(i2cAddress, (uint8_t)length);
-    COMPASS_I2C.readBytes(buffer, COMPASS_I2C.available());
-    return (COMPASS_I2C.endTransmission() == 0);
-}
-
-bool LSM303AGRDriver::I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address)
-{
-    COMPASS_I2C.beginTransmission(i2cAddress);
-    COMPASS_I2C.write(address);
-    COMPASS_I2C.write(data);
-    return (COMPASS_I2C.endTransmission() == 0);
 }

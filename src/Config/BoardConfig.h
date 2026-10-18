@@ -44,25 +44,33 @@
 #define MOSI_PIN 23
 #define MISO_PIN 19
 #define SCK_PIN  18
-#define GDO0_PIN 35
+#define GDO0_PIN GPIO_NUM_35
 
-// Selects on which I2C bus is connected compass as per Wiring library definition
-#define COMPASS_I2C Wire
+// I2C bus used by the compass modules
+#define COMPASS_I2C_PORT    I2C_NUM_0
+#define COMPASS_I2C_SDA_PIN GPIO_NUM_21
+#define COMPASS_I2C_SCL_PIN GPIO_NUM_22
 
-// Bluetooth device name as it will be seen by other devices
-#define BLUETOOTH_DEVICE_NAME "MicronetToNMEA"
+// LED GPIO
+#define LED_GPIO GPIO_NUM_2
 
-// Console UART params. Use 'Serial' for USB console, or 'gBtSerial' for Bluetooth console
-#define CONSOLE          Serial
-#define CONSOLE_BAUDRATE 115200
+// Console is on Bluetooth SPP link
+#define CONSOLE gBtMultiSPP
+// Plotter is on Bluetooth SPP link
+#define PLOTTER gBtMultiSPP
+
+// NMEA receiver is on Serial1 link
+#define NMEA0183_IN          gSerial1
+#define NMEA0183_IN_BAUDRATE 38400
+#define NMEA0183_IN_RX_PIN   GPIO_NUM_27
+#define NMEA0183_IN_TX_PIN   GPIO_NUM_26
 
 // NMEA0183 input configuration
-#define NMEA0183_IN_IS_UBLOXM8N 1 // Set to 1 to enable UBlox M6N/M8N automatic configuration
-#define NMEA0183_IN             Serial2
-#define NMEA0183_IN_BAUDRATE    9600
-
-// Plotter/Nav Computer UART params. Use 'Serial' for USB link, or 'gBtSerial' for Bluetooth link
-#define PLOTTER Serial
+#define GNSS             gSerial2
+#define GNSS_BAUDRATE    9600
+#define GNSS_RX_PIN      GPIO_NUM_16
+#define GNSS_TX_PIN      GPIO_NUM_17
+#define GNSS_IS_UBLOXM8N 1 // Set to 1 to enable UBlox M6N/M8N automatic configuration
 
 /***************************************************************************/
 /*                                Types                                    */

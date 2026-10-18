@@ -25,14 +25,20 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <Arduino.h>
-
+#include "MenuConfigLink.h"
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
-#include "MenuConfigLink.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -51,15 +57,6 @@
 /***************************************************************************/
 
 /**
- * PrintLinkName
- *
- * Print a human readable name for a LinkId to the console.
- *
- * @param linkId Link identifier (index into linkName array)
- */
-void PrintLinkName(uint32_t linkId);
-
-/**
  * PrintLinkConfig
  *
  * Display the current selection for each configurable data source and
@@ -68,7 +65,7 @@ void PrintLinkName(uint32_t linkId);
 void PrintLinkConfig();
 
 /**
- * FindLinkIndex
+ * GetLinkIndex
  *
  * Find the index of linkId inside a configuration table. Returns 0 when
  * not found which corresponds to the first element of the table.
@@ -78,18 +75,18 @@ void PrintLinkConfig();
  * @param linkId Link identifier to find
  * @return Index of linkId inside configTable or 0 if not found
  */
-uint32_t FindLinkIndex(uint8_t *configTable, uint32_t tableLength, uint32_t linkId);
+uint32_t GetLinkIndex(uint8_t *configTable, uint32_t tableLength, uint32_t linkId);
 
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
 
 /* Human readable names for links shown in the menu. */
-const char *linkName[] = {"Plotter", "NMEA0183 Input", "Micronet", "Internal compass"};
+const char *linkName[] = {"Plotter", "NMEA0183 Input", "Micronet", "GNSS", "Internal compass"};
 
 /* Configuration tables define the allowed choices for each logical source.
    The index variables hold the current selection position within each table. */
-uint8_t  gnssConfigTable[]    = {LINK_NMEA0183_IN, LINK_PLOTTER};
+uint8_t  gnssConfigTable[]    = {LINK_NMEA0183_IN, LINK_GNSS, LINK_PLOTTER};
 uint32_t gnssConfigIndex      = 0;
 uint8_t  windConfigTable[]    = {LINK_MICRONET, LINK_PLOTTER, LINK_NMEA0183_IN};
 uint32_t windConfigIndex      = 0;
@@ -125,12 +122,12 @@ void MenuConfigLink()
     bool exitLoop = false;
 
     /* Initialize indices from stored configuration. If stored value is not
-       present in the choice table, FindLinkIndex returns 0 (first option). */
-    gnssConfigIndex    = FindLinkIndex(gnssConfigTable, sizeof(gnssConfigTable), gConfiguration.eeprom.gnssSource);
-    windConfigIndex    = FindLinkIndex(windConfigTable, sizeof(windConfigTable), gConfiguration.eeprom.windSource);
-    depthConfigIndex   = FindLinkIndex(depthConfigTable, sizeof(depthConfigTable), gConfiguration.eeprom.depthSource);
-    speedConfigIndex   = FindLinkIndex(speedConfigTable, sizeof(speedConfigTable), gConfiguration.eeprom.speedSource);
-    compassConfigIndex = FindLinkIndex(compassConfigTable, sizeof(compassConfigTable), gConfiguration.eeprom.compassSource);
+       present in the choice table, GetLinkIndex returns 0 (first option). */
+    gnssConfigIndex    = GetLinkIndex(gnssConfigTable, sizeof(gnssConfigTable), gConfiguration.eeprom.gnssSource);
+    windConfigIndex    = GetLinkIndex(windConfigTable, sizeof(windConfigTable), gConfiguration.eeprom.windSource);
+    depthConfigIndex   = GetLinkIndex(depthConfigTable, sizeof(depthConfigTable), gConfiguration.eeprom.depthSource);
+    speedConfigIndex   = GetLinkIndex(speedConfigTable, sizeof(speedConfigTable), gConfiguration.eeprom.speedSource);
+    compassConfigIndex = GetLinkIndex(compassConfigTable, sizeof(compassConfigTable), gConfiguration.eeprom.compassSource);
 
     while (!exitLoop)
     {
@@ -138,13 +135,14 @@ void MenuConfigLink()
 
         do
         {
-            yield();
+            vTaskDelay(pdMS_TO_TICKS(10));
             c = CONSOLE.read();
         } while (c == 0xff);
 
         if ((c >= 0x30) && (c <= 0x39))
         {
-            CONSOLE.println(c);
+            CONSOLE.printf("%c\r\n", c);
+            CONSOLE.transmit();
             c -= 0x30;
             switch (c)
             {
@@ -176,10 +174,11 @@ void MenuConfigLink()
                 gConfiguration.eeprom.speedSource   = (LinkId_t)speedConfigTable[speedConfigIndex];
                 gConfiguration.eeprom.compassSource = (LinkId_t)compassConfigTable[compassConfigIndex];
                 gConfiguration.SaveToEeprom();
-                break;
+                [[fallthrough]];
             case 6:
                 /* Exit without explicit save (note case 5 falls through to exit) */
-                CONSOLE.println("Exiting to upper menu...");
+                CONSOLE.printf("Exiting to upper menu...\r\n");
+                CONSOLE.transmit();
                 return;
             }
         }
@@ -199,32 +198,15 @@ void MenuConfigLink()
  */
 void PrintLinkConfig()
 {
-    CONSOLE.print("0 - GNSS source : ");
-    PrintLinkName(gnssConfigTable[gnssConfigIndex]);
-    CONSOLE.print("1 - Wind source : ");
-    PrintLinkName(windConfigTable[windConfigIndex]);
-    CONSOLE.print("2 - Depth source : ");
-    PrintLinkName(depthConfigTable[depthConfigIndex]);
-    CONSOLE.print("3 - Speed source : ");
-    PrintLinkName(speedConfigTable[speedConfigIndex]);
-    CONSOLE.print("4 - Compass source : ");
-    PrintLinkName(compassConfigTable[compassConfigIndex]);
-    CONSOLE.println("5 - Save and exit");
-    CONSOLE.println("6 - Exit without saving");
-    CONSOLE.println("");
-    CONSOLE.print("Choice : ");
-}
-
-/**
- * PrintLinkName
- *
- * Print a readable link name corresponding to the provided LinkId.
- *
- * @param linkId Index into the linkName array
- */
-void PrintLinkName(uint32_t linkId)
-{
-    CONSOLE.println(linkName[linkId]);
+    CONSOLE.printf("0 - GNSS source : %s\r\n", linkName[gnssConfigTable[gnssConfigIndex]]);
+    CONSOLE.printf("1 - Wind source : %s\r\n", linkName[windConfigTable[windConfigIndex]]);
+    CONSOLE.printf("2 - Depth source : %s\r\n", linkName[depthConfigTable[depthConfigIndex]]);
+    CONSOLE.printf("3 - Speed source : %s\r\n", linkName[speedConfigTable[speedConfigIndex]]);
+    CONSOLE.printf("4 - Compass source : %s\r\n", linkName[compassConfigTable[compassConfigIndex]]);
+    CONSOLE.printf("5 - Save and exit\r\n");
+    CONSOLE.printf("6 - Exit without saving\r\n\r\n");
+    CONSOLE.printf("Choice : ");
+    CONSOLE.transmit();
 }
 
 /**
@@ -238,7 +220,7 @@ void PrintLinkName(uint32_t linkId)
  * @param linkId Link identifier to locate
  * @return Index of found entry or 0 if not found
  */
-uint32_t FindLinkIndex(uint8_t *configTable, uint32_t tableLength, uint32_t linkId)
+uint32_t GetLinkIndex(uint8_t *configTable, uint32_t tableLength, uint32_t linkId)
 {
     for (uint32_t i = 0; i < tableLength; i++)
     {

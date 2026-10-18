@@ -7,9 +7,9 @@
 
 #pragma once
 
-#include <string>
+#include "I2cMaster.h"
 
-using string = std::string;
+#include <string>
 
 struct Vec3D
 {
@@ -19,10 +19,9 @@ struct Vec3D
 class NavCompassDriver
 {
   public:
-    virtual ~NavCompassDriver()                 = 0;
-    virtual bool   Init()                       = 0;
-    virtual string GetDeviceName()              = 0;
-    virtual void   GetMagneticField(Vec3D *mag) = 0;
-    virtual void   GetAcceleration(Vec3D *acc)  = 0;
+    virtual ~NavCompassDriver()                      = 0;
+    virtual bool        Init(I2cMaster *i2cMaster)   = 0;
+    virtual std::string GetDeviceName()              = 0;
+    virtual void        GetMagneticField(Vec3D *mag) = 0;
+    virtual void        GetAcceleration(Vec3D *acc)  = 0;
 };
-

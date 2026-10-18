@@ -31,11 +31,9 @@
  *                                                                         *
  ***************************************************************************/
 
- /***************************************************************************/
- /*                              Includes                                   */
- /***************************************************************************/
-
-#include <Arduino.h>
+/***************************************************************************/
+/*                              Includes                                   */
+/***************************************************************************/
 
 #include "BoardConfig.h"
 #include "Configuration.h"
@@ -43,6 +41,14 @@
 #include "Micronet.h"
 #include "MicronetCodec.h"
 #include "MicronetMessageFifo.h"
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -96,9 +102,10 @@ void MenuAttachNetwork()
     memset(rssiArray, 0, sizeof(rssiArray));
 
     // Scan micronet networks for 5s
-    CONSOLE.print("Scanning Micronet networks for 5 seconds ... ");
+    CONSOLE.printf("Scanning Micronet networks for 5 seconds ... ");
+    CONSOLE.transmit();
     gRxMessageFifo.ResetFifo();
-    unsigned long startTime = millis();
+    unsigned long startTime = static_cast<uint32_t>(esp_timer_get_time()) / 1000; // Convert to milliseconds
     do
     {
         // Have we received a message ?
@@ -147,18 +154,18 @@ void MenuAttachNetwork()
             }
             gRxMessageFifo.DeleteMessage();
         }
-    } while ((millis() - startTime) < 5000);
+        vTaskDelay(pdMS_TO_TICKS(10)); // Yield to other tasks to avoid starving them
+    } while ((static_cast<uint32_t>(esp_timer_get_time()) / 1000 - startTime) < 5000);
 
-    CONSOLE.println("done");
-    CONSOLE.println("");
+    CONSOLE.printf("done\r\n");
+    CONSOLE.transmit();
 
     // Print results
     uint32_t closestNetwork = 0;
     int16_t  closestRssi    = INT16_MIN;
     if (nidArray[0] != 0)
     {
-        CONSOLE.println("List of scanned networks :");
-        CONSOLE.println("");
+        CONSOLE.printf("List of scanned networks :\r\n");
         for (int i = 0; i < MAX_SCANNED_NETWORKS; i++)
         {
             if (nidArray[i] != 0)
@@ -168,46 +175,45 @@ void MenuAttachNetwork()
                     closestRssi    = rssiArray[i];
                     closestNetwork = nidArray[i];
                 }
-                CONSOLE.print("Network ");
-                CONSOLE.print(i);
-                CONSOLE.print(" - ");
-                CONSOLE.print(nidArray[i], HEX);
-                CONSOLE.print(" (");
+                CONSOLE.printf("Network %d - %04X (", i, nidArray[i]);
                 if (rssiArray[i] < 70)
-                    CONSOLE.print("very strong");
+                    CONSOLE.printf("very strong\r\n");
                 else if (rssiArray[i] < 80)
-                    CONSOLE.print("strong");
+                    CONSOLE.printf("strong\r\n");
                 else if (rssiArray[i] < 90)
-                    CONSOLE.print("normal");
+                    CONSOLE.printf("normal");
                 else
-                    CONSOLE.print("low");
-                CONSOLE.println(")");
+                    CONSOLE.printf("low");
             }
         }
     }
     else
     {
-        CONSOLE.println("/!\\ No Micronet network found /!\\");
-        CONSOLE.println("Check that your Micronet network is powered on.");
+        CONSOLE.printf("/!\\ No Micronet network found /!\\");
+        CONSOLE.printf("Check that your Micronet network is powered on.");
         return;
     }
-    CONSOLE.print("Closest network : ");
-    CONSOLE.println(closestNetwork, HEX);
+    CONSOLE.printf("Closest network : ");
+    CONSOLE.printf("%04X\r\n", closestNetwork);
 
     // Update attached network if user is OK
-    CONSOLE.println("Do you want to attach to this network (y/n) ?");
-    while (CONSOLE.available() == 0)
-        ;
-    char c = CONSOLE.read();
-    if ((c == 'y') || (c == 'Y'))
+    CONSOLE.printf("Do you want to attach to this network (y/n) ?");
+    CONSOLE.transmit();
+    char c;
+    do
     {
-        gConfiguration.eeprom.networkId = closestNetwork;
-        gConfiguration.SaveToEeprom();
-        CONSOLE.print("Now attached to network ");
-        CONSOLE.println(closestNetwork, HEX);
-    }
-    else
-    {
-        CONSOLE.println("Attachement cancelled.");
-    }
+        c = CONSOLE.read();
+        if ((c == 'y') || (c == 'Y'))
+        {
+            gConfiguration.eeprom.networkId = closestNetwork;
+            gConfiguration.SaveToEeprom();
+            CONSOLE.printf("Now attached to network ");
+            CONSOLE.printf("%04X\r\n", closestNetwork);
+        }
+        else
+        {
+            CONSOLE.printf("Attachement cancelled.\r\n");
+        }
+        CONSOLE.transmit();
+    } while ((c != 'y') && (c != 'Y'));
 }

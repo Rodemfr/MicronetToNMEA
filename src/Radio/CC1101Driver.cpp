@@ -31,8 +31,47 @@
 #include "CC1101Driver.h"
 #include "BoardConfig.h"
 
-#include <Arduino.h>
-#include <SPI.h>
+extern "C"
+{
+#include "driver/gpio.h"
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "esp_rom_sys.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+}
+
+#include <cstring>
+
+namespace
+{
+constexpr spi_host_device_t CC1101_SPI_HOST = SPI2_HOST;
+constexpr uint32_t CC1101_SPI_CLOCK_HZ = 4000000;
+
+uint32_t micros_now()
+{
+    return static_cast<uint32_t>(esp_timer_get_time());
+}
+
+uint32_t millis_now()
+{
+    return static_cast<uint32_t>(esp_timer_get_time() / 1000);
+}
+
+void delay_ms(uint32_t milliseconds)
+{
+    vTaskDelay(pdMS_TO_TICKS(milliseconds));
+}
+
+void spi_transfer(spi_device_handle_t device, const uint8_t *txData, uint8_t *rxData, size_t size)
+{
+    spi_transaction_t transaction = {};
+    transaction.length = size * 8;
+    transaction.tx_buffer = txData;
+    transaction.rx_buffer = rxData;
+    ESP_ERROR_CHECK(spi_device_polling_transmit(device, &transaction));
+}
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -158,24 +197,35 @@ const uint8_t CC1101Driver::PA_TABLE[8] = {0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0
  * Initialize class attributes, SPI HW and pins
  */
 CC1101Driver::CC1101Driver()
-    : ccSpi(SPIClass(VSPI)), rfFreq_mHz(869.840), spiSettings(SPISettings(4000000, MSBFIRST, SPI_MODE0)), nextCSHigh(0), freqEstArrayIndex(0),
+    : ccSpi(nullptr), rfFreq_mHz(869.840), nextCSHigh(0), freqEstArrayIndex(0),
       currentFreqOff(0)
 {
     memset(freqEstArray, 0, sizeof(freqEstArray));
 
-    pinMode(SCK_PIN, OUTPUT);
-    pinMode(MOSI_PIN, OUTPUT);
-    pinMode(MISO_PIN, INPUT);
-    pinMode(CS0_PIN, OUTPUT);
-    pinMode(GDO0_PIN, INPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(SCK_PIN), GPIO_MODE_OUTPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(MOSI_PIN), GPIO_MODE_OUTPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(MISO_PIN), GPIO_MODE_INPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(CS0_PIN), GPIO_MODE_OUTPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(GDO0_PIN), GPIO_MODE_INPUT);
 
-    // Pin startup state
-    digitalWrite(SCK_PIN, HIGH);
-    digitalWrite(CS0_PIN, HIGH);
-    digitalWrite(MOSI_PIN, LOW);
+    gpio_set_level(static_cast<gpio_num_t>(SCK_PIN), 1);
+    gpio_set_level(static_cast<gpio_num_t>(CS0_PIN), 1);
+    gpio_set_level(static_cast<gpio_num_t>(MOSI_PIN), 0);
 
-    // Start SPI driver
-    ccSpi.begin(SCK_PIN, MISO_PIN, MOSI_PIN, CS0_PIN);
+    spi_bus_config_t busConfig = {};
+    busConfig.mosi_io_num = MOSI_PIN;
+    busConfig.miso_io_num = MISO_PIN;
+    busConfig.sclk_io_num = SCK_PIN;
+    busConfig.quadwp_io_num = -1;
+    busConfig.quadhd_io_num = -1;
+    ESP_ERROR_CHECK(spi_bus_initialize(CC1101_SPI_HOST, &busConfig, SPI_DMA_DISABLED));
+
+    spi_device_interface_config_t deviceConfig = {};
+    deviceConfig.clock_speed_hz = CC1101_SPI_CLOCK_HZ;
+    deviceConfig.mode = 0;
+    deviceConfig.spics_io_num = -1;
+    deviceConfig.queue_size = 1;
+    ESP_ERROR_CHECK(spi_bus_add_device(CC1101_SPI_HOST, &deviceConfig, &ccSpi));
 }
 
 /**
@@ -184,14 +234,18 @@ CC1101Driver::CC1101Driver()
  */
 CC1101Driver::~CC1101Driver()
 {
-    ccSpi.end();
+    if (ccSpi != nullptr)
+    {
+        ESP_ERROR_CHECK(spi_bus_remove_device(ccSpi));
+        ESP_ERROR_CHECK(spi_bus_free(CC1101_SPI_HOST));
+    }
 
     // Set all pins to input mode
-    pinMode(SCK_PIN, INPUT);
-    pinMode(MOSI_PIN, INPUT);
-    pinMode(MISO_PIN, INPUT);
-    pinMode(CS0_PIN, INPUT);
-    pinMode(GDO0_PIN, INPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(SCK_PIN), GPIO_MODE_INPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(MOSI_PIN), GPIO_MODE_INPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(MISO_PIN), GPIO_MODE_INPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(CS0_PIN), GPIO_MODE_INPUT);
+    gpio_set_direction(static_cast<gpio_num_t>(GDO0_PIN), GPIO_MODE_INPUT);
 }
 
 /**
@@ -199,20 +253,22 @@ CC1101Driver::~CC1101Driver()
  */
 void CC1101Driver::Reset(void)
 {
-    ccSpi.beginTransaction(spiSettings);
     // Apply datasheet's procedure (19.1.2)
     ChipSelect();
-    delay(1);
+    delay_ms(1);
     ChipDeselect(1);
-    delay(1);
+    delay_ms(1);
     ChipSelect();
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
-    ccSpi.transfer(CC1101_SRES);
-    while (digitalRead(MISO_PIN))
+    spi_transaction_t transaction = {};
+    transaction.length = 8;
+    transaction.tx_data[0] = CC1101_SRES;
+    transaction.flags = SPI_TRANS_USE_TXDATA;
+    ESP_ERROR_CHECK(spi_device_polling_transmit(ccSpi, &transaction));
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
     ChipDeselect(8);
-    ccSpi.endTransaction();
 }
 
 /**
@@ -221,9 +277,9 @@ void CC1101Driver::Reset(void)
 void CC1101Driver::Init(void)
 {
     // Set SPI pins initial state
-    digitalWrite(CS0_PIN, HIGH);
-    digitalWrite(SCK_PIN, HIGH);
-    digitalWrite(MOSI_PIN, LOW);
+    gpio_set_level(static_cast<gpio_num_t>(CS0_PIN), 1);
+    gpio_set_level(static_cast<gpio_num_t>(SCK_PIN), 1);
+    gpio_set_level(static_cast<gpio_num_t>(MOSI_PIN), 0);
     // Reset CC1101
     Reset();
     // Set base configuration
@@ -237,16 +293,14 @@ void CC1101Driver::Init(void)
  */
 void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value, uint32_t guardTime_us)
 {
-    ccSpi.beginTransaction(spiSettings);
     ChipSelect();
 
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
-    ccSpi.transfer(addr);
-    ccSpi.transfer(value);
+    const uint8_t data[] = {addr, value};
+    spi_transfer(ccSpi, data, nullptr, sizeof(data));
 
     ChipDeselect(guardTime_us);
-    ccSpi.endTransaction();
 }
 
 /**
@@ -257,17 +311,17 @@ void CC1101Driver::SpiWriteReg(uint8_t addr, uint8_t value, uint32_t guardTime_u
  */
 void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t nbBytes, uint32_t guardTime_us)
 {
-    ccSpi.beginTransaction(spiSettings);
     ChipSelect();
 
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
 
-    ccSpi.transfer(addr | WRITE_BURST);
-    ccSpi.transferBytes(buffer, nullptr, nbBytes);
+    uint8_t data[1 + 8] = {};
+    data[0] = addr | WRITE_BURST;
+    memcpy(&data[1], buffer, nbBytes);
+    spi_transfer(ccSpi, data, nullptr, 1 + nbBytes);
 
     ChipDeselect(guardTime_us);
-    ccSpi.endTransaction();
 }
 
 /**
@@ -276,15 +330,13 @@ void CC1101Driver::SpiWriteBurstReg(uint8_t addr, uint8_t const *buffer, uint8_t
  */
 void CC1101Driver::SpiStrobe(uint8_t strobe, uint32_t guardTime_us)
 {
-    ccSpi.beginTransaction(spiSettings);
     ChipSelect();
 
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
-    ccSpi.transfer(strobe);
+    spi_transfer(ccSpi, &strobe, nullptr, 1);
 
     ChipDeselect(guardTime_us);
-    ccSpi.endTransaction();
 }
 
 /**
@@ -294,18 +346,17 @@ void CC1101Driver::SpiStrobe(uint8_t strobe, uint32_t guardTime_us)
  */
 uint8_t CC1101Driver::SpiReadReg(uint8_t addr)
 {
-    ccSpi.beginTransaction(spiSettings);
     ChipSelect();
 
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
-    ccSpi.transfer(addr | READ_SINGLE);
-    uint8_t value = ccSpi.transfer(0);
+    const uint8_t data[] = {static_cast<uint8_t>(addr | READ_SINGLE), 0};
+    uint8_t response[sizeof(data)] = {};
+    spi_transfer(ccSpi, data, response, sizeof(data));
 
     ChipDeselect(0);
-    ccSpi.endTransaction();
 
-    return value;
+    return response[1];
 }
 
 /**
@@ -316,16 +367,17 @@ uint8_t CC1101Driver::SpiReadReg(uint8_t addr)
  */
 void CC1101Driver::SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t nbBytes)
 {
-    ccSpi.beginTransaction(spiSettings);
     ChipSelect();
 
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
-    ccSpi.transfer(addr | READ_BURST);
-    ccSpi.transferBytes(nullptr, buffer, nbBytes);
+    uint8_t txData[1 + 64] = {};
+    uint8_t rxData[1 + 64] = {};
+    txData[0] = addr | READ_BURST;
+    spi_transfer(ccSpi, txData, rxData, 1 + nbBytes);
+    memcpy(buffer, &rxData[1], nbBytes);
 
     ChipDeselect(0);
-    ccSpi.endTransaction();
 }
 
 /**
@@ -333,17 +385,17 @@ void CC1101Driver::SpiReadBurstReg(uint8_t addr, uint8_t *buffer, uint8_t nbByte
  */
 uint8_t CC1101Driver::SpiReadChipStatusByte()
 {
-    ccSpi.beginTransaction(spiSettings);
     ChipSelect();
 
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
-    uint8_t value = ccSpi.transfer(CC1101_SNOP);
+    const uint8_t data[] = {CC1101_SNOP};
+    uint8_t response[sizeof(data)] = {};
+    spi_transfer(ccSpi, data, response, sizeof(data));
 
     ChipDeselect(0);
-    ccSpi.endTransaction();
 
-    return value;
+    return response[0];
 }
 
 /**
@@ -353,18 +405,17 @@ uint8_t CC1101Driver::SpiReadChipStatusByte()
  */
 uint8_t CC1101Driver::SpiReadStatus(uint8_t addr)
 {
-    ccSpi.beginTransaction(spiSettings);
     ChipSelect();
 
-    while (digitalRead(MISO_PIN))
+    while (gpio_get_level(static_cast<gpio_num_t>(MISO_PIN)))
         ;
-    ccSpi.transfer(addr | READ_BURST);
-    uint8_t value = ccSpi.transfer(0);
+    const uint8_t data[] = {static_cast<uint8_t>(addr | READ_BURST), 0};
+    uint8_t response[sizeof(data)] = {};
+    spi_transfer(ccSpi, data, response, sizeof(data));
 
     ChipDeselect(0);
-    ccSpi.endTransaction();
 
-    return value;
+    return response[1];
 }
 
 /**
@@ -375,7 +426,7 @@ void CC1101Driver::SetFrequency(float freq_Mhz)
 {
     uint8_t freq2 = 0;
     uint8_t freq1 = 0;
-    uint8_t freq0 = 0;
+    uint16_t freq0 = 0;
 
     rfFreq_mHz = freq_Mhz;
 
@@ -441,10 +492,11 @@ void CC1101Driver::Calibrate(void)
  */
 bool CC1101Driver::IsConnected(void)
 {
-    if (SpiReadStatus(0x31) > 0)
-        return 1;
+    uint8_t status = SpiReadStatus(CC1101_VERSION);
+    if ((status != 0) && (status != 0xFF))
+        return true;
     else
-        return 0;
+        return false;
 }
 
 /**
@@ -770,11 +822,11 @@ void CC1101Driver::ActivePower()
     SpiStrobe(CC1101_SIDLE, 8);
 
     // Let time to CC1101 to restart its XTAL
-    timeRef   = micros();
+    timeRef   = micros_now();
     timeLimit = timeRef + XTAL_RESTART_TIME_US;
-    while (micros() < timeLimit)
+    while (micros_now() < timeLimit)
     {
-        if (micros() < timeRef)
+        if (micros_now() < timeRef)
             break;
     }
 
@@ -870,16 +922,16 @@ void CC1101Driver::ChipSelect()
     // Before asserting CS, we check that will let enough time to
     // CC1101 to process the previous SPI command. If necessary, we
     // wait the required amount of time.
-    while (micros() < nextCSHigh)
+    while (micros_now() < nextCSHigh)
     {
-        if (nextCSHigh - micros() > 10)
+        if (nextCSHigh - micros_now() > 10)
         {
             // If we have more 10us to wait, it means micros' counter looped on its maximum value
             break;
         }
     }
 
-    digitalWrite(CS0_PIN, LOW);
+    gpio_set_level(static_cast<gpio_num_t>(CS0_PIN), 0);
 }
 
 /**
@@ -887,11 +939,11 @@ void CC1101Driver::ChipSelect()
  */
 void CC1101Driver::ChipDeselect(uint32_t guardTime_us)
 {
-    digitalWrite(CS0_PIN, HIGH);
+    gpio_set_level(static_cast<gpio_num_t>(CS0_PIN), 1);
     // We store the time at which we release CS to allow the next CS
     // assertion to ensure enough time has been let to CC1101 to
     // process the command.
-    nextCSHigh = micros() + guardTime_us;
+    nextCSHigh = micros_now() + guardTime_us;
 }
 
 /**
@@ -964,7 +1016,7 @@ void CC1101Driver::StartCWTransmit()
     SpiStrobe(CC1101_STX, 8);
 
     // Wait for transition to complete
-    delay(10);
+    delay_ms(10);
 }
 
 /**
@@ -985,12 +1037,12 @@ void CC1101Driver::StopCWTransmit()
     // Transition to idle state
     SpiStrobe(CC1101_SIDLE, 8);
 
-    delay(1);
+    delay_ms(1);
 
     // Restore normal configuration
     SetBaseConfiguration();
 
-    delay(1);
+    delay_ms(1);
 }
 
 /**
@@ -1029,16 +1081,16 @@ void CC1101Driver::StartCWSweep(float range_kHz, float step_kHz, uint16_t durati
     uint32_t start_freq_setting = center_freq_setting - (range_setting / 2);
     uint32_t end_freq_setting = center_freq_setting + (range_setting / 2);
 
-    uint32_t start_time = millis();
+    uint32_t start_time = millis_now();
     uint32_t end_time = start_time + (duration_s * 1000);
 
     // Main sweep loop
-    while (millis() < end_time)
+    while (millis_now() < end_time)
     {
         for (uint32_t current_freq = start_freq_setting; current_freq <= end_freq_setting; current_freq += step_setting)
         {
             // Check duration timeout
-            if (millis() >= end_time) break;
+            if (millis_now() >= end_time) break;
 
             SpiStrobe(CC1101_SIDLE, 8);
 
@@ -1053,7 +1105,7 @@ void CC1101Driver::StartCWSweep(float range_kHz, float step_kHz, uint16_t durati
             // Start transmitting
             SpiStrobe(CC1101_STX, 8);
 
-            delay(1);
+            delay_ms(1);
         }
     }
 

@@ -30,8 +30,12 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <Arduino.h>
-#include <SPI.h>
+#include <stdint.h>
+
+extern "C"
+{
+#include "driver/spi_master.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -128,9 +132,8 @@ class CC1101Driver
     void    StartCWSweep(float range_kHz, float step_kHz, uint16_t duration_s);
 
   private:
-    SPIClass             ccSpi;
+    spi_device_handle_t  ccSpi;
     float                rfFreq_mHz;
-    SPISettings          spiSettings;
     uint32_t             nextCSHigh;
     int                  freqEstArrayIndex;
     int8_t               freqEstArray[FREQ_ESTIMATION_ARRAY_SIZE];

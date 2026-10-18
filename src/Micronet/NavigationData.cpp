@@ -25,8 +25,16 @@
  */
 
 #include "NavigationData.h"
-#include "OSWrapper.h"
-#include <string.h>
+
+#include <cstring>
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 #define VALIDITY_TIME_FAST_MS 3000
 #define VALIDITY_TIME_SLOW_MS 10000
@@ -74,7 +82,7 @@ NavigationData::~NavigationData()
 
 void NavigationData::UpdateValidity()
 {
-    uint32_t currentTime = millis();
+    uint32_t currentTime = static_cast<uint32_t>(esp_timer_get_time()) / 1000;
 
     if (currentTime - awa_deg.timeStamp > VALIDITY_TIME_FAST_MS)
         awa_deg.valid = false;

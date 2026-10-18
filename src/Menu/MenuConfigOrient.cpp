@@ -28,14 +28,20 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
-#include <Arduino.h>
-
+#include "MenuConfigOrient.h"
 #include "BoardConfig.h"
 #include "Configuration.h"
 #include "Globals.h"
-#include "MenuConfigOrient.h"
 #include "Micronet.h"
 #include "MicronetCodec.h"
+
+extern "C"
+{
+#include "esp_err.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/portmacro.h"
+}
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -58,7 +64,7 @@
 
 /**
  * PrintOrientationConfig
- * 
+ *
  * Display the current orientation configuration and menu options
  * to the console.
  */
@@ -87,12 +93,12 @@ static const char *axisName[NB_AXIS] = {"+X", "-X", "+Y", "-Y", "+Z", "-Z"};
  * MenuConfigOrientation
  *
  * Interactive menu to configure compass mounting orientation.
- * 
+ *
  * Allows users to:
  * - Select which axis represents the heading/bow direction
  * - Select which axis represents the down direction
  * - Save configuration to EEPROM
- * 
+ *
  * The function ensures heading and down axes remain different
  * while cycling through options. Returns when user saves or exits.
  */
@@ -110,13 +116,14 @@ void MenuConfigOrientation()
 
         do
         {
-            yield();
+            vTaskDelay(pdMS_TO_TICKS(10));
             c = CONSOLE.read();
         } while (c == 0xff);
 
         if ((c >= 0x30) && (c <= 0x39))
         {
-            CONSOLE.println(c);
+            CONSOLE.printf("%c\r\n", c);
+            CONSOLE.transmit();
             c -= 0x30;
             switch (c)
             {
@@ -136,8 +143,10 @@ void MenuConfigOrientation()
                 gConfiguration.eeprom.headingAxis = (Axis_t)headingAxis;
                 gConfiguration.eeprom.downAxis    = (Axis_t)downAxis;
                 gConfiguration.SaveToEeprom();
+                [[fallthrough]];
             case 3:
-                CONSOLE.println("Exiting to upper menu...");
+                CONSOLE.printf("Exiting to upper menu...");
+                CONSOLE.transmit();
                 return;
             }
         }
@@ -150,26 +159,20 @@ void MenuConfigOrientation()
 
 /**
  * PrintOrientationConfig
- * 
+ *
  * Display the current orientation settings and menu options.
  * Shows:
  * - Current heading/bow axis selection
- * - Current bottom/down axis selection  
+ * - Current bottom/down axis selection
  * - Save and exit options
  */
 void PrintOrientationConfig()
 {
-    CONSOLE.println("");
-    CONSOLE.print("*** ");
-    CONSOLE.print("Compass orientation");
-    CONSOLE.println(" ***");
-    CONSOLE.println("");
-    CONSOLE.print("0 - Heading/bow axis : ");
-    CONSOLE.println(axisName[headingAxis]);
-    CONSOLE.print("1 - Bottom/down axis : ");
-    CONSOLE.println(axisName[downAxis]);
-    CONSOLE.println("2 - Save and exit");
-    CONSOLE.println("3 - Exit without saving");
-    CONSOLE.println("");
-    CONSOLE.print("Choice : ");
+    CONSOLE.printf("\r\n*** Compass orientation ***\r\n\r\n");
+    CONSOLE.printf("0 - Heading/bow axis : %s\r\n", axisName[headingAxis]);
+    CONSOLE.printf("1 - Bottom/down axis : %s\r\n", axisName[downAxis]);
+    CONSOLE.printf("2 - Save and exit\r\n");
+    CONSOLE.printf("3 - Exit without saving\r\n\r\n");
+    CONSOLE.printf("Choice : ");
+    CONSOLE.transmit();
 }

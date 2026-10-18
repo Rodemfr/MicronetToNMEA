@@ -33,6 +33,7 @@
 #include "NavCompass.h"
 #include "BoardConfig.h"
 #include "Globals.h"
+#include "I2cMaster.h"
 #include "LSM303AGRDriver.h"
 #include "LSM303DLHCDriver.h"
 #include "LSM303DLHDriver.h"
@@ -80,16 +81,18 @@ bool NavCompass::Init()
 {
     navCompassDetected = false;
 
+    compassI2c.Init(COMPASS_I2C_PORT, COMPASS_I2C_SDA_PIN, COMPASS_I2C_SCL_PIN);
+
     navCompassDriver = new LSM303DLHCDriver();
-    if (!navCompassDriver->Init())
+    if (!navCompassDriver->Init(&compassI2c))
     {
         delete navCompassDriver;
         navCompassDriver = new LSM303DLHDriver();
-        if (!navCompassDriver->Init())
+        if (!navCompassDriver->Init(&compassI2c))
         {
             delete navCompassDriver;
             navCompassDriver = new LSM303AGRDriver();
-            if (!navCompassDriver->Init())
+            if (!navCompassDriver->Init(&compassI2c))
             {
                 delete navCompassDriver;
                 return false;
@@ -110,14 +113,14 @@ bool NavCompass::Init()
     return true;
 }
 
-string NavCompass::GetDeviceName()
+std::string NavCompass::GetDeviceName()
 {
     if (navCompassDetected)
     {
         return navCompassDriver->GetDeviceName();
     }
 
-    return string("");
+    return std::string("");
 }
 
 void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
@@ -191,7 +194,7 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     Normalize(&N);
 
     // compute heading
-    float heading = atan2f(VectorDot(&E, &headingAxis), VectorDot(&N, &headingAxis)) * 180.0f / PI;
+    float heading = atan2f(VectorDot(&E, &headingAxis), VectorDot(&N, &headingAxis)) * 180.0f / (float)M_PI;
 
     if (heading < 0)
         heading += 360;
@@ -226,7 +229,7 @@ void NavCompass::GetHeadingAndRoll(float *heading_deg, float *roll_deg)
     *heading_deg = heading / HEADING_HISTORY_LENGTH;
 
     // compute roll angle
-    float roll               = atan2f(-VectorDot(&accel, &starBoardAxis), -VectorDot(&accel, &downAxis)) * 180.0f / PI;
+    float roll               = atan2f(-VectorDot(&accel, &starBoardAxis), -VectorDot(&accel, &downAxis)) * 180.0f / (float)M_PI;
     rollHistory[rollIndex++] = roll;
     if (rollIndex >= ROLL_HISTORY_LENGTH)
     {

@@ -30,6 +30,8 @@
 
 #include "MicronetMessageFifo.h"
 
+#include <cstring>
+
 /***************************************************************************/
 /*                              Constants                                  */
 /***************************************************************************/
@@ -78,8 +80,8 @@ bool MicronetMessageFifo::Push(MicronetMessage_t const &message)
         store[writeIndex].startTime_us = message.startTime_us;
         store[writeIndex].endTime_us   = message.endTime_us;
         memcpy(store[writeIndex].data, message.data, message.len);
-        writeIndex++;
-        nbMessages++;
+        writeIndex += 1;
+        nbMessages += 1;
         if (writeIndex >= MESSAGE_STORE_SIZE)
         {
             writeIndex = 0;
@@ -108,8 +110,8 @@ bool MicronetMessageFifo::PushIsr(MicronetMessage_t const &message)
         store[writeIndex].startTime_us = message.startTime_us;
         store[writeIndex].endTime_us   = message.endTime_us;
         memcpy(store[writeIndex].data, message.data, message.len);
-        writeIndex++;
-        nbMessages++;
+        writeIndex += 1;
+        nbMessages += 1;
         if (writeIndex >= MESSAGE_STORE_SIZE)
         {
             writeIndex = 0;
@@ -134,12 +136,12 @@ bool MicronetMessageFifo::Pop(MicronetMessage_t *message)
         // Yes : Copy message
         memcpy(message, &(store[readIndex]), sizeof(MicronetMessage_t));
         // Remove message from the store
-        readIndex++;
+        readIndex += 1;
         if (readIndex >= MESSAGE_STORE_SIZE)
         {
             readIndex = 0;
         }
-        nbMessages--;
+        nbMessages -= 1;
     }
     else
     {
@@ -198,8 +200,8 @@ void MicronetMessageFifo::DeleteMessage()
     if (nbMessages > 0)
     {
         // Yes : delete the next one
-        nbMessages--;
-        readIndex++;
+        nbMessages -= 1;
+        readIndex += 1;
         if (readIndex >= MESSAGE_STORE_SIZE)
         {
             readIndex = 0;

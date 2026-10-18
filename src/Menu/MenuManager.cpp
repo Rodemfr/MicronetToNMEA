@@ -30,10 +30,8 @@
 /***************************************************************************/
 
 #include "MenuManager.h"
-#include "Globals.h"
 #include "BoardConfig.h"
-
-#include <Arduino.h>
+#include "Globals.h"
 
 /***************************************************************************/
 /*                              Constants                                  */
@@ -65,7 +63,7 @@
 
 /**
  * Default constructor
- * 
+ *
  * Initializes menu pointer and length to safe values
  */
 MenuManager::MenuManager()
@@ -83,7 +81,7 @@ MenuManager::~MenuManager()
 
 /**
  * Configure the menu structure to be managed
- * 
+ *
  * @param menuDesc Pointer to array of MenuEntry_t, nullptr terminated
  */
 void MenuManager::SetMenuDescription(const MenuEntry_t *menuDesc)
@@ -100,12 +98,12 @@ void MenuManager::SetMenuDescription(const MenuEntry_t *menuDesc)
 
 /**
  * Process a character received from the console
- * 
+ *
  * Handles:
  * - Numeric input (1-9) to select menu entries
  * - 0 to reprint the menu
  * - Executes associated callback if entry is valid
- * 
+ *
  * @param c Character to process
  */
 void MenuManager::PushChar(char c)
@@ -117,8 +115,7 @@ void MenuManager::PushChar(char c)
         {
             if (menu[entry].entryCallback != nullptr)
             {
-                CONSOLE.println(entry);
-                CONSOLE.println("");
+                CONSOLE.printf("%d\r\n", entry);
                 menu[entry].entryCallback();
                 PrintPrompt();
             }
@@ -126,7 +123,7 @@ void MenuManager::PushChar(char c)
     }
     else if (c == 0x30)
     {
-        CONSOLE.println("0");
+        CONSOLE.printf("0\r\n");
         PrintMenu();
         PrintPrompt();
     }
@@ -134,7 +131,7 @@ void MenuManager::PushChar(char c)
 
 /**
  * Print the complete menu to the console
- * 
+ *
  * Format:
  * *** Title ***
  * 0 - Print this menu
@@ -149,23 +146,18 @@ void MenuManager::PrintMenu()
         return;
     }
 
-    CONSOLE.println("");
-    CONSOLE.print("*** ");
-    CONSOLE.print(menu[0].description);
-    CONSOLE.println(" ***");
-    CONSOLE.println("");
-    CONSOLE.println("0 - Print this menu");
+    CONSOLE.printf("\r\n*** %s ***\r\n", menu[0].description);
+    CONSOLE.printf("0 - Print this menu\r\n");
     for (int i = 1; i < menuLength; i++)
     {
-        CONSOLE.print(i);
-        CONSOLE.print(" - ");
-        CONSOLE.println(menu[i].description);
+        CONSOLE.printf("%d - %s\r\n", i, menu[i].description);
     }
+    CONSOLE.transmit();
 }
 
 /**
  * Activate a specific menu entry by index
- * 
+ *
  * @param entry Index of the menu entry to activate
  */
 void MenuManager::ActivateMenu(uint32_t entry)
@@ -185,11 +177,11 @@ void MenuManager::ActivateMenu(uint32_t entry)
 
 /**
  * Print the menu prompt
- * 
+ *
  * Displays "Choice : " and waits for user input
  */
 void MenuManager::PrintPrompt()
 {
-    CONSOLE.println("");
-    CONSOLE.print("Choice : ");
+    CONSOLE.printf("\r\nChoice : ");
+    CONSOLE.transmit();
 }

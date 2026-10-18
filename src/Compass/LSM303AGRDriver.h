@@ -30,6 +30,7 @@
 /*                              Includes                                   */
 /***************************************************************************/
 
+#include "I2cMaster.h"
 #include "NavCompassDriver.h"
 
 /***************************************************************************/
@@ -39,8 +40,6 @@
 /***************************************************************************/
 /*                                Types                                    */
 /***************************************************************************/
-
-using string = std::string;
 
 /***************************************************************************/
 /*                               Classes                                   */
@@ -52,16 +51,16 @@ class LSM303AGRDriver : public NavCompassDriver
     LSM303AGRDriver();
     virtual ~LSM303AGRDriver();
 
-    virtual bool   Init() override;
-    virtual string GetDeviceName() override;
-    virtual void   GetMagneticField(Vec3D *mag) override;
-    virtual void   GetAcceleration(Vec3D *acc) override;
+    virtual bool        Init(I2cMaster *i2cMaster) override;
+    virtual std::string GetDeviceName() override;
+    virtual void        GetMagneticField(Vec3D *mag) override;
+    virtual void        GetAcceleration(Vec3D *acc) override;
 
   private:
-    float GPerLsb;
+    I2cMaster            *i2cMaster;
+    I2cMasterDeviceHandle magDeviceHandle;
+    I2cMasterDeviceHandle accDeviceHandle;
+    float                 GPerLsb;
 
-    bool I2CRead(uint8_t i2cAddress, uint8_t address, uint8_t *data);
-    bool I2CBurstRead(uint8_t i2cAddress, uint8_t address, uint8_t *buffer, uint8_t length);
-    bool I2CWrite(uint8_t i2cAddress, uint8_t data, uint8_t address);
+    void UnregisterSlaves();
 };
-
