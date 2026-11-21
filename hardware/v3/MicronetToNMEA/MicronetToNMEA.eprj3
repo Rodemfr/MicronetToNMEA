@@ -1,0 +1,99 @@
+{
+  "name": "MicronetToNMEA_copy",
+  "owner_uuid": "42bcbae5ae004b4290ffaddf72f51c42",
+  "creator_uuid": "42bcbae5ae004b4290ffaddf72f51c42",
+  "created_at": "2026-11-21 10:14:50",
+  "updated_at": "2026-11-21 10:14:50",
+  "modifier_uuid": "42bcbae5ae004b4290ffaddf72f51c42",
+  "content": "",
+  "archive": false,
+  "cbb_project": 0,
+  "thumb": "",
+  "ticket": 1,
+  "g_ticket": 1,
+  "boards": [],
+  "block_symbol_attrs_groups": {},
+  "default_sheet": "",
+  "branch_uuid": "",
+  "pcb_count": 0,
+  "format": "folder",
+  "config": "{\"type\":\"DOCHEAD\",\"ticket\":2}||{\"docType\":\"BOARD\",\"client\":\"05a9df0342b9b4f7\",\"uuid\":\"f23adfba04b5eca2\",\"updateTime\":1780670417845,\"version\":\"1780670417845\",\"editVersion\":\"3.2.148\",\"user\":{\"uuid\":\"42bcbae5ae004b4290ffaddf72f51c42\",\"nickname\":\"rodemfr\",\"username\":\"rodemfr\",\"avatar\":\"\"}}|\n{\"type\":\"META\",\"ticket\":1,\"id\":\"META\"}||{\"title\":\"Main Board\",\"zIndex\":1}|\n{\"type\":\"DOCHEAD\",\"ticket\":792}||{\"docType\":\"CONFIG\",\"client\":\"05a9df0342b9b4f7\",\"uuid\":\"CONFIG\",\"updateTime\":1780670417845,\"version\":\"1780670417845\",\"editVersion\":\"3.2.148\",\"user\":{\"uuid\":\"42bcbae5ae004b4290ffaddf72f51c42\",\"nickname\":\"rodemfr\",\"username\":\"rodemfr\",\"avatar\":\"\"}}|\n{\"type\":\"META\",\"ticket\":793,\"id\":\"META\"}||{\"defaultSheet\":\"\"}",
+  "profile": {
+    "boards": {
+      "f23adfba04b5eca2": {
+        "uuid": "f23adfba04b5eca2",
+        "title": "Main Board",
+        "zIndex": 1
+      }
+    },
+    "schematics": {
+      "f6fdc342901c417c85c6dba933dad577": {
+        "uuid": "f6fdc342901c417c85c6dba933dad577",
+        "name": "MicronetToNMEA",
+        "board": "f23adfba04b5eca2",
+        "version": "1781357487439",
+        "updateTime": 1781357487439
+      }
+    },
+    "sheets": {
+      "0be86ca118364a768e215403afb5c001": {
+        "uuid": "0be86ca118364a768e215403afb5c001",
+        "title": "MCU",
+        "schematic_uuid": "f6fdc342901c417c85c6dba933dad577",
+        "zIndex": 1,
+        "version": "1795252139786",
+        "updateTime": 1795252139786
+      },
+      "c0dbd7130f3e4633bdb783cf68b58a0b": {
+        "uuid": "c0dbd7130f3e4633bdb783cf68b58a0b",
+        "title": "Peripherals",
+        "schematic_uuid": "f6fdc342901c417c85c6dba933dad577",
+        "zIndex": 2,
+        "version": "1793773502083",
+        "updateTime": 1793773502083
+      },
+      "59d49383a2cd4c529fc36c5fe2be785d": {
+        "uuid": "59d49383a2cd4c529fc36c5fe2be785d",
+        "title": "Micronet RF",
+        "schematic_uuid": "f6fdc342901c417c85c6dba933dad577",
+        "zIndex": 3,
+        "version": "1792945079085",
+        "updateTime": 1792945079085
+      },
+      "aa521cc647ca40ceb97e2dd6ad72028f": {
+        "uuid": "aa521cc647ca40ceb97e2dd6ad72028f",
+        "title": "Sensors",
+        "schematic_uuid": "f6fdc342901c417c85c6dba933dad577",
+        "zIndex": 4,
+        "version": "1783780787577",
+        "updateTime": 1783780787577
+      }
+    },
+    "pcbs": {
+      "2661d5c3ccc54ae7b48b70217538c915": {
+        "uuid": "2661d5c3ccc54ae7b48b70217538c915",
+        "title": "PCB",
+        "board": "f23adfba04b5eca2",
+        "zIndex": null,
+        "parent_uuid": "",
+        "source": "",
+        "version": "1795252306111",
+        "updateTime": 1795252306111
+      }
+    },
+    "panels": {},
+    "blockSymbols": {
+      "a77c0bd8b2da4daa880747f6c0990ea1": {
+        "uuid": "a77c0bd8b2da4daa880747f6c0990ea1",
+        "title": "micronettonmea",
+        "docType": 17,
+        "source": "",
+        "version": "1742226515",
+        "updateTime": 1742230114000
+      }
+    },
+    "owner": {
+      "uuid": ""
+    }
+  }
+}
