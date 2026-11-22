@@ -294,28 +294,35 @@ void DataBridge::PushNmeaChar(char c, LinkId_t sourceLink)
  * function will ignore the updated values if MicronetToNMEA has not been
  * configured to use LSM303.
  *
- * @param heading_deg Magnetic heading in degrees
+ * @param rawHeading_deg Magnetic heading in degrees, without declination/offset correction
  * @param roll_deg Roll angle in degrees
  */
-void DataBridge::UpdateCompassData(float heading_deg, float roll_deg)
+void DataBridge::UpdateCompassData(float rawHeading_deg, float roll_deg)
 {
     // Only update compass data if the source link is LSM303
     if (gConfiguration.eeprom.compassSource == LINK_COMPASS)
     {
-        heading_deg = fmod(heading_deg, 360);
-        if (heading_deg < 0.0f)
-            heading_deg += 360.0f;
+        rawHeading_deg = fmod(rawHeading_deg, 360);
+        if (rawHeading_deg < 0.0f)
+            rawHeading_deg += 360.0f;
         roll_deg = fmod(roll_deg, 360);
         if (roll_deg < 0.0f)
             roll_deg += 360.0f;
-        micronetCodec->navData.magHdg_deg.value     = heading_deg;
-        micronetCodec->navData.magHdg_deg.valid     = true;
-        micronetCodec->navData.magHdg_deg.timeStamp = millis();
-        micronetCodec->navData.roll_deg.value       = roll_deg;
-        micronetCodec->navData.roll_deg.valid       = true;
-        micronetCodec->navData.roll_deg.timeStamp   = millis();
+
+        {
+            std::lock_guard<std::mutex> lock(dataMutex);
+            micronetCodec->navData.magHdg_deg.value     = rawHeading_deg + micronetCodec->navData.headingOffset_deg;
+            micronetCodec->navData.magHdg_deg.valid     = true;
+            micronetCodec->navData.magHdg_deg.timeStamp = millis();
+            micronetCodec->navData.roll_deg.value       = roll_deg;
+            micronetCodec->navData.roll_deg.valid       = true;
+            micronetCodec->navData.roll_deg.timeStamp   = millis();
+        }
+
         EncodeHDG();
         EncodeRollXDR();
+
+        PLOTTER.transmit();
     }
 }
 
@@ -334,6 +341,23 @@ void DataBridge::SendUpdatedNMEASentences()
     EncodeVHW();
     EncodeHDG();
     EncodeBatteryXDR();
+
+    PLOTTER.transmit();
+}
+
+/**
+ * @brief Returns the pointer to the MicronetCodec instance used by this DataBridge.
+ * @return Pointer to the MicronetCodec instance
+ */
+MicronetCodec *DataBridge::GetMicronetCodec()
+{
+    return micronetCodec;
+}
+
+void DataBridge::UpdateDataValidity()
+{
+    std::lock_guard<std::mutex> lock(dataMutex);
+    micronetCodec->navData.UpdateValidity();
 }
 
 /**
@@ -532,7 +556,8 @@ NmeaId_t DataBridge::SentenceId(char *nmeaBuffer)
  */
 void DataBridge::DecodeRMBSentence(char *sentence)
 {
-    float value;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       value;
 
     sentence += 7;
 
@@ -636,8 +661,9 @@ void DataBridge::DecodeRMBSentence(char *sentence)
  */
 void DataBridge::DecodeRMCSentence(char *sentence)
 {
-    float degs, mins;
-    float value;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       degs, mins;
+    float                       value;
 
     sentence += 7;
 
@@ -737,7 +763,8 @@ void DataBridge::DecodeRMCSentence(char *sentence)
  */
 void DataBridge::DecodeGGASentence(char *sentence)
 {
-    float degs, mins;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       degs, mins;
 
     sentence += 7;
 
@@ -784,7 +811,8 @@ void DataBridge::DecodeGGASentence(char *sentence)
  */
 void DataBridge::DecodeGLLSentence(char *sentence)
 {
-    float degs, mins;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       degs, mins;
 
     sentence += 7;
 
@@ -830,10 +858,11 @@ void DataBridge::DecodeGLLSentence(char *sentence)
  */
 void DataBridge::DecodeVTGSentence(char *sentence)
 {
-    float value;
-    int   comaCount = 0;
-    char *pChar     = sentence;
-    int   fieldsToSkip;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       value;
+    int                         comaCount = 0;
+    char                       *pChar     = sentence;
+    int                         fieldsToSkip;
 
     sentence += 7;
 
@@ -896,9 +925,10 @@ void DataBridge::DecodeVTGSentence(char *sentence)
  */
 void DataBridge::DecodeMWVSentence(char *sentence)
 {
-    float value;
-    float awa = -9999.0;
-    float aws;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       value;
+    float                       awa = -9999.0;
+    float                       aws;
 
     sentence += 7;
 
@@ -962,8 +992,9 @@ void DataBridge::DecodeMWVSentence(char *sentence)
  */
 void DataBridge::DecodeDPTSentence(char *sentence)
 {
-    float value;
-    float depth;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       value;
+    float                       depth;
 
     sentence += 7;
 
@@ -994,7 +1025,8 @@ void DataBridge::DecodeDPTSentence(char *sentence)
  */
 void DataBridge::DecodeVHWSentence(char *sentence)
 {
-    float value;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       value;
 
     sentence += 7;
 
@@ -1042,7 +1074,8 @@ void DataBridge::DecodeVHWSentence(char *sentence)
  */
 void DataBridge::DecodeHDGSentence(char *sentence)
 {
-    float value;
+    std::lock_guard<std::mutex> lock(dataMutex);
+    float                       value;
 
     sentence += 7;
 
@@ -1093,8 +1126,7 @@ void DataBridge::EncodeMWV_R()
     if (gConfiguration.eeprom.windSource == LINK_MICRONET)
     {
         std::lock_guard<std::mutex> lock(dataMutex);
-
-        bool update;
+        bool                        update;
 
         update = (micronetCodec->navData.awa_deg.timeStamp > nmeaTimeStamps.vwr + NMEA_SENTENCE_MIN_PERIOD_MS);
         update = update && (micronetCodec->navData.aws_kt.timeStamp > nmeaTimeStamps.vwr + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1110,7 +1142,6 @@ void DataBridge::EncodeMWV_R()
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwr = millis();
             PLOTTER.printf("%s\r\n", sentence);
-            PLOTTER.transmit();
         }
     }
 }
@@ -1127,8 +1158,7 @@ void DataBridge::EncodeMWV_T()
     if (gConfiguration.eeprom.windSource == LINK_MICRONET)
     {
         std::lock_guard<std::mutex> lock(dataMutex);
-
-        bool update;
+        bool                        update;
 
         update = (micronetCodec->navData.twa_deg.timeStamp > nmeaTimeStamps.vwt + NMEA_SENTENCE_MIN_PERIOD_MS);
         update = update && (micronetCodec->navData.tws_kt.timeStamp > nmeaTimeStamps.vwt + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1144,7 +1174,6 @@ void DataBridge::EncodeMWV_T()
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vwt = millis();
             PLOTTER.printf("%s\r\n", sentence);
-            PLOTTER.transmit();
         }
     }
 }
@@ -1161,8 +1190,7 @@ void DataBridge::EncodeDPT()
     if (gConfiguration.eeprom.depthSource == LINK_MICRONET)
     {
         std::lock_guard<std::mutex> lock(dataMutex);
-
-        bool update;
+        bool                        update;
 
         update = (micronetCodec->navData.dpt_m.timeStamp > nmeaTimeStamps.dpt + NMEA_SENTENCE_MIN_PERIOD_MS);
         update = update && micronetCodec->navData.dpt_m.valid;
@@ -1175,7 +1203,6 @@ void DataBridge::EncodeDPT()
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.dpt = millis();
             PLOTTER.printf("%s\r\n", sentence);
-            PLOTTER.transmit();
         }
     }
 }
@@ -1192,8 +1219,7 @@ void DataBridge::EncodeMTW()
     if (gConfiguration.eeprom.depthSource == LINK_MICRONET)
     {
         std::lock_guard<std::mutex> lock(dataMutex);
-
-        bool update;
+        bool                        update;
 
         update = (micronetCodec->navData.stp_degc.timeStamp > (nmeaTimeStamps.mtw + NMEA_SENTENCE_MIN_PERIOD_MS));
         update = update && micronetCodec->navData.stp_degc.valid;
@@ -1205,7 +1231,6 @@ void DataBridge::EncodeMTW()
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.mtw = millis();
             PLOTTER.printf("%s\r\n", sentence);
-            PLOTTER.transmit();
         }
     }
 }
@@ -1222,8 +1247,7 @@ void DataBridge::EncodeVLW()
     if (gConfiguration.eeprom.speedSource == LINK_MICRONET)
     {
         std::lock_guard<std::mutex> lock(dataMutex);
-
-        bool update;
+        bool                        update;
 
         update = (micronetCodec->navData.log_nm.timeStamp > nmeaTimeStamps.vlw + NMEA_SENTENCE_MIN_PERIOD_MS);
         update = update && (micronetCodec->navData.trip_nm.timeStamp > nmeaTimeStamps.vlw + NMEA_SENTENCE_MIN_PERIOD_MS);
@@ -1236,7 +1260,6 @@ void DataBridge::EncodeVLW()
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vlw = millis();
             PLOTTER.printf("%s\r\n", sentence);
-            PLOTTER.transmit();
         }
     }
 }
@@ -1254,8 +1277,7 @@ void DataBridge::EncodeVHW()
     if (gConfiguration.eeprom.speedSource == LINK_MICRONET)
     {
         std::lock_guard<std::mutex> lock(dataMutex);
-
-        bool update =
+        bool                        update =
             (micronetCodec->navData.spd_kt.timeStamp > nmeaTimeStamps.vhw + NMEA_SENTENCE_MIN_PERIOD_MS) && (micronetCodec->navData.spd_kt.valid);
 
         if (update)
@@ -1282,7 +1304,6 @@ void DataBridge::EncodeVHW()
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.vhw = millis();
             PLOTTER.printf("%s\r\n", sentence);
-            PLOTTER.transmit();
         }
     }
 }
@@ -1300,8 +1321,7 @@ void DataBridge::EncodeHDG()
     if ((gConfiguration.eeprom.compassSource == LINK_MICRONET) || (gConfiguration.eeprom.compassSource == LINK_COMPASS))
     {
         std::lock_guard<std::mutex> lock(dataMutex);
-
-        bool update;
+        bool                        update;
 
         update = (micronetCodec->navData.magHdg_deg.timeStamp > nmeaTimeStamps.hdg + NMEA_SENTENCE_MIN_PERIOD_MS);
         update = update && micronetCodec->navData.magHdg_deg.valid;
@@ -1314,7 +1334,6 @@ void DataBridge::EncodeHDG()
             AddNmeaChecksum(sentence);
             nmeaTimeStamps.hdg = millis();
             PLOTTER.printf("%s\r\n", sentence);
-            PLOTTER.transmit();
         }
     }
 }
@@ -1328,8 +1347,7 @@ void DataBridge::EncodeHDG()
 void DataBridge::EncodeBatteryXDR()
 {
     std::lock_guard<std::mutex> lock(dataMutex);
-
-    bool update;
+    bool                        update;
 
     update = (micronetCodec->navData.vcc_v.timeStamp > nmeaTimeStamps.vcc + NMEA_SENTENCE_MIN_PERIOD_MS);
     update = update && micronetCodec->navData.vcc_v.valid;
@@ -1341,7 +1359,6 @@ void DataBridge::EncodeBatteryXDR()
         AddNmeaChecksum(sentence);
         nmeaTimeStamps.vcc = millis();
         PLOTTER.printf("%s\r\n", sentence);
-        PLOTTER.transmit();
     }
 }
 
@@ -1354,8 +1371,7 @@ void DataBridge::EncodeBatteryXDR()
 void DataBridge::EncodeRollXDR()
 {
     std::lock_guard<std::mutex> lock(dataMutex);
-
-    bool update;
+    bool                        update;
 
     update = (micronetCodec->navData.roll_deg.timeStamp > nmeaTimeStamps.roll + NMEA_SENTENCE_MIN_PERIOD_MS);
     update = update && micronetCodec->navData.roll_deg.valid;
@@ -1367,7 +1383,6 @@ void DataBridge::EncodeRollXDR()
         AddNmeaChecksum(sentence);
         nmeaTimeStamps.roll = millis();
         PLOTTER.printf("%s\r\n", sentence);
-        PLOTTER.transmit();
     }
 }
 

@@ -184,7 +184,7 @@ void MenuTestRfQuality()
             }
         }
 
-        // Let Arduino's processing loop handle what it has to handle...
+        // Let OS idle task handle what it has to handle...
         vTaskDelay(10 / portTICK_PERIOD_MS);
     } while (!exitTestLoop);
 }

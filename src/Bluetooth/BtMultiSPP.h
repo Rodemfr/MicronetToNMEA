@@ -2,16 +2,19 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <vector>
 
 extern "C"
 {
-#include "freertos/FreeRTOS.h"
-#include "freertos/queue.h"
 #include "esp_gap_bt_api.h"
 #include "esp_spp_api.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
 }
+
+#define SPP_TRANSMIT_BUFFER_SIZE 4096
 
 class BtMultiSPP
 {
@@ -38,13 +41,15 @@ class BtMultiSPP
     void               handleSppEvent(esp_spp_cb_event_t event, esp_spp_cb_param_t *param);
     static void        gapCallback(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param);
     static BtMultiSPP *s_instance;
+    std::mutex         bufferMutex;
 
     uint32_t              maxConnections_;
     bool                  started_;
     std::string           deviceName_;
     std::vector<uint32_t> connectedClients_;
     QueueHandle_t         receiveQueue_;
-    uint8_t                transmitBuffer[4096];
-    size_t                 transmitBufferLength_;
+    uint8_t               transmitBuffer[SPP_TRANSMIT_BUFFER_SIZE];
+    uint8_t               temporaryBuffer[SPP_TRANSMIT_BUFFER_SIZE];
+    size_t                transmitBufferLength_;
     static const char    *logTag_;
 };

@@ -41,6 +41,7 @@ extern "C"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/portmacro.h"
+#include "freertos/task.h"
 }
 
 /***************************************************************************/
@@ -86,6 +87,41 @@ void LoadCalibration(MicronetCodec &micronetCodec);
  */
 void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice);
 
+struct MicronetTaskParameters
+{
+    DataBridge          *dataBridge;
+    MicronetSlaveDevice *micronetDevice;
+    MicronetMessageFifo *txMessageFifo;
+};
+
+/**
+ * I2C reader task entry point.
+ *
+ * @param pvParameters Unused task parameters.
+ */
+void TaskI2cReader(void *pvParameters);
+
+/**
+ * NMEA input reader task entry point.
+ *
+ * @param pvParameters Pointer to the DataBridge instance.
+ */
+void TaskNmeaInReader(void *pvParameters);
+
+/**
+ * GNSS reader task entry point.
+ *
+ * @param pvParameters Pointer to the DataBridge instance.
+ */
+void TaskGnssReader(void *pvParameters);
+
+/**
+ * Micronet message processing task entry point.
+ *
+ * @param pvParameters Pointer to the Micronet task parameters.
+ */
+void TaskMicronet(void *pvParameters);
+
 /***************************************************************************/
 /*                               Globals                                   */
 /***************************************************************************/
@@ -115,13 +151,16 @@ void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice);
  */
 void MenuConvertToNmea()
 {
-    bool                exitNmeaLoop = false;
-    MicronetMessage_t  *rxMessage;
+    TaskHandle_t        i2cReaderTaskHandle    = nullptr;
+    TaskHandle_t        nmeaInReaderTaskHandle = nullptr;
+    TaskHandle_t        gnssReaderTaskHandle   = nullptr;
+    TaskHandle_t        micronetTaskHandle     = nullptr;
+    bool                exitNmeaLoop           = false;
     MicronetMessageFifo txMessageFifo;
-    uint32_t            lastHeadingTime = static_cast<uint32_t>(esp_timer_get_time() / 1000);
     MicronetCodec       micronetCodec;
     DataBridge          dataBridge(&micronetCodec);
     MicronetSlaveDevice micronetDevice(&micronetCodec);
+    MicronetTaskParameters micronetTaskParameters = {&dataBridge, &micronetDevice, &txMessageFifo};
 
     // Check that we have been attached to a network
     if (gConfiguration.eeprom.networkId == 0)
@@ -131,10 +170,6 @@ void MenuConvertToNmea()
         CONSOLE.transmit();
         return;
     }
-
-    CONSOLE.printf("\r\nStarting Micronet to NMEA0183 conversion.\r\n");
-    CONSOLE.printf("Press ESC key at any time to stop conversion and come back to menu.\r\n");
-    CONSOLE.transmit();
 
     // Load sensor calibration data into Micronet codec
     LoadCalibration(micronetCodec);
@@ -147,34 +182,42 @@ void MenuConvertToNmea()
 
     gRxMessageFifo.ResetFifo();
 
+    xTaskCreate(TaskI2cReader, "TaskI2cReader", 4096, &dataBridge, tskIDLE_PRIORITY + 1, &i2cReaderTaskHandle);
+    xTaskCreate(TaskNmeaInReader, "TaskNmeaInReader", 4096, &dataBridge, tskIDLE_PRIORITY + 1, &nmeaInReaderTaskHandle);
+    xTaskCreate(TaskGnssReader, "TaskGnssReader", 4096, &dataBridge, tskIDLE_PRIORITY + 1, &gnssReaderTaskHandle);
+    xTaskCreate(TaskMicronet, "TaskMicronet", 4096, &micronetTaskParameters, tskIDLE_PRIORITY + 2, &micronetTaskHandle);
+
+    if ((i2cReaderTaskHandle == nullptr) || (nmeaInReaderTaskHandle == nullptr) || (gnssReaderTaskHandle == nullptr) ||
+        (micronetTaskHandle == nullptr))
+    {
+        CONSOLE.printf("Failed to create a conversion task.\r\n");
+        CONSOLE.transmit();
+        if (i2cReaderTaskHandle != nullptr)
+        {
+            vTaskDelete(i2cReaderTaskHandle);
+        }
+        if (nmeaInReaderTaskHandle != nullptr)
+        {
+            vTaskDelete(nmeaInReaderTaskHandle);
+        }
+        if (gnssReaderTaskHandle != nullptr)
+        {
+            vTaskDelete(gnssReaderTaskHandle);
+        }
+        if (micronetTaskHandle != nullptr)
+        {
+            vTaskDelete(micronetTaskHandle);
+        }
+        gRfReceiver.DisableFrequencyTracking();
+        return;
+    }
+
+    CONSOLE.printf("\r\nStarting Micronet to NMEA0183 conversion.\r\n");
+    CONSOLE.printf("Press ESC key at any time to stop conversion and come back to menu.\r\n");
+    CONSOLE.transmit();
+
     do
     {
-        if ((rxMessage = gRxMessageFifo.Peek()) != nullptr)
-        {
-            micronetDevice.ProcessMessage(rxMessage, &txMessageFifo);
-            gRfReceiver.Transmit(&txMessageFifo);
-
-            dataBridge.SendUpdatedNMEASentences();
-
-            if (micronetCodec.navData.calibrationUpdated)
-            {
-                micronetCodec.navData.calibrationUpdated = false;
-                SaveCalibration(micronetCodec);
-            }
-
-            gRxMessageFifo.DeleteMessage();
-        }
-
-        while (NMEA0183_IN.available() > 0)
-        {
-            dataBridge.PushNmeaChar(NMEA0183_IN.read(), LINK_NMEA0183_IN);
-        }
-
-        while (GNSS.available() > 0)
-        {
-            dataBridge.PushNmeaChar(GNSS.read(), LINK_GNSS);
-        }
-
         char c;
         while (PLOTTER.available() > 0)
         {
@@ -186,20 +229,6 @@ void MenuConvertToNmea()
                 exitNmeaLoop = true;
             }
             dataBridge.PushNmeaChar(c, LINK_PLOTTER);
-        }
-
-        // // Only execute magnetic heading code if navigation compass is available
-        if (0) //gConfiguration.ram.navCompassAvailable == true)
-        {
-            // Handle magnetic compass
-            // Only request new reading if previous is at least 100ms old
-            if ((((static_cast<uint32_t>(esp_timer_get_time() / 1000))) - lastHeadingTime) > 100)
-            {
-                lastHeadingTime = static_cast<uint32_t>(esp_timer_get_time() / 1000);
-                float heading_deg, roll_deg;
-                gNavCompass.GetHeadingAndRoll(&heading_deg, &roll_deg);
-                dataBridge.UpdateCompassData(heading_deg + micronetCodec.navData.headingOffset_deg, roll_deg);
-            }
         }
 
         if ((void *)(&CONSOLE) != (void *)(&PLOTTER))
@@ -215,13 +244,129 @@ void MenuConvertToNmea()
             }
         }
 
-        micronetCodec.navData.UpdateValidity();
+        dataBridge.UpdateDataValidity();
 
         vTaskDelay(pdMS_TO_TICKS(10));
 
     } while (!exitNmeaLoop);
 
     gRfReceiver.DisableFrequencyTracking();
+
+    if (micronetTaskHandle != nullptr)
+    {
+        vTaskDelete(micronetTaskHandle);
+    }
+    if (gnssReaderTaskHandle != nullptr)
+    {
+        vTaskDelete(gnssReaderTaskHandle);
+    }
+    if (nmeaInReaderTaskHandle != nullptr)
+    {
+        vTaskDelete(nmeaInReaderTaskHandle);
+    }
+    if (i2cReaderTaskHandle != nullptr)
+    {
+        vTaskDelete(i2cReaderTaskHandle);
+    }
+}
+
+/**
+ * TaskI2cReader
+ *
+ * Placeholder I2C reader task that periodically yields to the scheduler.
+ *
+ * @param pvParameters Unused task parameters.
+ */
+void TaskI2cReader(void *pvParameters)
+{
+    DataBridge *dataBridge = static_cast<DataBridge *>(pvParameters);
+
+    while (true)
+    {
+        // Only execute magnetic heading code if navigation compass is available
+        if (gConfiguration.ram.navCompassAvailable == true)
+        {
+            float heading_deg, roll_deg;
+            gNavCompass.GetHeadingAndRoll(&heading_deg, &roll_deg);
+            dataBridge->UpdateCompassData(heading_deg, roll_deg);
+        }
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+}
+
+/**
+ * TaskNmeaInReader
+ *
+ * Reads NMEA sentences from the NMEA0183 input and forwards their characters
+ * to the DataBridge.
+ *
+ * @param pvParameters Pointer to the DataBridge instance.
+ */
+void TaskNmeaInReader(void *pvParameters)
+{
+    DataBridge *dataBridge = static_cast<DataBridge *>(pvParameters);
+
+    while (true)
+    {
+        while (NMEA0183_IN.available() > 0)
+        {
+            dataBridge->PushNmeaChar(NMEA0183_IN.read(), LINK_NMEA0183_IN);
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+/**
+ * TaskGnssReader
+ *
+ * Reads NMEA sentences from the GNSS receiver and forwards their characters
+ * to the DataBridge.
+ *
+ * @param pvParameters Pointer to the DataBridge instance.
+ */
+void TaskGnssReader(void *pvParameters)
+{
+    DataBridge *dataBridge = static_cast<DataBridge *>(pvParameters);
+
+    while (true)
+    {
+        while (GNSS.available() > 0)
+        {
+            dataBridge->PushNmeaChar(GNSS.read(), LINK_GNSS);
+        }
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
+}
+
+/**
+ * TaskMicronet
+ *
+ * Processes received Micronet messages and sends updated NMEA sentences.
+ *
+ * @param pvParameters Pointer to the Micronet task parameters.
+ */
+void TaskMicronet(void *pvParameters)
+{
+    MicronetTaskParameters *parameters = static_cast<MicronetTaskParameters *>(pvParameters);
+    MicronetCodec          *micronetCodec = parameters->dataBridge->GetMicronetCodec();
+
+    while (true)
+    {
+        MicronetMessage_t rxMessage;
+        if (gRxMessageFifo.PopWait(&rxMessage))
+        {
+            parameters->micronetDevice->ProcessMessage(&rxMessage, parameters->txMessageFifo);
+            gRfReceiver.Transmit(parameters->txMessageFifo);
+            parameters->dataBridge->SendUpdatedNMEASentences();
+
+            if (micronetCodec->navData.calibrationUpdated)
+            {
+                micronetCodec->navData.calibrationUpdated = false;
+                SaveCalibration(*micronetCodec);
+            }
+        }
+
+    }
 }
 
 /**

@@ -4,9 +4,9 @@
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <stdexcept>
 #include <utility>
-#include <algorithm>
 
 extern "C"
 {
@@ -181,6 +181,8 @@ void BtMultiSPP::stop()
 
 size_t BtMultiSPP::printf(const char *format, ...)
 {
+    std::lock_guard<std::mutex> lock(bufferMutex);
+
     size_t remainingLength = sizeof(transmitBuffer) - transmitBufferLength_;
     if (format == nullptr || remainingLength == 0)
         return 0;
@@ -201,6 +203,7 @@ size_t BtMultiSPP::printf(const char *format, ...)
 void BtMultiSPP::write(uint32_t clientIndex, const uint8_t *data, size_t length)
 {
     (void)clientIndex;
+    std::lock_guard<std::mutex> lock(bufferMutex);
 
     if (data == nullptr || length == 0 || transmitBufferLength_ >= sizeof(transmitBuffer))
     {
@@ -214,17 +217,22 @@ void BtMultiSPP::write(uint32_t clientIndex, const uint8_t *data, size_t length)
 
 void BtMultiSPP::transmit()
 {
-    if (!started_ || transmitBufferLength_ == 0)
+    size_t lengthToSend;
     {
-        return;
+        std::lock_guard<std::mutex> lock(bufferMutex);
+        lengthToSend = transmitBufferLength_;
+        if (!started_ || lengthToSend == 0)
+        {
+            return;
+        }
+        memcpy(temporaryBuffer, transmitBuffer, transmitBufferLength_);
+        transmitBufferLength_ = 0;
     }
 
     for (uint32_t clientHandle : connectedClients_)
     {
-        esp_spp_write(clientHandle, static_cast<int>(transmitBufferLength_), transmitBuffer);
+        esp_spp_write(clientHandle, static_cast<int>(lengthToSend), temporaryBuffer);
     }
-
-    transmitBufferLength_ = 0;
 }
 
 int BtMultiSPP::available()

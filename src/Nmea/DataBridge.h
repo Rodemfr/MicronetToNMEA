@@ -83,9 +83,11 @@ class DataBridge
     DataBridge(MicronetCodec *micronetCodec);
     virtual ~DataBridge();
 
-    void PushNmeaChar(char c, LinkId_t sourceLink);
-    void UpdateCompassData(float heading_deg, float heel_deg);
-    void SendUpdatedNMEASentences();
+    void           PushNmeaChar(char c, LinkId_t sourceLink);
+    void           UpdateCompassData(float rawHeading_deg, float heel_deg);
+    void           SendUpdatedNMEASentences();
+    MicronetCodec *GetMicronetCodec();
+    void           UpdateDataValidity();
 
   private:
     static const uint8_t micronetAsciiTable[128];

@@ -52,8 +52,11 @@
 /*                              Functions                                  */
 /***************************************************************************/
 
-MicronetMessageFifo::MicronetMessageFifo() : fifoMutex(portMUX_INITIALIZER_UNLOCKED)
+MicronetMessageFifo::MicronetMessageFifo()
+    : fifoMutex(portMUX_INITIALIZER_UNLOCKED), messageAvailableSemaphore(xSemaphoreCreateCounting(MESSAGE_STORE_SIZE, 0))
 {
+    configASSERT(messageAvailableSemaphore != nullptr);
+
     // Reset packet store
     memset(store, 0, sizeof(store));
     writeIndex = 0;
@@ -63,6 +66,10 @@ MicronetMessageFifo::MicronetMessageFifo() : fifoMutex(portMUX_INITIALIZER_UNLOC
 
 MicronetMessageFifo::~MicronetMessageFifo()
 {
+    if (messageAvailableSemaphore != nullptr)
+    {
+        vSemaphoreDelete(messageAvailableSemaphore);
+    }
 }
 
 bool MicronetMessageFifo::Push(MicronetMessage_t const &message)
@@ -94,12 +101,15 @@ bool MicronetMessageFifo::Push(MicronetMessage_t const &message)
     }
 
     portEXIT_CRITICAL(&fifoMutex);
+    xSemaphoreGive(messageAvailableSemaphore);
     return true;
 }
 
 bool MicronetMessageFifo::PushIsr(MicronetMessage_t const &message)
 {
-    // Use a critical section to avoid race conditions
+    // Protect the FIFO while updating it from an interrupt.
+    portENTER_CRITICAL_ISR(&fifoMutex);
+
     // Check if there is space in store. If not, the message is just dropped/ignored.
     if (nbMessages < MESSAGE_STORE_SIZE)
     {
@@ -119,7 +129,17 @@ bool MicronetMessageFifo::PushIsr(MicronetMessage_t const &message)
     }
     else
     {
+        portEXIT_CRITICAL_ISR(&fifoMutex);
         return false;
+    }
+
+    portEXIT_CRITICAL_ISR(&fifoMutex);
+
+    BaseType_t higherPriorityTaskWoken = pdFALSE;
+    xSemaphoreGiveFromISR(messageAvailableSemaphore, &higherPriorityTaskWoken);
+    if (higherPriorityTaskWoken == pdTRUE)
+    {
+        portYIELD_FROM_ISR();
     }
 
     return true;
@@ -151,6 +171,21 @@ bool MicronetMessageFifo::Pop(MicronetMessage_t *message)
 
     portEXIT_CRITICAL(&fifoMutex);
     return true;
+}
+
+bool MicronetMessageFifo::PopWait(MicronetMessage_t *message)
+{
+    while (true)
+    {
+        if (Pop(message))
+        {
+            return true;
+        }
+
+        while (xSemaphoreTake(messageAvailableSemaphore, portMAX_DELAY) != pdTRUE)
+        {
+        }
+    }
 }
 
 MicronetMessage_t *MicronetMessageFifo::Peek(int index)

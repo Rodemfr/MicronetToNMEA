@@ -36,6 +36,7 @@
 extern "C" {
   #include "freertos/FreeRTOS.h"
   #include "freertos/portmacro.h"
+  #include "freertos/semphr.h"
 }
 
 /***************************************************************************/
@@ -57,6 +58,7 @@ class MicronetMessageFifo
     bool               Push(MicronetMessage_t const &message);
     bool               PushIsr(MicronetMessage_t const &message);
     bool               Pop(MicronetMessage_t *message);
+    bool               PopWait(MicronetMessage_t *message);
     MicronetMessage_t *Peek(int index);
     MicronetMessage_t *Peek();
     void               DeleteMessage();
@@ -69,6 +71,7 @@ class MicronetMessageFifo
     volatile int      nbMessages;
     MicronetMessage_t store[MESSAGE_STORE_SIZE];
     portMUX_TYPE      fifoMutex;
+    SemaphoreHandle_t messageAvailableSemaphore;
 };
 
 /***************************************************************************/
