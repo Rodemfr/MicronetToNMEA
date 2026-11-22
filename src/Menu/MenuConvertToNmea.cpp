@@ -189,7 +189,7 @@ void MenuConvertToNmea()
         }
 
         // // Only execute magnetic heading code if navigation compass is available
-        if (gConfiguration.ram.navCompassAvailable == true)
+        if (0) //gConfiguration.ram.navCompassAvailable == true)
         {
             // Handle magnetic compass
             // Only request new reading if previous is at least 100ms old
