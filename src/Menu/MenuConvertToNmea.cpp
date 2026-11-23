@@ -60,32 +60,14 @@ extern "C"
 /*                           Local prototypes                              */
 /***************************************************************************/
 
-/**
- * Entry point for the "Convert to NMEA" menu.
- * This function starts the conversion loop and returns when the user exits.
- */
 void MenuConvertToNmea();
-
-/**
- * Save calibration data from MicronetCodec into persistent configuration (EEPROM).
- *
- * @param micronetCodec Reference to configured MicronetCodec containing calibration values.
- */
 void SaveCalibration(MicronetCodec &micronetCodec);
-
-/**
- * Load calibration data from EEPROM into the MicronetCodec instance.
- *
- * @param micronetCodec Reference to MicronetCodec to populate with stored calibration values.
- */
 void LoadCalibration(MicronetCodec &micronetCodec);
-
-/**
- * Configure Micronet slave device fields according to board configuration and user settings.
- *
- * @param micronetDevice Reference to MicronetSlaveDevice to configure (network id, data fields, etc.).
- */
 void ConfigureSlaveDevice(MicronetSlaveDevice &micronetDevice);
+void TaskI2cReader(void *pvParameters);
+void TaskNmeaInReader(void *pvParameters);
+void TaskGnssReader(void *pvParameters);
+void TaskMicronet(void *pvParameters);
 
 struct MicronetTaskParameters
 {
@@ -93,34 +75,6 @@ struct MicronetTaskParameters
     MicronetSlaveDevice *micronetDevice;
     MicronetMessageFifo *txMessageFifo;
 };
-
-/**
- * I2C reader task entry point.
- *
- * @param pvParameters Unused task parameters.
- */
-void TaskI2cReader(void *pvParameters);
-
-/**
- * NMEA input reader task entry point.
- *
- * @param pvParameters Pointer to the DataBridge instance.
- */
-void TaskNmeaInReader(void *pvParameters);
-
-/**
- * GNSS reader task entry point.
- *
- * @param pvParameters Pointer to the DataBridge instance.
- */
-void TaskGnssReader(void *pvParameters);
-
-/**
- * Micronet message processing task entry point.
- *
- * @param pvParameters Pointer to the Micronet task parameters.
- */
-void TaskMicronet(void *pvParameters);
 
 /***************************************************************************/
 /*                               Globals                                   */
@@ -275,7 +229,7 @@ void MenuConvertToNmea()
  *
  * Placeholder I2C reader task that periodically yields to the scheduler.
  *
- * @param pvParameters Unused task parameters.
+ * @param pvParameters Pointer to the DataBridge instance.
  */
 void TaskI2cReader(void *pvParameters)
 {
